@@ -180,7 +180,7 @@
         {id:'ajvar',name:'Nuclear Ajvar',icon:'🌶️',desc:'Throws explosive jars dealing AoE damage.'},
         {id:'rakija',name:'Holy Rakija',icon:'🍾',desc:'Creates purifying fire zones on the ground.'},
         {id:'pyramid',name:'Visoko Beam',icon:'⛰️',desc:'Fires a high-energy piercing triangle beam.'},
-        {id:'harmonika',name:'Harmonika',icon:'🎹',desc:'Emits a sonic shockwave that pushes enemies back.'},
+        {id:'harmonika',name:'Harmonika',icon:'🎹',desc:'Emits a sonic shockwave that pushes enemies back.', rare:true},
         {id:'speed',name:'Turbo Folk Speed',icon:'⚡',desc:'Increases Movement Speed by 20%.'},
         {id:'magnet',name:'Super Magnet',icon:'🧲',desc:'Increases Item Pickup Range by 50%.'},
         {id:'armor',name:'Kevlar Vest',icon:'🛡️',desc:'Reduces incoming damage.'},
@@ -300,7 +300,7 @@
                 ajvar: { level:0, cooldown:140, baseCool:140, timer:0, damage:80 },
                 rakija: { level:0, cooldown:190, baseCool:190, timer:0, damage:4, duration:300 }, 
                 pyramid: { level:0, cooldown:110, baseCool:110, timer:0, damage:50, evolved:false },
-                harmonika: { level:0, cooldown:600, baseCool:600, timer:0, damage:60, range:250 } 
+                harmonika: { level:0, cooldown:198, baseCool:198, timer:0, damage:60, range:250 } 
             }
         };
 
@@ -661,10 +661,9 @@
         const c=document.getElementById('cards-box'); c.innerHTML=''; document.getElementById('levelup-screen').style.display='flex';
         let pool=UPGRADES.slice(); 
         
-        // --- 1. Filter out XP Boost based on RARITY (15% chance to appear if not picked, keeps appearing) ---
-        // We only allow it in the pool 15% of the time to make it rare, regardless of how many you have.
-        // It's still in the pool array, but filtered out probabilistically here.
-        pool = pool.filter(u => u.id !== 'xp_boost' || Math.random() < 0.15);
+        // --- 1. Filter out RARE items (15% chance to appear) ---
+        // Big Brain (xp_boost) and Harmonika are rare.
+        pool = pool.filter(u => !['xp_boost', 'harmonika'].includes(u.id) || Math.random() < 0.15);
 
         // --- 2. Remove standard upgrades if WEAPON IS EVOLVED or MAXED ---
         if(player.weapons.burek.evolved || player.weapons.burek.level >= 8) { pool = pool.filter(u => u.id !== 'burek'); }
