@@ -564,7 +564,7 @@
                      document.getElementById('boss-hud').style.display='none';
                      addShake(50);
                      spawnDamageText(this.x, this.y-100, "SECTOR CLEARED", true);
-                     for(let i=0; i<30; i++) state.gems.push(new Gem(this.x + (Math.random()-0.5)*200, this.y + (Math.random()-0.5)*200, 500));
+                     for(let i=0; i<15; i++) state.gems.push(new Gem(this.x + (Math.random()-0.5)*200, this.y + (Math.random()-0.5)*200, 150));
                 } else {
                      state.gems.push(new Gem(this.x,this.y)); 
                 }
