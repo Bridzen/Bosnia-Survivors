@@ -10,7 +10,7 @@
         --bosnia-yellow:#fecb00; 
         --neon-cyan:#00f3ff; 
         --rare-blue:#2b65ff; 
-        --supercharge:#ff2a2a; /* Red for Supercharge */
+        --supercharge:#ff2a2a; 
         --legendary:#ff00ff; 
         --danger:#ff3f3f; 
         --dark:#020205; 
@@ -188,7 +188,7 @@
         {id:'coffee',name:'Bosnian Coffee',icon:'☕',desc:'Reduces all weapon cooldowns by 10%.'},
         {id:'lily',name:'Golden Lily',icon:'⚜️',desc:'Increases Critical Hit Chance by 10%.'},
         {id:'vrelo',name:'Vrelo Bosne',icon:'🏞️',desc:'Regenerates 2 HP per second.'},
-        {id:'xp_boost',name:'Big Brain',icon:'🧠',desc:'2x EXP Gain for rest of run!', rare:true}
+        {id:'xp_boost',name:'Big Brain',icon:'🧠',desc:'+100% EXP Gain (Stacks)', rare:true}
     ];
 
     // DEFINED SEPARATELY SO WE CAN SHOW IT IN ARMORY AND USE IN LOGIC
@@ -661,30 +661,22 @@
         const c=document.getElementById('cards-box'); c.innerHTML=''; document.getElementById('levelup-screen').style.display='flex';
         let pool=UPGRADES.slice(); 
         
-        // --- 1. Filter out XP Boost if taken ---
-        if(state.xpMult > 1) pool = pool.filter(u => u.id !== 'xp_boost');
+        // --- 1. Filter out XP Boost based on RARITY (15% chance to appear if not picked, keeps appearing) ---
+        // We only allow it in the pool 15% of the time to make it rare, regardless of how many you have.
+        // It's still in the pool array, but filtered out probabilistically here.
+        pool = pool.filter(u => u.id !== 'xp_boost' || Math.random() < 0.15);
 
         // --- 2. Remove standard upgrades if WEAPON IS EVOLVED or MAXED ---
-        // If Burek is Evolved or Level >= 8, remove basic 'burek' card
         if(player.weapons.burek.evolved || player.weapons.burek.level >= 8) { pool = pool.filter(u => u.id !== 'burek'); }
-        // If Pyramid is Evolved or Level >= 6, remove basic 'pyramid' card
         if(player.weapons.pyramid.evolved || player.weapons.pyramid.level >= 6) { pool = pool.filter(u => u.id !== 'pyramid'); }
 
         // --- 3. Add EVOLUTIONS if eligible ---
-        // Burek Evo (Tesla Orbs): Requires Burek Lvl 8
         if(player.weapons.burek.level>=8 && !player.weapons.burek.evolved) pool.unshift(EVOLUTIONS.find(e=>e.id==='burek_evo'));
-        // Pyramid Evo (Solar Flare): Requires Pyramid Lvl 6
         if(player.weapons.pyramid.level>=6 && !player.weapons.pyramid.evolved) pool.unshift(EVOLUTIONS.find(e=>e.id==='pyramid_evo'));
 
         // --- 4. Add SUPERCHARGES for Evolved Weapons ---
-        // If Burek is evolved, add "Supercharge Tesla"
-        if(player.weapons.burek.evolved) {
-            pool.push({id:'supercharge_burek', name:'SUPERCHARGE: TESLA', icon:'⚡', desc:'+20% Damage for Tesla Orbs.', supercharge:true});
-        }
-        // If Pyramid is evolved, add "Supercharge Solar"
-        if(player.weapons.pyramid.evolved) {
-            pool.push({id:'supercharge_pyramid', name:'SUPERCHARGE: SOLAR', icon:'🔥', desc:'+20% Damage for Solar Flare.', supercharge:true});
-        }
+        if(player.weapons.burek.evolved) pool.push({id:'supercharge_burek', name:'SUPERCHARGE: TESLA', icon:'⚡', desc:'+20% Damage for Tesla Orbs.', supercharge:true});
+        if(player.weapons.pyramid.evolved) pool.push({id:'supercharge_pyramid', name:'SUPERCHARGE: SOLAR', icon:'🔥', desc:'+20% Damage for Solar Flare.', supercharge:true});
 
         let opts=(pool.length>3 && !pool[0].legendary) ? pool.sort(()=>0.5-Math.random()).slice(0,3) : pool.slice(0,3);
         
@@ -723,7 +715,9 @@
         
         if(id==='speed')player.speed*=1.15; if(id==='magnet')player.magnetRadius+=50; if(id==='armor')player.armor+=1.5; if(id==='heal')player.hp=Math.min(player.maxHp,player.hp+50);
         if(id==='coffee')player.cdr*=0.9; if(id==='lily')player.critChance+=0.10; if(id==='vrelo')player.regen+=2;
-        if(id==='xp_boost') state.xpMult = 2;
+        
+        // XP BOOST STACKING
+        if(id==='xp_boost') state.xpMult += 1; // Stacks additively: 1x -> 2x -> 3x
 
         ['cevapi','ajvar','rakija','pyramid','harmonika'].forEach(w=>{ player.weapons[w].cooldown = player.weapons[w].baseCool * player.cdr; });
 
