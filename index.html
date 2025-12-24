@@ -212,7 +212,7 @@
         {name:'Promaja', icon:'💨', desc:'The silent killer. Weak but fast.'},
         {name:'Yugo 45', icon:'🚗', desc:'Tanky unit. Hard to destroy, hits like a truck.'},
         {name:'Hornet', icon:'🐝', desc:'Swarm unit. Attacks in groups.'},
-        {name:'WARLORD', icon:'👹', desc:'The Final Boss. Immune to Nuke/Freeze. 35000 HP.'}
+        {name:'WARLORD', icon:'👹', desc:'The Final Boss. Immune to Nuke/Freeze. 2500 HP.'}
     ];
 
     // GAME VARIABLES
@@ -498,7 +498,7 @@
             if(isBoss) {
                 this.type='BOSS'; 
                 // HUGE HP BUFF for First Boss
-                this.hp=35000; this.maxHp=35000; 
+                this.hp=2500; this.maxHp=2500; 
                 this.speed=2.2; this.radius=60; 
                 this.frozen=0; this.hitFlash=0; this.pushX=0; this.pushY=0;
                 this.attackTimer = 180; // 3 seconds cooldown
