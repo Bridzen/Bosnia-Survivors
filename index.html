@@ -300,7 +300,8 @@
                 ajvar: { level:0, cooldown:140, baseCool:140, timer:0, damage:80 },
                 rakija: { level:0, cooldown:190, baseCool:190, timer:0, damage:4, duration:300 }, 
                 pyramid: { level:0, cooldown:110, baseCool:110, timer:0, damage:50, evolved:false },
-                harmonika: { level:0, cooldown:198, baseCool:198, timer:0, damage:60, range:250 } 
+                // HARMONIKA BUFFED: Cooldown 198->186 (-0.2s), Range 250->500 (2x)
+                harmonika: { level:0, cooldown:186, baseCool:186, timer:0, damage:60, range:500 } 
             }
         };
 
@@ -440,7 +441,11 @@
         constructor(x,y,type,dur){this.x=x;this.y=y;this.life=dur;this.radius=90;if(type==='harmonika')this.radius=150;}
         update(){ 
             this.life--; 
-            if(this.type==='harmonika') { this.radius+=5; if(this.life%5===0)createParticle(this.x+(Math.random()-0.5)*100, this.y+(Math.random()-0.5)*100, '#fff', 'note'); }
+            if(this.type==='harmonika') { 
+                // Increased expansion speed from 5 to 25 to match new massive range
+                this.radius+=25; 
+                if(this.life%5===0)createParticle(this.x+(Math.random()-0.5)*100, this.y+(Math.random()-0.5)*100, '#fff', 'note'); 
+            }
             else if(state.frames%10===0) state.enemies.forEach(e=>{if(Math.hypot(e.x-this.x,e.y-this.y)<this.radius){
                 let dmg = calcDamage(player.weapons.rakija.damage);
                 e.takeDamage(dmg.d, false);
@@ -661,9 +666,8 @@
         const c=document.getElementById('cards-box'); c.innerHTML=''; document.getElementById('levelup-screen').style.display='flex';
         let pool=UPGRADES.slice(); 
         
-        // --- 1. Filter out RARE items (15% chance to appear) ---
-        // Big Brain (xp_boost) and Harmonika are rare.
-        pool = pool.filter(u => !['xp_boost', 'harmonika'].includes(u.id) || Math.random() < 0.15);
+        // FIXED: Increased rarity chance from 0.15 to 0.30 so Big Brain appears more often
+        pool = pool.filter(u => !['xp_boost', 'harmonika'].includes(u.id) || Math.random() < 0.30);
 
         // --- 2. Remove standard upgrades if WEAPON IS EVOLVED or MAXED ---
         if(player.weapons.burek.evolved || player.weapons.burek.level >= 8) { pool = pool.filter(u => u.id !== 'burek'); }
@@ -707,10 +711,23 @@
             if(player.weapons.cevapi.level === 2) { player.weapons.cevapi.damage = 25; player.weapons.cevapi.baseCool *= 0.85; } else { player.weapons.cevapi.damage += 10; player.weapons.cevapi.baseCool *= 0.85; }
         }
 
-        if(id==='ajvar'){if(player.weapons.ajvar.level===0)player.weapons.ajvar.level=1;else{player.weapons.ajvar.baseCool*=0.85;player.weapons.ajvar.damage+=20;}}
-        if(id==='rakija'){if(player.weapons.rakija.level===0)player.weapons.rakija.level=1;else{player.weapons.rakija.baseCool*=0.85;player.weapons.rakija.damage+=2;}}
-        if(id==='pyramid'){if(player.weapons.pyramid.level===0)player.weapons.pyramid.level=1;else{player.weapons.pyramid.baseCool*=0.85;player.weapons.pyramid.damage+=15;}}
-        if(id==='harmonika'){if(player.weapons.harmonika.level===0)player.weapons.harmonika.level=1;else{player.weapons.harmonika.baseCool*=0.80;player.weapons.harmonika.range+=40;player.weapons.harmonika.damage+=20;}}
+        // FIXED: ADDED level++ TO ALL WEAPONS BELOW SO THEY CAN ACTUALLY EVOLVE
+        if(id==='ajvar'){
+            player.weapons.ajvar.level++;
+            if(player.weapons.ajvar.level>1){player.weapons.ajvar.baseCool*=0.85;player.weapons.ajvar.damage+=20;}
+        }
+        if(id==='rakija'){
+            player.weapons.rakija.level++;
+            if(player.weapons.rakija.level>1){player.weapons.rakija.baseCool*=0.85;player.weapons.rakija.damage+=2;}
+        }
+        if(id==='pyramid'){
+            player.weapons.pyramid.level++; // Fixed missing level increment
+            if(player.weapons.pyramid.level>1){player.weapons.pyramid.baseCool*=0.85;player.weapons.pyramid.damage+=15;}
+        }
+        if(id==='harmonika'){
+            player.weapons.harmonika.level++;
+            if(player.weapons.harmonika.level>1){player.weapons.harmonika.baseCool*=0.80;player.weapons.harmonika.range+=40;player.weapons.harmonika.damage+=20;}
+        }
         
         if(id==='speed')player.speed*=1.15; if(id==='magnet')player.magnetRadius+=50; if(id==='armor')player.armor+=1.5; if(id==='heal')player.hp=Math.min(player.maxHp,player.hp+50);
         if(id==='coffee')player.cdr*=0.9; if(id==='lily')player.critChance+=0.10; if(id==='vrelo')player.regen+=2;
