@@ -239,7 +239,7 @@
         {id:'cevapi',name:'Rapid Cevapi',icon:'🌭',desc:'Fires delicious grilled meat missiles at nearest targets.'},
         {id:'ajvar',name:'Nuclear Ajvar',icon:'🌶️',desc:'Throws explosive jars of pepper paste dealing AoE damage.'},
         {id:'rakija',name:'Holy Rakija',icon:'🍾',desc:'Smashes bottles creating purifying fire zones on the ground.'},
-        {id:'pyramid',name:'Visoko Beam',icon:'⛰️',desc:'Fires a massive high-energy piercing triangle beam.'},
+        {id:'pyramid',name:'Visoko Beam',icon:'⛰️',desc:'Fires a high-energy piercing triangle beam.'},
         {id:'harmonika',name:'Harmonika',icon:'🎹',desc:'Emits a sonic shockwave that pushes enemies back.', rare:true},
         {id:'speed',name:'Turbo Folk Speed',icon:'⚡',desc:'Increases Movement Speed by 20%.'},
         {id:'magnet',name:'Super Magnet',icon:'🧲',desc:'Increases Item Pickup Range by 50%.'},
@@ -425,8 +425,8 @@
                 cevapi: { level:1, cooldown:30, baseCool:30, timer:0, damage:15 }, 
                 ajvar: { level:0, cooldown:140, baseCool:140, timer:0, damage:80 },
                 rakija: { level:0, cooldown:190, baseCool:190, timer:0, damage:4, duration:300 }, 
-                // BUFFED: Base damage 50 -> 100
-                pyramid: { level:0, cooldown:110, baseCool:110, timer:0, damage:100, evolved:false },
+                // REVERTED: Base damage back to 50
+                pyramid: { level:0, cooldown:110, baseCool:110, timer:0, damage:50, evolved:false },
                 harmonika: { level:0, cooldown:186, baseCool:186, timer:0, damage:60, range:500 } 
             }
         };
@@ -581,8 +581,8 @@
             if(type==='cevapi'){this.speed=14;this.radius=8;} 
             else if(type==='ajvar'){this.speed=8;this.radius=10;}
             else if(type==='rakija'){this.speed=10;this.radius=8;} 
-            // BUFFED: Radius 25 -> 100 (4x)
-            else if(type==='pyramid'){this.speed=7;this.radius=100;this.life=300;this.pierce=true;}
+            // REVERTED: Radius 100 -> 25
+            else if(type==='pyramid'){this.speed=7;this.radius=25;this.life=300;this.pierce=true;}
             this.vx=Math.cos(a)*this.speed; this.vy=Math.sin(a)*this.speed;
         }
         update(){
@@ -636,8 +636,7 @@
                 ctx.fillStyle='#aaa'; ctx.fillRect(-3, -14, 6, 4); // Neck
             }
             else if(this.type==='pyramid'){ 
-                // BUFFED: Visual Size x4
-                ctx.scale(4,4);
+                // REVERTED: Normal scale
                 ctx.fillStyle='#00ff00';
                 ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(15,15);ctx.lineTo(-15,15);ctx.fill();
                 ctx.fillStyle='#fff';ctx.globalCompositeOperation='lighter';
@@ -928,7 +927,8 @@
                         const endX = player.x + Math.cos(angle) * 1200;
                         const endY = player.y + Math.sin(angle) * 1200;
                         state.enemies.forEach(e => {
-                            if(lineCircleCollide(e.x, e.y, player.x, player.y, endX, endY, e.radius + 20)) {
+                            // BUFFED: Hit width 4x (20 -> 100)
+                            if(lineCircleCollide(e.x, e.y, player.x, player.y, endX, endY, e.radius + 100)) {
                                 let dmg = calcDamage(wp.damage); 
                                 e.takeDamage(dmg.d, dmg.c, 'beam');
                                 createParticle(e.x, e.y, '#fecb00', 'spark', 1.5);
@@ -1186,8 +1186,8 @@
         }
         if(id==='pyramid'){
             player.weapons.pyramid.level++; 
-            // BUFFED: Level up damage 15 -> 30
-            if(player.weapons.pyramid.level>1){player.weapons.pyramid.baseCool*=0.85;player.weapons.pyramid.damage+=30;}
+            // REVERTED: Level up damage back to 15
+            if(player.weapons.pyramid.level>1){player.weapons.pyramid.baseCool*=0.85;player.weapons.pyramid.damage+=15;}
         }
         if(id==='harmonika'){
             player.weapons.harmonika.level++;
