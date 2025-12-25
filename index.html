@@ -239,7 +239,7 @@
         {id:'cevapi',name:'Rapid Cevapi',icon:'🌭',desc:'Fires delicious grilled meat missiles at nearest targets.'},
         {id:'ajvar',name:'Nuclear Ajvar',icon:'🌶️',desc:'Throws explosive jars of pepper paste dealing AoE damage.'},
         {id:'rakija',name:'Holy Rakija',icon:'🍾',desc:'Smashes bottles creating purifying fire zones on the ground.'},
-        {id:'pyramid',name:'Visoko Beam',icon:'⛰️',desc:'Fires a high-energy piercing triangle beam.'},
+        {id:'pyramid',name:'Visoko Beam',icon:'⛰️',desc:'Fires a massive high-energy piercing triangle beam.'},
         {id:'harmonika',name:'Harmonika',icon:'🎹',desc:'Emits a sonic shockwave that pushes enemies back.', rare:true},
         {id:'speed',name:'Turbo Folk Speed',icon:'⚡',desc:'Increases Movement Speed by 20%.'},
         {id:'magnet',name:'Super Magnet',icon:'🧲',desc:'Increases Item Pickup Range by 50%.'},
@@ -278,7 +278,7 @@
         keys[e.key.toLowerCase()]=true;
         if(e.key === "Escape" && gameActive) togglePause();
         
-        // ADMIN CHEAT LISTENER (FIXED: Ignores Shift/Backspace)
+        // ADMIN CHEAT LISTENER
         if(e.key.length === 1) {
             inputBuffer += e.key;
             if(inputBuffer.length > CHEAT_CODE.length) inputBuffer = inputBuffer.slice(-CHEAT_CODE.length);
@@ -425,7 +425,8 @@
                 cevapi: { level:1, cooldown:30, baseCool:30, timer:0, damage:15 }, 
                 ajvar: { level:0, cooldown:140, baseCool:140, timer:0, damage:80 },
                 rakija: { level:0, cooldown:190, baseCool:190, timer:0, damage:4, duration:300 }, 
-                pyramid: { level:0, cooldown:110, baseCool:110, timer:0, damage:50, evolved:false },
+                // BUFFED: Base damage 50 -> 100
+                pyramid: { level:0, cooldown:110, baseCool:110, timer:0, damage:100, evolved:false },
                 harmonika: { level:0, cooldown:186, baseCool:186, timer:0, damage:60, range:500 } 
             }
         };
@@ -547,15 +548,16 @@
             const opacity = this.life / this.maxLife;
             // Core
             ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
-            ctx.lineWidth = 10 * opacity;
-            // OPTIMIZATION: Removed shadowBlur
+            // BUFFED: Visual width 4x (10 -> 40)
+            ctx.lineWidth = 40 * opacity;
             ctx.beginPath();
             ctx.moveTo(this.x - cX, this.y - cY);
             ctx.lineTo((this.x - cX) + Math.cos(this.angle) * this.length, (this.y - cY) + Math.sin(this.angle) * this.length);
             ctx.stroke();
             // Outer Glow
             ctx.strokeStyle = `rgba(255, 100, 0, ${opacity*0.5})`;
-            ctx.lineWidth = 30 * opacity;
+            // BUFFED: Visual width 4x (30 -> 120)
+            ctx.lineWidth = 120 * opacity;
             ctx.stroke();
             ctx.restore();
         }
@@ -579,7 +581,8 @@
             if(type==='cevapi'){this.speed=14;this.radius=8;} 
             else if(type==='ajvar'){this.speed=8;this.radius=10;}
             else if(type==='rakija'){this.speed=10;this.radius=8;} 
-            else if(type==='pyramid'){this.speed=7;this.radius=25;this.life=300;this.pierce=true;}
+            // BUFFED: Radius 25 -> 100 (4x)
+            else if(type==='pyramid'){this.speed=7;this.radius=100;this.life=300;this.pierce=true;}
             this.vx=Math.cos(a)*this.speed; this.vy=Math.sin(a)*this.speed;
         }
         update(){
@@ -633,6 +636,8 @@
                 ctx.fillStyle='#aaa'; ctx.fillRect(-3, -14, 6, 4); // Neck
             }
             else if(this.type==='pyramid'){ 
+                // BUFFED: Visual Size x4
+                ctx.scale(4,4);
                 ctx.fillStyle='#00ff00';
                 ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(15,15);ctx.lineTo(-15,15);ctx.fill();
                 ctx.fillStyle='#fff';ctx.globalCompositeOperation='lighter';
@@ -950,7 +955,7 @@
             wh.timer=0;
         }}
 
-        state.gems=state.gems.filter(g=>!g.update()); state.zones=state.zones.filter(z=>!z.update()); state.perks=state.perks.filter(p=>!p.update());
+        state.gems=state.gems.filter(g=>!g.update()); state.zones=state.zones.filter(z=>!z.update()); state.perks=state.perks.filter(p=>p.update());
         state.beams=state.beams.filter(b=>b.update());
         
         // PROJECTILES
@@ -969,11 +974,14 @@
 
             if(p.type==='pyramid'&&p.life>0){
                 state.enemies.forEach(e=>{
-                    if(Math.hypot(e.x-p.x,e.y-p.y)<e.radius+25){
+                    // FIXED: Collision check uses projectile radius now
+                    if(Math.hypot(e.x-p.x,e.y-p.y)<e.radius+p.radius){
+                        // FIXED: Added check for hit list to prevent insta-shred
                         if(!p.pierceHitList.includes(e)) {
                              let dmg=calcDamage(player.weapons.pyramid.damage); 
                              e.takeDamage(dmg.d, dmg.c, 'projectile');
                              createParticle(e.x,e.y,'#0f0','spark');
+                             p.pierceHitList.push(e); // Added to list
                         }
                     }
                 });
@@ -1155,7 +1163,8 @@
 
     function applyUpgrade(id){
         if(id==='burek_evo'){player.weapons.burek.evolved=true;player.weapons.burek.speed=0.06;player.weapons.burek.dist=140;player.weapons.burek.count+=1;}
-        if(id==='pyramid_evo'){player.weapons.pyramid.evolved=true;player.weapons.pyramid.damage=200;player.weapons.pyramid.baseCool=180;player.weapons.pyramid.timer=0;}
+        // BUFFED: Evo damage 200 -> 400
+        if(id==='pyramid_evo'){player.weapons.pyramid.evolved=true;player.weapons.pyramid.damage=400;player.weapons.pyramid.baseCool=180;player.weapons.pyramid.timer=0;}
         
         if(id==='supercharge_burek'){ player.weapons.burek.damage *= 1.2; spawnDamageText(player.x, player.y-50, "POWER UP!", true); }
         if(id==='supercharge_pyramid'){ player.weapons.pyramid.damage *= 1.2; spawnDamageText(player.x, player.y-50, "POWER UP!", true); }
@@ -1177,7 +1186,8 @@
         }
         if(id==='pyramid'){
             player.weapons.pyramid.level++; 
-            if(player.weapons.pyramid.level>1){player.weapons.pyramid.baseCool*=0.85;player.weapons.pyramid.damage+=15;}
+            // BUFFED: Level up damage 15 -> 30
+            if(player.weapons.pyramid.level>1){player.weapons.pyramid.baseCool*=0.85;player.weapons.pyramid.damage+=30;}
         }
         if(id==='harmonika'){
             player.weapons.harmonika.level++;
