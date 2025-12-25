@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bosnian Survivors: NEON OPTIMIZED</title>
+<title>Bosnian Survivors: NEON OPTIMIZED + ADMIN</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
     :root { 
@@ -30,7 +30,7 @@
     
     .stat-box { 
         background:rgba(0, 10, 30, 0.6); 
-        backdrop-filter:blur(4px); /* Reduced Blur */
+        backdrop-filter:blur(4px); 
         border:1px solid rgba(0, 243, 255, 0.2); 
         border-bottom:3px solid var(--bosnia-yellow); 
         padding:8px 25px; 
@@ -73,6 +73,13 @@
         position: relative; overflow: hidden;
     }
     .menu-btn:hover { background:var(--bosnia-yellow); color:black; border-color:white; font-weight: 800; }
+
+    /* ADMIN PANEL */
+    #admin-panel { display:none; border:2px solid var(--danger); background:rgba(0,0,0,0.9); }
+    .admin-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; width:500px; padding:20px; }
+    .admin-btn { background:#333; border:1px solid #555; color:white; padding:10px; cursor:pointer; font-family:'Orbitron'; text-transform:uppercase; transition:0.2s; }
+    .admin-btn:hover { background:var(--danger); color:black; }
+    .admin-header { font-family:'Orbitron'; color:var(--danger); font-size:30px; margin-bottom:20px; text-shadow:0 0 10px red; }
 
     /* INFO GRIDS */
     .info-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:20px; max-width:1100px; width:90%; padding:20px; }
@@ -139,7 +146,7 @@
 <!-- MAIN MENU -->
 <div id="main-menu" class="screen-overlay" style="display:flex;">
     <h1 class="title-glitch">BOSNIAN<br><span style="color:var(--bosnia-yellow)">SURVIVORS</span></h1>
-    <h3 style="font-family:'Rajdhani'; letter-spacing:5px; color:var(--neon-cyan); margin-top:-20px;">PERFORMANCE EDITION</h3>
+    <h3 style="font-family:'Rajdhani'; letter-spacing:5px; color:var(--neon-cyan); margin-top:-20px;">ADMIN EDITION</h3>
     <div style="height:40px;"></div>
     <button class="menu-btn" onclick="startGame()">DEPLOY</button>
     <button class="menu-btn" onclick="openInfo('armory')">ARMORY</button>
@@ -151,6 +158,20 @@
     <button class="close-btn" onclick="closeInfo()">×</button>
     <h1 id="info-title" style="font-family:'Orbitron'; color:var(--bosnia-yellow); margin-top:50px; font-size: 40px; text-shadow: 0 0 10px var(--bosnia-yellow);">DATA</h1>
     <div id="info-content" class="info-grid"></div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel" class="screen-overlay">
+    <div class="admin-header">/// DEBUG CONTROL ///</div>
+    <div class="admin-grid">
+        <button class="admin-btn" onclick="toggleGodMode()">Toggle God Mode</button>
+        <button class="admin-btn" onclick="adminLevelUp()">+1 Level</button>
+        <button class="admin-btn" onclick="adminKillAll()">Kill All Enemies</button>
+        <button class="admin-btn" onclick="spawnBoss()">Force Boss Spawn</button>
+        <button class="admin-btn" onclick="adminMaxWeapons()">Max All Weapons</button>
+        <button class="admin-btn" onclick="adminHeal()">Full Heal</button>
+    </div>
+    <button class="menu-btn" style="width:200px; margin-top:20px;" onclick="closeAdmin()">RESUME</button>
 </div>
 
 <!-- PAUSE MENU -->
@@ -185,6 +206,7 @@
             <button id="pause-btn" onclick="togglePause()">||</button>
         </div>
     </div>
+    <div id="god-mode-indicator" style="display:none; position:fixed; bottom:20px; left:20px; color:var(--danger); font-family:'Orbitron'; font-size:20px; text-shadow:0 0 10px red;">GOD MODE ACTIVE</div>
 </div>
 
 <div id="levelup-screen" class="screen-overlay">
@@ -206,6 +228,11 @@
     const canvas = document.getElementById('game'), ctx = canvas.getContext('2d', { alpha: false });
     let W, H;
     
+    // ADMIN VARS
+    const CHEAT_CODE = "Roblox13_isme";
+    let inputBuffer = "";
+    let godMode = false;
+
     // ASSETS
     const UPGRADES=[
         {id:'burek',name:'Golden Burek',icon:'🥐',desc:'Spawns rotating golden pastry shields that damage enemies.'},
@@ -250,11 +277,63 @@
     window.addEventListener('keydown', e=>{
         keys[e.key.toLowerCase()]=true;
         if(e.key === "Escape" && gameActive) togglePause();
+        
+        // ADMIN CHEAT LISTENER
+        inputBuffer += e.key;
+        if(inputBuffer.length > CHEAT_CODE.length) inputBuffer = inputBuffer.slice(-CHEAT_CODE.length);
+        if(inputBuffer === CHEAT_CODE){
+            openAdmin();
+        }
     }); 
     window.addEventListener('keyup', e=>keys[e.key.toLowerCase()]=false);
     
     let mouseX = 0, mouseY = 0;
     window.addEventListener('mousemove', e=>{ mouseX=e.clientX; mouseY=e.clientY; });
+
+    // --- ADMIN FUNCTIONS ---
+    function openAdmin(){
+        if(!gameActive) return;
+        document.getElementById('admin-panel').style.display='flex';
+        if(!isPaused) togglePause();
+    }
+    function closeAdmin(){
+        document.getElementById('admin-panel').style.display='none';
+        if(isPaused) togglePause();
+    }
+    function toggleGodMode(){
+        godMode = !godMode;
+        document.getElementById('god-mode-indicator').style.display = godMode ? 'block' : 'none';
+        spawnDamageText(player.x, player.y-60, godMode ? "GOD MODE ON" : "GOD MODE OFF", true);
+        closeAdmin();
+    }
+    function adminLevelUp(){
+        state.xp = state.nextLevelXp;
+        checkLevelUp();
+        closeAdmin();
+    }
+    function adminKillAll(){
+        state.enemies.forEach(e => {
+            if(e.type !== 'BOSS') e.takeDamage(99999, true);
+        });
+        closeAdmin();
+    }
+    function adminHeal(){
+        player.hp = player.maxHp;
+        updateHud();
+        closeAdmin();
+    }
+    function adminMaxWeapons(){
+        // Maxes basic stats
+        applyUpgrade('burek_evo');
+        applyUpgrade('pyramid_evo');
+        player.weapons.cevapi.level = 10; player.weapons.cevapi.damage=200;
+        player.weapons.ajvar.level = 10; player.weapons.ajvar.damage=500;
+        player.weapons.rakija.level = 10; player.weapons.rakija.damage=50;
+        player.weapons.harmonika.level = 10; player.weapons.harmonika.range=800;
+        player.speed = 10;
+        player.magnetRadius = 500;
+        closeAdmin();
+    }
 
     // --- MENU SYSTEM ---
 
@@ -302,6 +381,7 @@
         document.getElementById('pause-screen').style.display='none';
         document.getElementById('ui-layer').style.display='none';
         document.getElementById('boss-hud').style.display='none';
+        document.getElementById('admin-panel').style.display='none';
         document.getElementById('main-menu').style.display='flex';
     }
 
@@ -327,6 +407,8 @@
     function resetGame(){
         gameActive = true;
         isPaused = false;
+        godMode = false;
+        document.getElementById('god-mode-indicator').style.display='none';
         state = { 
             frames:0, score:0, level:1, xp:0, nextLevelXp:20, xpMult:1, shake:0, 
             enemies:[], particles:[], projectiles:[], beams:[], zones:[], texts:[], gems:[], perks:[], backgroundStars:[],
@@ -350,6 +432,7 @@
         document.getElementById('levelup-screen').style.display='none';
         document.getElementById('pause-screen').style.display='none';
         document.getElementById('boss-hud').style.display='none';
+        document.getElementById('admin-panel').style.display='none';
         document.getElementById('ui-layer').style.display='flex';
         updateHud();
     }
@@ -752,6 +835,7 @@
     }
     
     function spawnBoss(){
+        if(state.bossActive) return;
         state.bossActive = true;
         state.enemies = []; 
         state.flashAlpha = 1.0;
@@ -872,9 +956,9 @@
         state.projectiles=state.projectiles.filter(p=>{
             if(p.type === 'boss_missile') {
                 if(Math.hypot(p.x-player.x, p.y-player.y) < player.radius + 10) {
-                    player.hp -= 40; 
+                    if(!godMode) player.hp -= 40; 
                     addShake(20);
-                    spawnDamageText(player.x, player.y-50, "40", true);
+                    spawnDamageText(player.x, player.y-50, godMode ? "BLOCKED" : "40", true);
                     updateHud();
                     return false; 
                 }
@@ -901,7 +985,7 @@
             let safeDist = player.radius + e.radius - 5;
             if(!e.frozen && Math.hypot(e.x-player.x,e.y-player.y)<safeDist){ 
                 let dmgAmt = e.type==='BOSS' ? 2 : (Math.max(0.1,((e.type==='yugo'?1:0.4)-(player.armor*0.05))));
-                player.hp-=dmgAmt; 
+                if(!godMode) player.hp-=dmgAmt; 
                 addShake(2); updateHud(); if(player.hp<=0){document.getElementById('final-score').innerText=state.score;document.getElementById('game-over').style.display='flex';gameActive=false;} 
             }
             
@@ -965,7 +1049,6 @@
         ctx.globalCompositeOperation = 'source-over';
 
         // Player Sprite
-        // OPTIMIZATION: Kept player shadow as it's single entity
         ctx.shadowBlur=15; ctx.shadowColor='rgba(254,203,0,0.5)'; 
         ctx.fillStyle='#c0392b'; 
         ctx.beginPath(); ctx.moveTo(-10,0); ctx.lineTo(10,0); ctx.lineTo(15,35); ctx.lineTo(-15,35); ctx.fill();
@@ -989,13 +1072,11 @@
             ctx.save(); ctx.translate(bx,by);
             if(bur.evolved){ 
                 ctx.globalCompositeOperation = 'lighter';
-                // OPTIMIZATION: Reduced shadow
                 ctx.strokeStyle='#00f3ff';ctx.lineWidth=3;
                 ctx.beginPath();ctx.arc(0,0,15,0,6.28);ctx.stroke();
                 ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,8,0,6.28); ctx.fill();
             } else { 
                 ctx.rotate(ang*4);
-                // OPTIMIZATION: Reduced shadow
                 ctx.strokeStyle='#e67e22';ctx.lineWidth=4;
                 // Spiral
                 ctx.beginPath();
@@ -1038,7 +1119,6 @@
         state.texts.forEach(t=>{
             ctx.fillStyle=t.color;
             ctx.font=`bold ${18*t.scale}px Orbitron`;
-            // OPTIMIZATION: Removed Text Shadow
             ctx.fillText(t.val,t.x-cX,t.y-cY);
         });
     }
@@ -1109,7 +1189,11 @@
 
         ['cevapi','ajvar','rakija','pyramid','harmonika'].forEach(w=>{ player.weapons[w].cooldown = player.weapons[w].baseCool * player.cdr; });
 
-        document.getElementById('levelup-screen').style.display='none'; updateHud(); isPaused=false;
+        if(document.getElementById('levelup-screen').style.display === 'flex'){
+             document.getElementById('levelup-screen').style.display='none'; 
+             updateHud(); 
+             isPaused=false;
+        }
     }
     gameLoop();
 </script>
