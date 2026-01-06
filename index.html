@@ -516,10 +516,10 @@
             if(this.attackTimer > 180) { // 3 seconds
                 this.attackTimer = 0;
                 addShake(5);
-                state.zones.push(new Zone(this.x, this.y, 'valk_swing', 10));
+                state.zones.push(new Zone(this.x, this.y, 'valk_swing', 15));
                 let dmg = 50 + (5 * state.level);
                 state.enemies.forEach(e => {
-                    if(Math.hypot(e.x - this.x, e.y - this.y) < 140) {
+                    if(Math.hypot(e.x - this.x, e.y - this.y) < 160) {
                         e.takeDamage(dmg, true, 'friendly');
                     }
                 });
@@ -742,7 +742,7 @@
         }
     }
     class Zone {
-        constructor(x,y,type,dur){this.x=x;this.y=y;this.life=dur;this.radius=90;this.type=type;if(type==='harmonika')this.radius=150; if(type==='blast') this.radius=120; if(type==='valk_swing') this.radius=140;}
+        constructor(x,y,type,dur){this.x=x;this.y=y;this.life=dur;this.maxLife=dur;this.radius=90;this.type=type;if(type==='harmonika')this.radius=150; if(type==='blast') this.radius=120; if(type==='valk_swing') this.radius=160;}
         update(){ 
             this.life--; 
             if(this.type==='blast' || this.type==='valk_swing') return this.life<=0;
@@ -760,13 +760,37 @@
         }
         draw(cX,cY){ 
             if(this.type === 'valk_swing') {
-                 ctx.save(); ctx.translate(this.x-cX, this.y-cY);
-                 ctx.globalCompositeOperation = 'lighter';
-                 ctx.strokeStyle = `rgba(0, 100, 255, ${this.life/10})`;
-                 ctx.lineWidth = 10;
-                 ctx.beginPath(); ctx.arc(0,0,this.radius, 0, 6.28); ctx.stroke();
-                 ctx.fillStyle = `rgba(0, 255, 255, ${this.life/20})`;
-                 ctx.fill();
+                 // SWORD SPIN ANIMATION
+                 ctx.save(); 
+                 ctx.translate(this.x-cX, this.y-cY);
+                 
+                 // Spin calculations
+                 let progress = 1 - (this.life / this.maxLife); // 0 to 1
+                 let angle = progress * Math.PI * 2; // 360 degrees
+                 
+                 // Trail effect
+                 ctx.beginPath();
+                 ctx.arc(0, 0, this.radius, angle - 1, angle, false);
+                 ctx.lineWidth = 40;
+                 ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 * (1-progress)})`;
+                 ctx.stroke();
+
+                 // Draw Sword
+                 ctx.rotate(angle);
+                 ctx.translate(20, 0); // Offset from center
+                 
+                 // Blade
+                 let grad = ctx.createLinearGradient(0,0, 100, 0);
+                 grad.addColorStop(0, '#aaa'); grad.addColorStop(1, '#fff');
+                 ctx.fillStyle = grad;
+                 ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(120, 0); ctx.lineTo(0, 5); ctx.fill();
+                 
+                 // Crossguard
+                 ctx.fillStyle = '#444'; ctx.fillRect(-5, -15, 10, 30);
+                 
+                 // Hilt
+                 ctx.fillStyle = '#654321'; ctx.fillRect(-25, -4, 20, 8);
+
                  ctx.restore();
                  return;
             }
@@ -853,6 +877,19 @@
                 // Attack friendly if friendly is closer AND player is somewhat far away
                 if(dFriendly < dPlayer && dPlayer > 120) {
                     targetX = state.friendlyUnit.x; targetY = state.friendlyUnit.y;
+                }
+
+                // --- WALL COLLISION LOGIC ---
+                // If this enemy hits the Friendly Unit, STOP moving (Push back)
+                let distToFriendly = Math.hypot(state.friendlyUnit.x - this.x, state.friendlyUnit.y - this.y);
+                let collisionDist = state.friendlyUnit.radius + this.radius;
+                
+                if(distToFriendly < collisionDist) {
+                    // Calculate push angle
+                    let ang = Math.atan2(this.y - state.friendlyUnit.y, this.x - state.friendlyUnit.x);
+                    // Push out to edge
+                    this.x = state.friendlyUnit.x + Math.cos(ang) * collisionDist;
+                    this.y = state.friendlyUnit.y + Math.sin(ang) * collisionDist;
                 }
             }
 
@@ -1234,7 +1271,7 @@
                 addShake(2); updateHud(); if(player.hp<=0){document.getElementById('final-score').innerText=state.score;document.getElementById('game-over').style.display='flex';gameActive=false;} 
             }
 
-            // Friendly Unit Collision
+            // Friendly Unit Collision (Attack / Damage Logic)
             if(state.friendlyUnit && !state.friendlyUnit.dead && !e.frozen) {
                 if(Math.hypot(e.x - state.friendlyUnit.x, e.y - state.friendlyUnit.y) < state.friendlyUnit.radius + e.radius) {
                     // Call takeDamage, amount is irrelevant
