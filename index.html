@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bosnian Survivors: VS WAVES</title>
+<title>Bosnian Survivors: LEGENDARY ALLY</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
     :root { 
@@ -15,7 +15,7 @@
         --danger:#ff003c; 
         --dark:#050510; 
     }
-    body { margin:0; overflow:hidden; background-color:var(--dark); font-family:'Rajdhani', sans-serif; color:white; user-select:none; cursor:crosshair; }
+    body { margin:0; overflow:hidden; background-color:var(--dark); font-family:'Rajdhani', sans-serif; color:white; user-select:none; }
     
     #crt-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999;
@@ -101,7 +101,7 @@
     .card { 
         background:linear-gradient(170deg, #0a0a15 0%, #101025 100%); 
         border:1px solid #333; 
-        width:220px; height:340px; 
+        width:220px; height:360px; 
         border-radius:2px; padding:20px; 
         cursor:pointer; transition:0.3s; 
         display:flex; flex-direction:column; align-items:center; text-align:center; 
@@ -116,6 +116,7 @@
     .card.rare { border-color: var(--rare-blue); background:linear-gradient(170deg, #051025 0%, #000 100%); }
     .card.rare::after { background: var(--rare-blue); }
     .card.rare .card-name { color: var(--rare-blue); }
+    
     .card.legendary { border-color: var(--legendary); background:linear-gradient(170deg, #1a0025 0%, #000 100%); }
     .card.legendary::after { background: var(--legendary); }
     .card.legendary .card-name { color: var(--legendary); text-shadow: 0 0 5px var(--legendary); }
@@ -244,6 +245,7 @@
         {id:'rakija',name:'Holy Rakija',icon:'🍾',desc:'Smashes bottles creating purifying fire zones on the ground.'},
         {id:'pyramid',name:'Visoko Beam',icon:'⛰️',desc:'Fires a high-energy piercing triangle beam.'},
         {id:'harmonika',name:'Harmonika',icon:'🎹',desc:'Emits a sonic shockwave that pushes enemies back.', rare:true},
+        {id:'serbian',name:'Serbian Attacker',icon:'⚔️',desc:'Summons a Legendary Warrior to distract and crush enemies. 30s Respawn.', legendary:true},
         {id:'speed',name:'Turbo Folk Speed',icon:'⚡',desc:'Increases Movement Speed by 20%.'},
         {id:'magnet',name:'Super Magnet',icon:'🧲',desc:'Increases Item Pickup Range by 50%.'},
         {id:'armor',name:'Kevlar Vest',icon:'🛡️',desc:'Reduces incoming damage.'},
@@ -263,15 +265,19 @@
         {name:'Promaja', icon:'💨', desc:'The silent killer. A swirling vortex of cold air.'},
         {name:'Yugo 45', icon:'🚗', desc:'Tanky unit. Hard to destroy, hits like a truck.'},
         {name:'Hornet', icon:'🐝', desc:'Swarm unit. Fast, aggressive, attacks in groups.'},
-        {name:'WARLORD', icon:'👹', desc:'The Final Boss. Immune to Nuke/Freeze. 2500 HP.'}
+        {name:'WARLORD', icon:'👹', desc:'The Final Boss. Immune to Nuke/Freeze. 5000 HP.'}
     ];
 
     // GAME VARIABLES
     let gameActive = false;
     let isPaused = false;
     
-    // NEW: added gameTime
-    let state = { frames:0, gameTime:0, score:0, level:1, xp:0, nextLevelXp:20, xpMult:1, shake:0, enemies:[], particles:[], projectiles:[], beams:[], zones:[], texts:[], gems:[], perks:[], backgroundStars:[], bossActive:false, flashAlpha:0 };
+    let state = { 
+        frames:0, gameTime:0, score:0, level:1, xp:0, nextLevelXp:20, xpMult:1, shake:0, 
+        enemies:[], particles:[], projectiles:[], beams:[], zones:[], texts:[], gems:[], perks:[], backgroundStars:[], 
+        bossActive:false, bossSpawnedOnce:false, flashAlpha:0,
+        friendlyUnit: null, serbianCooldown: 0
+    };
     let player = { x:0, y:0, hp:100, maxHp:100, speed:6, radius:20, magnetRadius:140, armor:0, regen:0, critChance:0.05, cdr:1.0, facing:0, weapons:{} };
 
     function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
@@ -292,8 +298,7 @@
     }); 
     window.addEventListener('keyup', e=>keys[e.key.toLowerCase()]=false);
     
-    let mouseX = 0, mouseY = 0;
-    window.addEventListener('mousemove', e=>{ mouseX=e.clientX; mouseY=e.clientY; });
+    // REMOVED MOUSE LISTENER FOR ROTATION
 
     // --- ADMIN FUNCTIONS ---
     function openAdmin(){
@@ -416,7 +421,8 @@
         state = { 
             frames:0, gameTime:0, score:0, level:1, xp:0, nextLevelXp:20, xpMult:1, shake:0, 
             enemies:[], particles:[], projectiles:[], beams:[], zones:[], texts:[], gems:[], perks:[], backgroundStars:[],
-            bossActive:false, flashAlpha:0
+            bossActive:false, bossSpawnedOnce:false, flashAlpha:0,
+            friendlyUnit: null, serbianCooldown: 0
         };
         initBackground();
         
@@ -428,7 +434,8 @@
                 ajvar: { level:0, cooldown:140, baseCool:140, timer:0, damage:80 },
                 rakija: { level:0, cooldown:190, baseCool:190, timer:0, damage:4, duration:300 }, 
                 pyramid: { level:0, cooldown:110, baseCool:110, timer:0, damage:50, evolved:false },
-                harmonika: { level:0, cooldown:186, baseCool:186, timer:0, damage:60, range:500 } 
+                harmonika: { level:0, cooldown:186, baseCool:186, timer:0, damage:60, range:500 },
+                serbian: { level:0 }
             }
         };
 
@@ -470,6 +477,105 @@
         return {d:dmg, c:isCrit}; 
     }
 
+    class FriendlyUnit {
+        constructor() {
+            this.x = player.x; this.y = player.y;
+            this.durability = 10; 
+            this.maxDurability = 10;
+            this.radius = 25; this.range = 100;
+            this.attackTimer = 0;
+            this.dead = false;
+            this.immuneTimer = 0; // Cooldown after being hit
+        }
+        update() {
+            if(this.dead) return;
+            if(this.immuneTimer > 0) this.immuneTimer--;
+
+            // Movement: Follow player but move towards close enemies
+            let target = null; let minDist = 400;
+            state.enemies.forEach(e => {
+                let d = Math.hypot(e.x - this.x, e.y - this.y);
+                if(d < minDist) { minDist = d; target = e; }
+            });
+
+            let moveX = 0, moveY = 0;
+            if (target && minDist > 40) {
+                 let ang = Math.atan2(target.y - this.y, target.x - this.x);
+                 moveX = Math.cos(ang); moveY = Math.sin(ang);
+            } else {
+                 let distToP = Math.hypot(player.x - this.x, player.y - this.y);
+                 if(distToP > 100) {
+                     let ang = Math.atan2(player.y - this.y, player.x - this.x);
+                     moveX = Math.cos(ang); moveY = Math.sin(ang);
+                 }
+            }
+            this.x += moveX * 4; this.y += moveY * 4;
+
+            // Attack Logic (Valk Swing)
+            this.attackTimer++;
+            if(this.attackTimer > 180) { // 3 seconds
+                this.attackTimer = 0;
+                addShake(5);
+                state.zones.push(new Zone(this.x, this.y, 'valk_swing', 10));
+                let dmg = 50 + (5 * state.level);
+                state.enemies.forEach(e => {
+                    if(Math.hypot(e.x - this.x, e.y - this.y) < 140) {
+                        e.takeDamage(dmg, true, 'friendly');
+                    }
+                });
+            }
+        }
+        draw(cX, cY) {
+            if(this.dead) return;
+            ctx.save(); ctx.translate(this.x - cX, this.y - cY);
+            
+            // Draw Blue Shield if immune
+            if(this.immuneTimer > 0) {
+                 ctx.save();
+                 ctx.globalAlpha = 0.4 + Math.sin(state.frames*0.5)*0.2;
+                 ctx.fillStyle = '#00f3ff';
+                 ctx.beginPath(); ctx.arc(0,0, 35, 0, 6.28); ctx.fill();
+                 ctx.strokeStyle = '#fff'; ctx.lineWidth=2; ctx.stroke();
+                 ctx.restore();
+            }
+
+            // Draw Knight
+            ctx.shadowBlur=10; ctx.shadowColor='rgba(0,100,255,0.8)';
+            ctx.fillStyle = '#eee'; ctx.beginPath(); ctx.arc(0,0,15,0,6.28); ctx.fill();
+            ctx.fillStyle = '#00f'; ctx.fillRect(-10, 5, 20, 15); // Armor
+            ctx.fillStyle = '#aaa'; ctx.beginPath(); ctx.arc(0,-5,8,0,6.28); ctx.fill(); // Helm
+
+            // Durability bar
+            ctx.fillStyle = 'red'; ctx.fillRect(-20, -35, 40, 6);
+            ctx.fillStyle = '#0f0'; ctx.fillRect(-20, -35, 40 * (this.durability/this.maxDurability), 6);
+            
+            // Durability Text
+            ctx.fillStyle = '#fff'; ctx.font='bold 10px Arial'; ctx.textAlign='center';
+            ctx.fillText(this.durability + " / " + this.maxDurability, 0, -40);
+
+            ctx.restore();
+        }
+        takeDamage(amt) {
+            // IGNORE damage amount, check timer
+            if(this.immuneTimer > 0) {
+                // Optional: Show "SHIELDED" occasionally, not every frame to avoid spam
+                if(state.frames % 30 === 0) spawnDamageText(this.x, this.y - 40, "SHIELDED", false);
+                return; 
+            }
+
+            this.durability--;
+            this.immuneTimer = 300; // 5 Seconds (60 FPS * 5)
+            spawnDamageText(this.x, this.y - 30, "-1 DURABILITY", true);
+            createParticle(this.x, this.y, '#00f3ff', 'plasma', 3);
+
+            if(this.durability <= 0) {
+                this.dead = true;
+                state.serbianCooldown = 1800; // 30s * 60fps
+                spawnDamageText(this.x, this.y-50, "UNIT LOST", true);
+            }
+        }
+    }
+
     class Perk {
         constructor(x,y,type){
             this.x=x; this.y=y; this.type=type; this.bob=0;
@@ -487,7 +593,7 @@
                 if(this.type==='nuke'){ 
                     addShake(30); state.flashAlpha=0.8;
                     state.enemies.forEach(e=>{ 
-                        if(!e.dead && e.type !== 'BOSS'){ e.takeDamage(9999, true); } 
+                        if(!e.dead && e.type !== 'BOSS' && e.type !== 'MINI_BOSS'){ e.takeDamage(9999, true); } 
                         else if(e.type === 'BOSS') { spawnDamageText(e.x, e.y-50, "IMMUNE", false); }
                     }); 
                     spawnDamageText(player.x,player.y-50,"NUKE",true); for(let i=0;i<50;i++)createParticle(player.x,player.y,'#ffaa00','fire',5); 
@@ -636,10 +742,10 @@
         }
     }
     class Zone {
-        constructor(x,y,type,dur){this.x=x;this.y=y;this.life=dur;this.radius=90;this.type=type;if(type==='harmonika')this.radius=150; if(type==='blast') this.radius=120;}
+        constructor(x,y,type,dur){this.x=x;this.y=y;this.life=dur;this.radius=90;this.type=type;if(type==='harmonika')this.radius=150; if(type==='blast') this.radius=120; if(type==='valk_swing') this.radius=140;}
         update(){ 
             this.life--; 
-            if(this.type==='blast') return this.life<=0;
+            if(this.type==='blast' || this.type==='valk_swing') return this.life<=0;
 
             if(this.type==='harmonika') { 
                 this.radius+=25; 
@@ -653,6 +759,17 @@
             return this.life<=0;
         }
         draw(cX,cY){ 
+            if(this.type === 'valk_swing') {
+                 ctx.save(); ctx.translate(this.x-cX, this.y-cY);
+                 ctx.globalCompositeOperation = 'lighter';
+                 ctx.strokeStyle = `rgba(0, 100, 255, ${this.life/10})`;
+                 ctx.lineWidth = 10;
+                 ctx.beginPath(); ctx.arc(0,0,this.radius, 0, 6.28); ctx.stroke();
+                 ctx.fillStyle = `rgba(0, 255, 255, ${this.life/20})`;
+                 ctx.fill();
+                 ctx.restore();
+                 return;
+            }
             if(this.type === 'blast') {
                  ctx.save(); ctx.translate(this.x-cX, this.y-cY);
                  ctx.globalCompositeOperation = 'lighter';
@@ -670,10 +787,11 @@
     
     class Enemy {
         constructor(overrideType=null, x=null, y=null){
-            if(overrideType === 'BOSS') {
-                 this.type = 'BOSS';
+            if(overrideType === 'BOSS' || overrideType === 'MINI_BOSS') {
+                 this.type = overrideType;
                  let a=Math.random()*6.28, d=(Math.max(W,H)/2)+200; 
-                 this.x=player.x+Math.cos(a)*d; this.y=player.y+Math.sin(a)*d;
+                 if(x!==null && y!==null) { this.x=x; this.y=y; }
+                 else { this.x=player.x+Math.cos(a)*d; this.y=player.y+Math.sin(a)*d; }
             } else {
                  if(x !== null && y !== null) {
                      this.x = x; this.y = y;
@@ -685,11 +803,18 @@
             }
             
             if(this.type==='BOSS') {
-                this.hp=2500; this.maxHp=2500; 
-                this.speed=2.2; this.radius=60; 
+                this.hp=5000; this.maxHp=5000; // BUFFED HP
+                this.speed=2.5; this.radius=60; 
                 this.frozen=0; this.hitFlash=0; this.pushX=0; this.pushY=0;
-                this.attackTimer = 180; this.damageCooldown = 0;
-            } else {
+                this.attackTimer = 150; this.damageCooldown = 0;
+            } 
+            else if(this.type==='MINI_BOSS') {
+                this.hp=800; this.maxHp=800;
+                this.speed=2.2; this.radius=45;
+                this.frozen=0; this.hitFlash=0; this.pushX=0; this.pushY=0;
+                this.attackTimer = 200; this.damageCooldown = 0;
+            }
+            else {
                 if(this.type==='promaja'){this.hp=40+state.level*6;this.speed=2+Math.random();this.radius=22;} 
                 else if(this.type==='yugo'){this.hp=200+state.level*20;this.speed=1.5;this.radius=35;this.angle=0;} 
                 else if(this.type==='hornet'){this.hp=25+state.level*3;this.speed=4.5;this.radius=15;}
@@ -699,15 +824,17 @@
         update(){
             if(this.type === 'BOSS') {
                 document.getElementById('boss-bar-fill').style.width = (this.hp/this.maxHp*100)+'%';
+            }
+            
+            if((this.type === 'BOSS' || this.type === 'MINI_BOSS')) {
                 if(this.damageCooldown > 0) this.damageCooldown--;
-                
                 this.attackTimer--;
                 if(this.attackTimer === 30) {
                      spawnDamageText(this.x, this.y - 80, "!!!", false);
                      createParticle(this.x, this.y, '#f00', 'plasma', 5);
                 }
                 if(this.attackTimer <= 0) {
-                    this.attackTimer = 180; 
+                    this.attackTimer = this.type==='BOSS' ? 150 : 200; 
                     state.projectiles.push(new Projectile(this.x, this.y, player, 'boss_missile'));
                 }
             }
@@ -717,10 +844,22 @@
                 if(state.frames%20===0) createParticle(this.x,this.y,'#0ff','spark');
                 return;
             }
-            let dx=player.x-this.x, dy=player.y-this.y, dist=Math.sqrt(dx*dx+dy*dy); this.angle=Math.atan2(dy,dx);
+            
+            // TARGETING LOGIC
+            let targetX = player.x, targetY = player.y;
+            if(state.friendlyUnit && !state.friendlyUnit.dead) {
+                let dPlayer = Math.hypot(player.x - this.x, player.y - this.y);
+                let dFriendly = Math.hypot(state.friendlyUnit.x - this.x, state.friendlyUnit.y - this.y);
+                // Attack friendly if friendly is closer AND player is somewhat far away
+                if(dFriendly < dPlayer && dPlayer > 120) {
+                    targetX = state.friendlyUnit.x; targetY = state.friendlyUnit.y;
+                }
+            }
+
+            let dx=targetX-this.x, dy=targetY-this.y, dist=Math.sqrt(dx*dx+dy*dy); this.angle=Math.atan2(dy,dx);
             
             let px=0,py=0; 
-            if(this.type !== 'BOSS') {
+            if(this.type !== 'BOSS' && this.type !== 'MINI_BOSS') {
                 state.enemies.forEach(o=>{if(o!==this){let ox=this.x-o.x,oy=this.y-o.y,od=Math.sqrt(ox*ox+oy*oy);if(od<this.radius+o.radius){px+=ox/od;py+=oy/od;}}});
             }
 
@@ -730,14 +869,14 @@
         }
         
         takeDamage(a, crit, source){
-            if(this.type === 'BOSS') {
+            if(this.type === 'BOSS' || this.type === 'MINI_BOSS') {
                 if(this.damageCooldown > 0) return; 
                 this.damageCooldown = 5; 
             }
 
             this.hp-=a; this.hitFlash=5; spawnDamageText(this.x,this.y-30,a,crit); 
             let c=(this.type==='yugo')?'#000':(this.type==='hornet'?'#bfff00':'#880000'); 
-            if(this.type==='BOSS') c='#ff00ff';
+            if(this.type==='BOSS' || this.type==='MINI_BOSS') c='#ff00ff';
             for(let i=0;i<3;i++)createParticle(this.x,this.y,c,'spark');
             
             if(this.hp<=0){ 
@@ -746,9 +885,14 @@
                      state.bossActive = false;
                      document.getElementById('boss-hud').style.display='none';
                      addShake(50); state.flashAlpha=1;
-                     spawnDamageText(this.x, this.y-100, "SECTOR CLEARED", true);
-                     for(let i=0; i<20; i++) state.gems.push(new Gem(this.x + (Math.random()-0.5)*200, this.y + (Math.random()-0.5)*200, 150));
-                } else {
+                     spawnDamageText(this.x, this.y-100, "WARLORD DEFEATED", true);
+                     for(let i=0; i<30; i++) state.gems.push(new Gem(this.x + (Math.random()-0.5)*200, this.y + (Math.random()-0.5)*200, 150));
+                } 
+                else if(this.type==='MINI_BOSS') {
+                     spawnDamageText(this.x, this.y-80, "MINI BOSS DOWN", true);
+                     for(let i=0; i<10; i++) state.gems.push(new Gem(this.x + (Math.random()-0.5)*100, this.y + (Math.random()-0.5)*100, 100));
+                }
+                else {
                      state.gems.push(new Gem(this.x,this.y)); 
                 }
                 for(let i=0;i<8;i++)createParticle(this.x,this.y,c,'blood',1.5); 
@@ -762,8 +906,10 @@
                 ctx.globalCompositeOperation='lighter'; ctx.fillStyle='#fff';
                 ctx.beginPath();ctx.arc(0,0,this.radius,0,6.28);ctx.fill();
             } else {
-                if(this.type==='BOSS'){
+                if(this.type==='BOSS' || this.type==='MINI_BOSS'){
                     ctx.rotate(state.frames*0.02);
+                    let scale = this.type==='BOSS' ? 1 : 0.6;
+                    ctx.scale(scale, scale);
                     ctx.strokeStyle='#ff003c'; ctx.lineWidth=4;
                     ctx.beginPath(); ctx.moveTo(-30,-30); ctx.lineTo(30,-30); ctx.lineTo(0,30); ctx.closePath(); ctx.stroke();
                     ctx.fillStyle='#300'; ctx.fill();
@@ -823,7 +969,7 @@
     function spawnBoss(){
         if(state.bossActive) return;
         state.bossActive = true;
-        state.enemies = []; // Kill current waves
+        state.enemies = state.enemies.filter(e => e.type === 'MINI_BOSS'); // Clear weak mobs but keep mini bosses
         state.flashAlpha = 1.0;
         addShake(50);
         document.getElementById('boss-hud').style.display = 'flex';
@@ -895,37 +1041,62 @@
     }
 
     function handleWaves() {
-        if(state.bossActive) return;
-        
         let t = state.gameTime;
         
-        // WAVE LOGIC
-        if(t < 60) { // 0-1 min: Promaja (Easy)
-             if(state.frames % 50 === 0) state.enemies.push(new Enemy('promaja'));
+        // --- PRE 5 MINUTES ---
+        if(t < 300) {
+            if(t < 60) { // 0-1 min: Promaja (Easy)
+                if(state.frames % 50 === 0) state.enemies.push(new Enemy('promaja'));
+            } 
+            else if(t < 120) { // 1-2 min: Promaja + Hornets
+                if(state.frames % 40 === 0) state.enemies.push(new Enemy('promaja'));
+                if(state.frames % 90 === 0) state.enemies.push(new Enemy('hornet'));
+            }
+            else if(t < 180) { // 2-3 min: Yugos start
+                if(t === 120 && state.frames % 60 === 0) spawnCircle('promaja', 30); // EVENT
+                
+                if(state.frames % 30 === 0) state.enemies.push(new Enemy('promaja'));
+                if(state.frames % 60 === 0) state.enemies.push(new Enemy('hornet'));
+                if(state.frames % 120 === 0) state.enemies.push(new Enemy('yugo'));
+            }
+            else if(t < 240) { // 3-4 min: High Density
+                if(state.frames % 20 === 0) state.enemies.push(new Enemy('promaja'));
+                if(state.frames % 40 === 0) state.enemies.push(new Enemy('hornet'));
+                if(state.frames % 90 === 0) state.enemies.push(new Enemy('yugo'));
+            }
+            else if(t < 300) { // 4-5 min: Chaos
+                if(t === 240 && state.frames % 60 === 0) spawnCircle('yugo', 20); // EVENT
+                if(state.frames % 10 === 0) state.enemies.push(new Enemy(Math.random()<0.5?'promaja':'hornet'));
+                if(state.frames % 60 === 0) state.enemies.push(new Enemy('yugo'));
+            }
         } 
-        else if(t < 120) { // 1-2 min: Promaja + Hornets
-             if(state.frames % 40 === 0) state.enemies.push(new Enemy('promaja'));
-             if(state.frames % 90 === 0) state.enemies.push(new Enemy('hornet'));
-        }
-        else if(t < 180) { // 2-3 min: Yugos start
-             if(t === 120 && state.frames % 60 === 0) spawnCircle('promaja', 30); // EVENT
-             
-             if(state.frames % 30 === 0) state.enemies.push(new Enemy('promaja'));
-             if(state.frames % 60 === 0) state.enemies.push(new Enemy('hornet'));
-             if(state.frames % 120 === 0) state.enemies.push(new Enemy('yugo'));
-        }
-        else if(t < 240) { // 3-4 min: High Density
-             if(state.frames % 20 === 0) state.enemies.push(new Enemy('promaja'));
-             if(state.frames % 40 === 0) state.enemies.push(new Enemy('hornet'));
-             if(state.frames % 90 === 0) state.enemies.push(new Enemy('yugo'));
-        }
-        else if(t < 300) { // 4-5 min: Chaos
-             if(t === 240 && state.frames % 60 === 0) spawnCircle('yugo', 20); // EVENT
-             if(state.frames % 10 === 0) state.enemies.push(new Enemy(Math.random()<0.5?'promaja':'hornet'));
-             if(state.frames % 60 === 0) state.enemies.push(new Enemy('yugo'));
-        }
-        else if(t >= 300 && !state.bossActive) { // 5 min: BOSS
-             spawnBoss();
+        // --- 5 MINUTES MARK ---
+        else if (t >= 300) {
+            if(!state.bossSpawnedOnce) {
+                spawnBoss();
+                state.bossSpawnedOnce = true;
+            }
+
+            // If Boss is alive, reduce spawn rate slightly to focus on Boss, but keep some pressure
+            if(state.bossActive) {
+                if(state.frames % 100 === 0) state.enemies.push(new Enemy('promaja'));
+                if(state.frames % 200 === 0) state.enemies.push(new Enemy('hornet'));
+            } 
+            // If Boss is DEAD (Endless Mode)
+            else {
+                // High density spawning returns
+                if(state.frames % 15 === 0) state.enemies.push(new Enemy(Math.random()<0.5?'promaja':'hornet'));
+                if(state.frames % 50 === 0) state.enemies.push(new Enemy('yugo'));
+
+                // 5% Chance every 10 seconds (600 frames) to spawn Mini Boss
+                if(state.frames % 600 === 0) {
+                    if(Math.random() < 0.05) {
+                        spawnDamageText(player.x, player.y-100, "⚠️ ELITE DETECTED ⚠️", false);
+                        addShake(15);
+                        state.enemies.push(new Enemy('MINI_BOSS'));
+                    }
+                }
+            }
         }
     }
 
@@ -933,8 +1104,13 @@
         if(state.flashAlpha > 0) state.flashAlpha -= 0.02;
 
         let mx=0,my=0; if(keys['w']||keys['arrowup'])my=-1; if(keys['s']||keys['arrowdown'])my=1; if(keys['a']||keys['arrowleft'])mx=-1; if(keys['d']||keys['arrowright'])mx=1;
-        if(mx!==0||my!==0){ let l=Math.sqrt(mx*mx+my*my); player.x+=(mx/l)*player.speed; player.y+=(my/l)*player.speed; }
-        player.facing=Math.atan2(mouseY-H/2,mouseX-W/2);
+        if(mx!==0||my!==0){ 
+            let l=Math.sqrt(mx*mx+my*my); 
+            player.x+=(mx/l)*player.speed; 
+            player.y+=(my/l)*player.speed; 
+            player.facing = Math.atan2(my, mx); // AUTO FACE DIRECTION
+        }
+        // Removed explicit facing update based on mouse here.
 
         if(player.regen>0 && state.frames%60===0 && player.hp<player.maxHp){ player.hp=Math.min(player.maxHp, player.hp+player.regen); updateHud(); spawnDamageText(player.x,player.y-50,player.regen,true); }
 
@@ -948,6 +1124,22 @@
         handleWaves();
         
         if(Math.random() < 0.0008) spawnPerk();
+
+        // SERBIAN ATTACKER LOGIC
+        if(player.weapons.serbian.level > 0) {
+            if(state.friendlyUnit && !state.friendlyUnit.dead) {
+                state.friendlyUnit.update();
+            } else {
+                if(state.serbianCooldown > 0) {
+                    state.serbianCooldown--;
+                } else {
+                    // Spawn
+                    state.friendlyUnit = new FriendlyUnit();
+                    createParticle(player.x, player.y, '#fff', 'plasma', 5);
+                    spawnDamageText(player.x, player.y-60, "REINFORCEMENTS", true);
+                }
+            }
+        }
 
         const wc=player.weapons.cevapi; if(wc.level>0){ wc.timer++; if(wc.timer>wc.cooldown){let t=getClosestEnemy();if(t){state.projectiles.push(new Projectile(player.x,player.y,t,'cevapi'));wc.timer=0;}} }
         const wa=player.weapons.ajvar; if(wa.level>0){ wa.timer++; if(wa.timer>wa.cooldown&&state.enemies.length>0){let ts=state.enemies.filter(e=>Math.hypot(e.x-player.x,e.y-player.y)<700);if(ts.length){state.projectiles.push(new Projectile(player.x,player.y,ts[Math.floor(Math.random()*ts.length)],'ajvar'));wa.timer=0;}} }
@@ -986,7 +1178,7 @@
             state.enemies.forEach(e=>{ 
                 let dist=Math.hypot(e.x-player.x,e.y-player.y); 
                 if(dist<wh.range){ 
-                    let pushP = e.type === 'BOSS' ? 0 : 45;
+                    let pushP = (e.type === 'BOSS' || e.type === 'MINI_BOSS') ? 0 : 45;
                     let pushA=Math.atan2(e.y-player.y,e.x-player.x); e.pushX=Math.cos(pushA)*pushP; e.pushY=Math.sin(pushA)*pushP; let dmg = calcDamage(wh.damage); e.takeDamage(dmg.d, dmg.c, 'zone'); 
                 } 
             });
@@ -1006,6 +1198,11 @@
                     spawnDamageText(player.x, player.y-50, godMode ? "BLOCKED" : "40", true);
                     updateHud();
                     return false; 
+                }
+                // Check collision with Friendly Unit
+                if(state.friendlyUnit && !state.friendlyUnit.dead && Math.hypot(p.x - state.friendlyUnit.x, p.y - state.friendlyUnit.y) < state.friendlyUnit.radius + 10) {
+                     state.friendlyUnit.takeDamage(40); // Amount ignored, hits counted
+                     return false;
                 }
                 return p.life > 0;
             }
@@ -1029,10 +1226,20 @@
         state.enemies.forEach(e=>{
             e.update();
             let safeDist = player.radius + e.radius - 5;
+            
+            // Player Collision
             if(!e.frozen && Math.hypot(e.x-player.x,e.y-player.y)<safeDist){ 
-                let dmgAmt = e.type==='BOSS' ? 2 : (Math.max(0.1,((e.type==='yugo'?1:0.4)-(player.armor*0.05))));
+                let dmgAmt = (e.type==='BOSS' || e.type==='MINI_BOSS') ? 2 : (Math.max(0.1,((e.type==='yugo'?1:0.4)-(player.armor*0.05))));
                 if(!godMode) player.hp-=dmgAmt; 
                 addShake(2); updateHud(); if(player.hp<=0){document.getElementById('final-score').innerText=state.score;document.getElementById('game-over').style.display='flex';gameActive=false;} 
+            }
+
+            // Friendly Unit Collision
+            if(state.friendlyUnit && !state.friendlyUnit.dead && !e.frozen) {
+                if(Math.hypot(e.x - state.friendlyUnit.x, e.y - state.friendlyUnit.y) < state.friendlyUnit.radius + e.radius) {
+                    // Call takeDamage, amount is irrelevant
+                    state.friendlyUnit.takeDamage(1);
+                }
             }
             
             const bur=player.weapons.burek; while(bur.orbs.length<bur.count)bur.orbs.push({timer:0});
@@ -1073,7 +1280,8 @@
 
         state.zones.forEach(z=>z.draw(cX,cY)); 
         state.gems.forEach(g=>g.draw(cX,cY)); 
-        state.perks.forEach(p=>p.draw(cX,cY)); 
+        state.perks.forEach(p=>p.draw(cX,cY));
+        if(state.friendlyUnit) state.friendlyUnit.draw(cX, cY);
         state.enemies.forEach(e=>e.draw(cX,cY)); 
         state.projectiles.forEach(p=>p.draw(cX,cY));
         state.beams.forEach(b=>b.draw(cX,cY));
@@ -1162,16 +1370,22 @@
         const c=document.getElementById('cards-box'); c.innerHTML=''; document.getElementById('levelup-screen').style.display='flex';
         let pool=UPGRADES.slice(); 
         
-        pool = pool.filter(u => !['xp_boost', 'harmonika'].includes(u.id) || Math.random() < 0.30);
+        pool = pool.filter(u => !['xp_boost', 'harmonika', 'serbian'].includes(u.id) || Math.random() < 0.30);
 
         if(player.weapons.burek.evolved || player.weapons.burek.level >= 8) { pool = pool.filter(u => u.id !== 'burek'); }
         if(player.weapons.pyramid.evolved || player.weapons.pyramid.level >= 6) { pool = pool.filter(u => u.id !== 'pyramid'); }
+        if(player.weapons.serbian.level > 0) { pool = pool.filter(u => u.id !== 'serbian'); } // One time purchase
 
         if(player.weapons.burek.level>=8 && !player.weapons.burek.evolved) pool.unshift(EVOLUTIONS.find(e=>e.id==='burek_evo'));
         if(player.weapons.pyramid.level>=6 && !player.weapons.pyramid.evolved) pool.unshift(EVOLUTIONS.find(e=>e.id==='pyramid_evo'));
 
         if(player.weapons.burek.evolved) pool.push({id:'supercharge_burek', name:'SUPERCHARGE: TESLA', icon:'⚡', desc:'+20% Damage for Tesla Orbs.', supercharge:true});
         if(player.weapons.pyramid.evolved) pool.push({id:'supercharge_pyramid', name:'SUPERCHARGE: SOLAR', icon:'🔥', desc:'+20% Damage for Solar Flare.', supercharge:true});
+
+        // Add Serbian Attacker with 1% chance
+        if(Math.random() < 0.01 && player.weapons.serbian.level === 0) {
+            pool.unshift(UPGRADES.find(u => u.id === 'serbian'));
+        }
 
         let opts=(pool.length>3 && !pool[0].legendary) ? pool.sort(()=>0.5-Math.random()).slice(0,3) : pool.slice(0,3);
         
@@ -1215,6 +1429,11 @@
         if(id==='harmonika'){
             player.weapons.harmonika.level++;
             if(player.weapons.harmonika.level>1){player.weapons.harmonika.baseCool*=0.80;player.weapons.harmonika.range+=40;player.weapons.harmonika.damage+=20;}
+        }
+
+        if(id==='serbian'){
+            player.weapons.serbian.level = 1;
+            state.friendlyUnit = new FriendlyUnit();
         }
         
         if(id==='speed')player.speed*=1.15; if(id==='magnet')player.magnetRadius+=50; if(id==='armor')player.armor+=1.5; if(id==='heal')player.hp=Math.min(player.maxHp,player.hp+50);
