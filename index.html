@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bosnian Survivors: SMALL UPDATE</title>
+<title>Bosnian Survivors: FLAME UPDATE</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
     :root { 
@@ -14,6 +14,7 @@
         --legendary:#d000ff; 
         --danger:#ff003c; 
         --dark:#050510; 
+        --fire-orange:#ff5e00;
     }
     body { margin:0; overflow:hidden; background-color:var(--dark); font-family:'Rajdhani', sans-serif; color:white; user-select:none; }
     
@@ -146,7 +147,7 @@
 <!-- MAIN MENU -->
 <div id="main-menu" class="screen-overlay" style="display:flex;">
     <h1 class="title-glitch">BOSNIAN<br><span style="color:var(--bosnia-yellow)">SURVIVORS</span></h1>
-    <h3 style="font-family:'Rajdhani'; letter-spacing:5px; color:var(--neon-cyan); margin-top:-20px;">SMALL UPDATE</h3>
+    <h3 style="font-family:'Rajdhani'; letter-spacing:5px; color:var(--neon-cyan); margin-top:-20px;">FLAME UPDATE</h3>
     <div style="height:40px;"></div>
     <button class="menu-btn" onclick="startGame()">DEPLOY</button>
     <button class="menu-btn" onclick="openInfo('armory')">ARMORY</button>
@@ -239,7 +240,7 @@
 
     // ASSETS
     const UPGRADES=[
-        {id:'burek',name:'Golden Burek',icon:'🥐',desc:'Spawns rotating golden pastry shields that damage enemies.'},
+        {id:'burek',name:'Golden Burek',icon:'🥐',desc:'Spawns rotating pastry shields that damage enemies.'},
         {id:'cevapi',name:'Rapid Cevapi',icon:'🌭',desc:'Fires delicious grilled meat missiles at nearest targets.'},
         {id:'ajvar',name:'Nuclear Ajvar',icon:'🌶️',desc:'Throws explosive jars of pepper paste dealing AoE damage.'},
         {id:'rakija',name:'Holy Rakija',icon:'🍾',desc:'Smashes bottles creating purifying fire zones on the ground.'},
@@ -257,7 +258,8 @@
     ];
 
     const EVOLUTIONS = [
-        {id:'burek_evo',base:'burek',name:'TESLA ORBS',icon:'💠',desc:'EVOLUTION: Rotating explosive energy orbs. High Damage. 5s Cooldown.',legendary:true},
+        // UPDATED TESLA ORBS TO FLAMING ORBS
+        {id:'burek_evo',base:'burek',name:'FLAMING ORBS',icon:'🔥',desc:'EVOLUTION: Burning Orbs. Burns enemies. Every 10s spawns a damaging fire trail.',legendary:true},
         {id:'pyramid_evo',base:'pyramid',name:'SOLAR FLARE',icon:'☀️',desc:'EVOLUTION: Instantly blasts enemies with a massive laser beam.',legendary:true}
     ];
 
@@ -297,10 +299,8 @@
         }
     }); 
     window.addEventListener('keyup', e=>keys[e.key.toLowerCase()]=false);
-    
-    // REMOVED MOUSE LISTENER FOR ROTATION
 
-    // --- ADMIN FUNCTIONS ---
+    // --- ADMIN FUNCTIONS (FIXED: removed closeAdmin() calls) ---
     function openAdmin(){
         if(!gameActive) return;
         document.getElementById('admin-panel').style.display='flex';
@@ -314,23 +314,23 @@
         godMode = !godMode;
         document.getElementById('god-mode-indicator').style.display = godMode ? 'block' : 'none';
         spawnDamageText(player.x, player.y-60, godMode ? "GOD MODE ON" : "GOD MODE OFF", true);
-        closeAdmin();
+        // Panel stays open
     }
     function adminLevelUp(){
         state.xp = state.nextLevelXp;
         checkLevelUp();
-        closeAdmin();
+        // Panel stays open
     }
     function adminKillAll(){
         state.enemies.forEach(e => {
             if(e.type !== 'BOSS') e.takeDamage(99999, true);
         });
-        closeAdmin();
+        // Panel stays open
     }
     function adminHeal(){
         player.hp = player.maxHp;
         updateHud();
-        closeAdmin();
+        // Panel stays open
     }
     function adminMaxWeapons(){
         applyUpgrade('burek_evo');
@@ -341,7 +341,7 @@
         player.weapons.harmonika.level = 10; player.weapons.harmonika.range=800;
         player.speed = 10;
         player.magnetRadius = 500;
-        closeAdmin();
+        // Panel stays open
     }
 
     // --- MENU SYSTEM ---
@@ -429,7 +429,8 @@
         player = { 
             x:W/2, y:H/2, hp:100, maxHp:100, speed:6, radius:20, magnetRadius:140, armor:0, regen:0, critChance:0.05, cdr:1.0, facing:0, 
             weapons:{
-                burek: { level:1, count:1, damage:10, dist:100, speed:0.04, evolved:false, orbs:[] },
+                // burek updated: trailTimer added
+                burek: { level:1, count:1, damage:10, dist:100, speed:0.04, evolved:false, orbs:[], trailTimer:0 },
                 cevapi: { level:1, cooldown:30, baseCool:30, timer:0, damage:15 }, 
                 ajvar: { level:0, cooldown:140, baseCool:140, timer:0, damage:80 },
                 rakija: { level:0, cooldown:190, baseCool:190, timer:0, damage:4, duration:300 }, 
@@ -485,13 +486,12 @@
             this.radius = 25; this.range = 100;
             this.attackTimer = 0;
             this.dead = false;
-            this.immuneTimer = 0; // Cooldown after being hit
+            this.immuneTimer = 0; 
         }
         update() {
             if(this.dead) return;
             if(this.immuneTimer > 0) this.immuneTimer--;
 
-            // Movement: Follow player but move towards close enemies
             let target = null; let minDist = 400;
             state.enemies.forEach(e => {
                 let d = Math.hypot(e.x - this.x, e.y - this.y);
@@ -511,9 +511,8 @@
             }
             this.x += moveX * 4; this.y += moveY * 4;
 
-            // Attack Logic (Valk Swing)
             this.attackTimer++;
-            if(this.attackTimer > 180) { // 3 seconds
+            if(this.attackTimer > 180) { 
                 this.attackTimer = 0;
                 addShake(5);
                 state.zones.push(new Zone(this.x, this.y, 'valk_swing', 15));
@@ -529,7 +528,6 @@
             if(this.dead) return;
             ctx.save(); ctx.translate(this.x - cX, this.y - cY);
             
-            // Draw Blue Shield if immune
             if(this.immuneTimer > 0) {
                  ctx.save();
                  ctx.globalAlpha = 0.4 + Math.sin(state.frames*0.5)*0.2;
@@ -539,38 +537,32 @@
                  ctx.restore();
             }
 
-            // Draw Knight
             ctx.shadowBlur=10; ctx.shadowColor='rgba(0,100,255,0.8)';
             ctx.fillStyle = '#eee'; ctx.beginPath(); ctx.arc(0,0,15,0,6.28); ctx.fill();
-            ctx.fillStyle = '#00f'; ctx.fillRect(-10, 5, 20, 15); // Armor
-            ctx.fillStyle = '#aaa'; ctx.beginPath(); ctx.arc(0,-5,8,0,6.28); ctx.fill(); // Helm
+            ctx.fillStyle = '#00f'; ctx.fillRect(-10, 5, 20, 15); 
+            ctx.fillStyle = '#aaa'; ctx.beginPath(); ctx.arc(0,-5,8,0,6.28); ctx.fill(); 
 
-            // Durability bar
             ctx.fillStyle = 'red'; ctx.fillRect(-20, -35, 40, 6);
             ctx.fillStyle = '#0f0'; ctx.fillRect(-20, -35, 40 * (this.durability/this.maxDurability), 6);
             
-            // Durability Text
             ctx.fillStyle = '#fff'; ctx.font='bold 10px Arial'; ctx.textAlign='center';
             ctx.fillText(this.durability + " / " + this.maxDurability, 0, -40);
 
             ctx.restore();
         }
         takeDamage(amt) {
-            // IGNORE damage amount, check timer
             if(this.immuneTimer > 0) {
-                // Optional: Show "SHIELDED" occasionally, not every frame to avoid spam
                 if(state.frames % 30 === 0) spawnDamageText(this.x, this.y - 40, "SHIELDED", false);
                 return; 
             }
-
             this.durability--;
-            this.immuneTimer = 300; // 5 Seconds (60 FPS * 5)
+            this.immuneTimer = 300; 
             spawnDamageText(this.x, this.y - 30, "-1 DURABILITY", true);
             createParticle(this.x, this.y, '#00f3ff', 'plasma', 3);
 
             if(this.durability <= 0) {
                 this.dead = true;
-                state.serbianCooldown = 1800; // 30s * 60fps
+                state.serbianCooldown = 1800; 
                 spawnDamageText(this.x, this.y-50, "UNIT LOST", true);
             }
         }
@@ -742,7 +734,7 @@
         }
     }
     class Zone {
-        constructor(x,y,type,dur){this.x=x;this.y=y;this.life=dur;this.maxLife=dur;this.radius=90;this.type=type;if(type==='harmonika')this.radius=150; if(type==='blast') this.radius=120; if(type==='valk_swing') this.radius=160;}
+        constructor(x,y,type,dur){this.x=x;this.y=y;this.life=dur;this.maxLife=dur;this.radius=90;this.type=type;if(type==='harmonika')this.radius=150; if(type==='blast') this.radius=120; if(type==='valk_swing') this.radius=160; if(type==='flame_trail') this.radius=50;}
         update(){ 
             this.life--; 
             if(this.type==='blast' || this.type==='valk_swing') return this.life<=0;
@@ -750,6 +742,23 @@
             if(this.type==='harmonika') { 
                 this.radius+=25; 
                 if(this.life%5===0)createParticle(this.x+(Math.random()-0.5)*100, this.y+(Math.random()-0.5)*100, '#fff', 'note'); 
+            }
+            // FLAME TRAIL LOGIC - High tick rate (every 10 frames), lower damage
+            else if(this.type==='flame_trail') {
+                 if(state.frames % 10 === 0) {
+                     state.enemies.forEach(e => {
+                         if(Math.hypot(e.x-this.x, e.y-this.y) < this.radius) {
+                             // Deals 75% less damage than Orb. 
+                             // Base orb dmg ~10, evolved maybe 12. 
+                             // Trail dmg = 0.25 * 12 = 3.
+                             let baseDmg = player.weapons.burek.damage * 0.25; 
+                             let dmg = calcDamage(Math.max(1, baseDmg));
+                             e.takeDamage(dmg.d, false, 'flame_trail');
+                             createParticle(e.x, e.y, '#ff5e00', 'spark', 0.5);
+                         }
+                     });
+                 }
+                 if(state.frames % 5 === 0) createParticle(this.x + (Math.random()-0.5)*40, this.y + (Math.random()-0.5)*40, '#ff5e00', 'fire', 1.0);
             }
             else if(state.frames%10===0) state.enemies.forEach(e=>{if(Math.hypot(e.x-this.x,e.y-this.y)<this.radius){
                 let dmg = calcDamage(player.weapons.rakija.damage);
@@ -759,36 +768,38 @@
             return this.life<=0;
         }
         draw(cX,cY){ 
+            if(this.type === 'flame_trail') {
+                ctx.save(); ctx.translate(this.x-cX, this.y-cY);
+                let p = this.life/this.maxLife;
+                ctx.globalAlpha = p;
+                let g = ctx.createRadialGradient(0,0,10,0,0,this.radius);
+                g.addColorStop(0, '#ffcc00'); g.addColorStop(1, 'rgba(255,0,0,0)');
+                ctx.fillStyle = g;
+                ctx.beginPath(); ctx.arc(0,0,this.radius,0,6.28); ctx.fill();
+                ctx.restore();
+                return;
+            }
             if(this.type === 'valk_swing') {
                  // SWORD SPIN ANIMATION
                  ctx.save(); 
                  ctx.translate(this.x-cX, this.y-cY);
+                 let progress = 1 - (this.life / this.maxLife); 
+                 let angle = progress * Math.PI * 2; 
                  
-                 // Spin calculations
-                 let progress = 1 - (this.life / this.maxLife); // 0 to 1
-                 let angle = progress * Math.PI * 2; // 360 degrees
-                 
-                 // Trail effect
                  ctx.beginPath();
                  ctx.arc(0, 0, this.radius, angle - 1, angle, false);
                  ctx.lineWidth = 40;
                  ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 * (1-progress)})`;
                  ctx.stroke();
 
-                 // Draw Sword
                  ctx.rotate(angle);
-                 ctx.translate(20, 0); // Offset from center
+                 ctx.translate(20, 0); 
                  
-                 // Blade
                  let grad = ctx.createLinearGradient(0,0, 100, 0);
                  grad.addColorStop(0, '#aaa'); grad.addColorStop(1, '#fff');
                  ctx.fillStyle = grad;
                  ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(120, 0); ctx.lineTo(0, 5); ctx.fill();
-                 
-                 // Crossguard
                  ctx.fillStyle = '#444'; ctx.fillRect(-5, -15, 10, 30);
-                 
-                 // Hilt
                  ctx.fillStyle = '#654321'; ctx.fillRect(-25, -4, 20, 8);
 
                  ctx.restore();
@@ -827,7 +838,7 @@
             }
             
             if(this.type==='BOSS') {
-                this.hp=5000; this.maxHp=5000; // BUFFED HP
+                this.hp=5000; this.maxHp=5000; 
                 this.speed=2.5; this.radius=60; 
                 this.frozen=0; this.hitFlash=0; this.pushX=0; this.pushY=0;
                 this.attackTimer = 150; this.damageCooldown = 0;
@@ -844,12 +855,22 @@
                 else if(this.type==='hornet'){this.hp=25+state.level*3;this.speed=4.5;this.radius=15;}
                 this.maxHp=this.hp; this.hitFlash=0; this.pushX=0; this.pushY=0; this.frozen=0;
             }
+            this.burnTimer = 0; // NEW: Burn timer
         }
         update(){
             if(this.type === 'BOSS') {
                 document.getElementById('boss-bar-fill').style.width = (this.hp/this.maxHp*100)+'%';
             }
             
+            // BURN DAMAGE LOGIC
+            if(this.burnTimer > 0) {
+                this.burnTimer--;
+                if(state.frames % 15 === 0) { // Tick damage
+                    this.takeDamage(5, false, 'burn'); // Burn damage tick
+                    createParticle(this.x, this.y, '#ff5e00', 'fire', 0.5);
+                }
+            }
+
             if((this.type === 'BOSS' || this.type === 'MINI_BOSS')) {
                 if(this.damageCooldown > 0) this.damageCooldown--;
                 this.attackTimer--;
@@ -869,25 +890,19 @@
                 return;
             }
             
-            // TARGETING LOGIC
             let targetX = player.x, targetY = player.y;
             if(state.friendlyUnit && !state.friendlyUnit.dead) {
                 let dPlayer = Math.hypot(player.x - this.x, player.y - this.y);
                 let dFriendly = Math.hypot(state.friendlyUnit.x - this.x, state.friendlyUnit.y - this.y);
-                // Attack friendly if friendly is closer AND player is somewhat far away
                 if(dFriendly < dPlayer && dPlayer > 120) {
                     targetX = state.friendlyUnit.x; targetY = state.friendlyUnit.y;
                 }
 
-                // --- WALL COLLISION LOGIC ---
-                // If this enemy hits the Friendly Unit, STOP moving (Push back)
                 let distToFriendly = Math.hypot(state.friendlyUnit.x - this.x, state.friendlyUnit.y - this.y);
                 let collisionDist = state.friendlyUnit.radius + this.radius;
                 
                 if(distToFriendly < collisionDist) {
-                    // Calculate push angle
                     let ang = Math.atan2(this.y - state.friendlyUnit.y, this.x - state.friendlyUnit.x);
-                    // Push out to edge
                     this.x = state.friendlyUnit.x + Math.cos(ang) * collisionDist;
                     this.y = state.friendlyUnit.y + Math.sin(ang) * collisionDist;
                 }
@@ -953,42 +968,19 @@
                     ctx.fillStyle='#f00'; ctx.beginPath(); ctx.arc(0,0,10,0,6.28); ctx.fill();
                 }
                 else if(this.type==='promaja'){ 
-                    ctx.rotate(state.frames*0.2); // Fast spin
+                    ctx.rotate(state.frames*0.2); 
                     ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(200, 255, 255, 0.5)';
-                    
-                    // Draw visual "wind" spirals
-                    ctx.strokeStyle = 'rgba(220, 240, 255, 0.8)';
-                    ctx.lineWidth = 2;
-                    
-                    // Inner spiral
-                    ctx.beginPath();
-                    ctx.arc(0, 0, 8, 0, 5); // Incomplete circle
-                    ctx.stroke();
-                    
-                    // Middle spiral
-                    ctx.rotate(2);
-                    ctx.beginPath();
-                    ctx.arc(0, 0, 16, 0, 4.5);
-                    ctx.stroke();
-                    
-                    // Outer wisps
-                    ctx.rotate(2);
-                    ctx.strokeStyle = 'rgba(220, 240, 255, 0.4)';
-                    ctx.beginPath();
-                    ctx.arc(0, 0, 24, 0, 3);
-                    ctx.stroke();
-                    
-                    // Center "Eye"
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                    ctx.beginPath(); ctx.arc(0,0,4,0,6.28); ctx.fill();
+                    ctx.strokeStyle = 'rgba(220, 240, 255, 0.8)'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(0, 0, 8, 0, 5); ctx.stroke();
+                    ctx.rotate(2); ctx.beginPath(); ctx.arc(0, 0, 16, 0, 4.5); ctx.stroke();
+                    ctx.rotate(2); ctx.strokeStyle = 'rgba(220, 240, 255, 0.4)'; ctx.beginPath(); ctx.arc(0, 0, 24, 0, 3); ctx.stroke();
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; ctx.beginPath(); ctx.arc(0,0,4,0,6.28); ctx.fill();
                 }
                 else if(this.type==='yugo'){ 
                     ctx.rotate(this.angle);
-                    ctx.fillStyle='#800000';
-                    ctx.fillRect(-20,-15,40,30);
+                    ctx.fillStyle='#800000'; ctx.fillRect(-20,-15,40,30);
                     ctx.fillStyle='#300000'; ctx.fillRect(-5,-13,20,26);
-                    ctx.globalCompositeOperation = 'lighter';
-                    ctx.fillStyle='rgba(255, 255, 200, 0.4)';
+                    ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle='rgba(255, 255, 200, 0.4)';
                     ctx.beginPath(); ctx.moveTo(20,-10); ctx.lineTo(120,-30); ctx.lineTo(120,30); ctx.lineTo(20,10); ctx.fill();
                     ctx.fillStyle='#ff0'; ctx.fillRect(18,-12,4,6); ctx.fillRect(18,6,4,6);
                 }
@@ -1000,12 +992,13 @@
                     ctx.beginPath(); ctx.ellipse(-8-flap, -5, 5, 12, -0.5, 0, 6.28); ctx.fill();
                     ctx.fillStyle='#f1c40f';
                     ctx.beginPath(); ctx.ellipse(0, 0, 8, 14, 0, 0, 6.28); ctx.fill();
-                    ctx.fillStyle='#000';
-                    ctx.fillRect(-6, -2, 12, 2); ctx.fillRect(-6, 4, 12, 2);
+                    ctx.fillStyle='#000'; ctx.fillRect(-6, -2, 12, 2); ctx.fillRect(-6, 4, 12, 2);
                     ctx.fillStyle='#f00'; ctx.beginPath(); ctx.moveTo(0,14); ctx.lineTo(2,20); ctx.lineTo(-2,20); ctx.fill();
                 }
             } 
             if(this.frozen>0){ ctx.fillStyle='rgba(0,255,255,0.4)';ctx.beginPath();ctx.arc(0,0,this.radius+5,0,6.28);ctx.fill();}
+            // DRAW BURN EFFECT
+            if(this.burnTimer>0) { ctx.fillStyle='rgba(255, 100, 0, 0.5)'; ctx.beginPath(); ctx.arc(0,0,this.radius+5,0,6.28); ctx.fill(); }
             ctx.restore();
         }
     }
@@ -1025,7 +1018,7 @@
     function spawnBoss(){
         if(state.bossActive) return;
         state.bossActive = true;
-        state.enemies = state.enemies.filter(e => e.type === 'MINI_BOSS'); // Clear weak mobs but keep mini bosses
+        state.enemies = state.enemies.filter(e => e.type === 'MINI_BOSS'); 
         state.flashAlpha = 1.0;
         addShake(50);
         document.getElementById('boss-hud').style.display = 'flex';
@@ -1133,18 +1126,14 @@
                 state.bossSpawnedOnce = true;
             }
 
-            // If Boss is alive, reduce spawn rate slightly to focus on Boss, but keep some pressure
             if(state.bossActive) {
                 if(state.frames % 100 === 0) state.enemies.push(new Enemy('promaja'));
                 if(state.frames % 200 === 0) state.enemies.push(new Enemy('hornet'));
             } 
-            // If Boss is DEAD (Endless Mode)
             else {
-                // High density spawning returns
                 if(state.frames % 15 === 0) state.enemies.push(new Enemy(Math.random()<0.5?'promaja':'hornet'));
                 if(state.frames % 50 === 0) state.enemies.push(new Enemy('yugo'));
 
-                // 5% Chance every 10 seconds (600 frames) to spawn Mini Boss
                 if(state.frames % 600 === 0) {
                     if(Math.random() < 0.05) {
                         spawnDamageText(player.x, player.y-100, "⚠️ ELITE DETECTED ⚠️", false);
@@ -1164,24 +1153,19 @@
             let l=Math.sqrt(mx*mx+my*my); 
             player.x+=(mx/l)*player.speed; 
             player.y+=(my/l)*player.speed; 
-            player.facing = Math.atan2(my, mx); // AUTO FACE DIRECTION
+            player.facing = Math.atan2(my, mx); 
         }
-        // Removed explicit facing update based on mouse here.
 
         if(player.regen>0 && state.frames%60===0 && player.hp<player.maxHp){ player.hp=Math.min(player.maxHp, player.hp+player.regen); updateHud(); spawnDamageText(player.x,player.y-50,player.regen,true); }
 
-        // UPDATE TIME
         if(state.frames % 60 === 0) {
             state.gameTime++;
             updateHud();
         }
 
-        // SPAWNING
         handleWaves();
-        
         if(Math.random() < 0.0008) spawnPerk();
 
-        // SERBIAN ATTACKER LOGIC
         if(player.weapons.serbian.level > 0) {
             if(state.friendlyUnit && !state.friendlyUnit.dead) {
                 state.friendlyUnit.update();
@@ -1189,7 +1173,6 @@
                 if(state.serbianCooldown > 0) {
                     state.serbianCooldown--;
                 } else {
-                    // Spawn
                     state.friendlyUnit = new FriendlyUnit();
                     createParticle(player.x, player.y, '#fff', 'plasma', 5);
                     spawnDamageText(player.x, player.y-60, "REINFORCEMENTS", true);
@@ -1240,6 +1223,16 @@
             });
             wh.timer=0;
         }}
+        
+        // --- FLAMING ORBS TRAIL LOGIC ---
+        const bur = player.weapons.burek;
+        if(bur.evolved) {
+             bur.trailTimer++;
+             if(bur.trailTimer > 600) { // 10 seconds (60fps * 10)
+                 state.zones.push(new Zone(player.x, player.y, 'flame_trail', 120)); // Lasts 2 seconds
+                 bur.trailTimer = 0;
+             }
+        }
 
         state.gems=state.gems.filter(g=>!g.update()); state.zones=state.zones.filter(z=>!z.update()); state.perks=state.perks.filter(p=>p.update());
         state.beams=state.beams.filter(b=>b.update());
@@ -1255,9 +1248,8 @@
                     updateHud();
                     return false; 
                 }
-                // Check collision with Friendly Unit
                 if(state.friendlyUnit && !state.friendlyUnit.dead && Math.hypot(p.x - state.friendlyUnit.x, p.y - state.friendlyUnit.y) < state.friendlyUnit.radius + 10) {
-                     state.friendlyUnit.takeDamage(40); // Amount ignored, hits counted
+                     state.friendlyUnit.takeDamage(40); 
                      return false;
                 }
                 return p.life > 0;
@@ -1283,28 +1275,40 @@
             e.update();
             let safeDist = player.radius + e.radius - 5;
             
-            // Player Collision
             if(!e.frozen && Math.hypot(e.x-player.x,e.y-player.y)<safeDist){ 
                 let dmgAmt = (e.type==='BOSS' || e.type==='MINI_BOSS') ? 2 : (Math.max(0.1,((e.type==='yugo'?1:0.4)-(player.armor*0.05))));
                 if(!godMode) player.hp-=dmgAmt; 
                 addShake(2); updateHud(); if(player.hp<=0){document.getElementById('final-score').innerText=state.score;document.getElementById('game-over').style.display='flex';gameActive=false;} 
             }
 
-            // Friendly Unit Collision (Attack / Damage Logic)
             if(state.friendlyUnit && !state.friendlyUnit.dead && !e.frozen) {
                 if(Math.hypot(e.x - state.friendlyUnit.x, e.y - state.friendlyUnit.y) < state.friendlyUnit.radius + e.radius) {
-                    // Call takeDamage, amount is irrelevant
                     state.friendlyUnit.takeDamage(1);
                 }
             }
             
-            const bur=player.weapons.burek; while(bur.orbs.length<bur.count)bur.orbs.push({timer:0});
+            // ORB COLLISION
+            while(bur.orbs.length<bur.count)bur.orbs.push({timer:0});
             for(let b=0;b<bur.count;b++){
                 if(bur.orbs[b].timer>0){ bur.orbs[b].timer--; continue; }
                 const ang=(state.frames*bur.speed)+(b*6.28/bur.count), bx=player.x+Math.cos(ang)*bur.dist, by=player.y+Math.sin(ang)*bur.dist;
-                if(Math.hypot(e.x-bx,e.y-by)<(bur.evolved?60:45)){
-                    if(bur.evolved){ let mainDmg = calcDamage(100); let splashDmg = calcDamage(50); e.takeDamage(mainDmg.d, true, 'burek'); createParticle(bx,by,'#00f3ff','plasma',2); addShake(10); state.enemies.forEach(s=>{if(Math.hypot(s.x-bx,s.y-by)<150)s.takeDamage(splashDmg.d, false, 'burek')}); bur.orbs[b].timer=300; }
-                    else if(state.frames%6===0){ let dmg=calcDamage(bur.damage); e.takeDamage(dmg.d, dmg.c, 'burek'); createParticle(e.x,e.y,'#e67e22','spark'); }
+                
+                // Radius is standard, slightly larger for evolved but not huge explosion
+                let hitRadius = 45; 
+                if(Math.hypot(e.x-bx,e.y-by) < hitRadius){
+                    if(bur.evolved){ 
+                        // REWORK: Just standard damage + Burn, no explosion
+                        let dmg = calcDamage(bur.damage);
+                        e.takeDamage(dmg.d, dmg.c, 'burek');
+                        e.burnTimer = 60; // Burn for 1 second
+                        createParticle(bx, by, '#ff5e00', 'fire', 1.0);
+                        bur.orbs[b].timer = 20; // Short cooldown so it doesn't hit every single frame
+                    }
+                    else if(state.frames%6===0){ 
+                        let dmg=calcDamage(bur.damage); 
+                        e.takeDamage(dmg.d, dmg.c, 'burek'); 
+                        createParticle(e.x,e.y,'#e67e22','spark'); 
+                    }
                 }
             }
             state.projectiles.forEach(p=>{if(p.type==='cevapi'&&Math.hypot(e.x-p.x,e.y-p.y)<e.radius+15){let dmg=calcDamage(player.weapons.cevapi.damage); e.takeDamage(dmg.d, dmg.c, 'projectile');p.life=0;}});
@@ -1373,10 +1377,19 @@
             let ang=(state.frames*bur.speed)+(i*6.28/bur.count), bx=pX+Math.cos(ang)*bur.dist, by=pY+Math.sin(ang)*bur.dist;
             ctx.save(); ctx.translate(bx,by);
             if(bur.evolved){ 
+                // DRAW FLAMING ORB
                 ctx.globalCompositeOperation = 'lighter';
-                ctx.strokeStyle='#00f3ff';ctx.lineWidth=3;
-                ctx.beginPath();ctx.arc(0,0,15,0,6.28);ctx.stroke();
-                ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,8,0,6.28); ctx.fill();
+                
+                // Inner core
+                ctx.fillStyle='#ffaa00'; ctx.beginPath(); ctx.arc(0,0,8,0,6.28); ctx.fill();
+                
+                // Outer flame
+                let f = Math.sin(state.frames*0.5)*3;
+                ctx.fillStyle='rgba(255, 50, 0, 0.6)'; ctx.beginPath(); ctx.arc(0,0,14+f,0,6.28); ctx.fill();
+                
+                // Particle emitter visual
+                if(state.frames % 5 === 0) createParticle(bx + cX, by + cY, '#ffaa00', 'fire', 0.5);
+
             } else { 
                 ctx.rotate(ang*4);
                 ctx.strokeStyle='#e67e22';ctx.lineWidth=4;
@@ -1430,15 +1443,15 @@
 
         if(player.weapons.burek.evolved || player.weapons.burek.level >= 8) { pool = pool.filter(u => u.id !== 'burek'); }
         if(player.weapons.pyramid.evolved || player.weapons.pyramid.level >= 6) { pool = pool.filter(u => u.id !== 'pyramid'); }
-        if(player.weapons.serbian.level > 0) { pool = pool.filter(u => u.id !== 'serbian'); } // One time purchase
+        if(player.weapons.serbian.level > 0) { pool = pool.filter(u => u.id !== 'serbian'); } 
 
         if(player.weapons.burek.level>=8 && !player.weapons.burek.evolved) pool.unshift(EVOLUTIONS.find(e=>e.id==='burek_evo'));
         if(player.weapons.pyramid.level>=6 && !player.weapons.pyramid.evolved) pool.unshift(EVOLUTIONS.find(e=>e.id==='pyramid_evo'));
 
-        if(player.weapons.burek.evolved) pool.push({id:'supercharge_burek', name:'SUPERCHARGE: TESLA', icon:'⚡', desc:'+20% Damage for Tesla Orbs.', supercharge:true});
+        // REWORKED SUPERCHARGE
+        if(player.weapons.burek.evolved) pool.push({id:'supercharge_burek', name:'SUPERCHARGE: MAGMA', icon:'🌋', desc:'Increases Burn Damage and Trail Duration.', supercharge:true});
         if(player.weapons.pyramid.evolved) pool.push({id:'supercharge_pyramid', name:'SUPERCHARGE: SOLAR', icon:'🔥', desc:'+20% Damage for Solar Flare.', supercharge:true});
 
-        // Add Serbian Attacker with 1% chance
         if(Math.random() < 0.01 && player.weapons.serbian.level === 0) {
             pool.unshift(UPGRADES.find(u => u.id === 'serbian'));
         }
@@ -1457,10 +1470,21 @@
     }
 
     function applyUpgrade(id){
-        if(id==='burek_evo'){player.weapons.burek.evolved=true;player.weapons.burek.speed=0.06;player.weapons.burek.dist=140;player.weapons.burek.count+=1;}
+        // FLAMING ORBS EVOLUTION LOGIC
+        if(id==='burek_evo'){
+            player.weapons.burek.evolved=true;
+            // No massive speed/dist increase anymore, just slight adjustments
+            player.weapons.burek.count+=1; 
+            player.weapons.burek.damage+=5;
+        }
         if(id==='pyramid_evo'){player.weapons.pyramid.evolved=true;player.weapons.pyramid.damage=400;player.weapons.pyramid.baseCool=180;player.weapons.pyramid.timer=0;}
         
-        if(id==='supercharge_burek'){ player.weapons.burek.damage *= 1.2; spawnDamageText(player.x, player.y-50, "POWER UP!", true); }
+        // SUPERCHARGE UPDATE
+        if(id==='supercharge_burek'){ 
+            player.weapons.burek.damage *= 1.2; 
+            // Just raw damage buff handles both orb hits and trail damage calculation
+            spawnDamageText(player.x, player.y-50, "MAGMA INTENSIFIES", true); 
+        }
         if(id==='supercharge_pyramid'){ player.weapons.pyramid.damage *= 1.2; spawnDamageText(player.x, player.y-50, "POWER UP!", true); }
 
         if(id==='burek'){player.weapons.burek.count++;player.weapons.burek.level++;player.weapons.burek.speed+=0.01;}
