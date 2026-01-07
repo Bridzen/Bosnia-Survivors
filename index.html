@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bosnian Survivors: FLAME UPDATE</title>
+<title>Bosnian Survivors: SQUAD UPDATE</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
     :root { 
@@ -80,11 +80,14 @@
     }
     .menu-btn:hover { background:var(--bosnia-yellow); color:black; border-color:white; font-weight: 800; }
 
-    #admin-panel { display:none; border:2px solid var(--danger); background:rgba(0,0,0,0.95); box-shadow: 0 0 50px rgba(255,0,0,0.2); }
-    .admin-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; width:500px; padding:20px; }
+    #admin-panel { display:none; border:2px solid var(--danger); background:rgba(0,0,0,0.95); box-shadow: 0 0 50px rgba(255,0,0,0.2); flex-direction: column; align-items: center;}
+    .admin-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; width:600px; padding:20px; }
     .admin-btn { background:#111; border:1px solid #555; color:white; padding:15px; cursor:pointer; font-family:'Orbitron'; text-transform:uppercase; transition:0.2s; font-size: 14px; }
     .admin-btn:hover { background:var(--danger); color:white; border-color:white; box-shadow: 0 0 10px var(--danger); }
-    .admin-header { font-family:'Orbitron'; color:var(--danger); font-size:30px; margin-bottom:20px; text-shadow:0 0 10px red; letter-spacing: 5px; text-align: center; width: 100%; border-bottom: 1px solid #333; padding-bottom: 10px;}
+    .admin-header { font-family:'Orbitron'; color:var(--danger); font-size:30px; margin:20px 0; text-shadow:0 0 10px red; letter-spacing: 5px; text-align: center; width: 100%; border-bottom: 1px solid #333; padding-bottom: 10px;}
+
+    /* New Admin Select Styles */
+    #admin-augment-select { background: #000; color: var(--neon-cyan); border: 1px solid var(--neon-cyan); padding: 10px; width: 100%; font-family: 'Rajdhani'; font-size: 16px; margin-bottom: 10px; }
 
     .info-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:20px; max-width:1100px; width:90%; padding:20px; }
     .info-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:20px; border-radius:4px; display:flex; align-items:center; gap:15px; position:relative; overflow:hidden;}
@@ -102,7 +105,7 @@
     .card { 
         background:linear-gradient(170deg, #0a0a15 0%, #101025 100%); 
         border:1px solid #333; 
-        width:220px; height:360px; 
+        width:220px; height:380px; 
         border-radius:2px; padding:20px; 
         cursor:pointer; transition:0.3s; 
         display:flex; flex-direction:column; align-items:center; text-align:center; 
@@ -150,7 +153,7 @@
 <!-- MAIN MENU -->
 <div id="main-menu" class="screen-overlay" style="display:flex;">
     <h1 class="title-glitch">BOSNIAN<br><span style="color:var(--bosnia-yellow)">SURVIVORS</span></h1>
-    <h3 style="font-family:'Rajdhani'; letter-spacing:5px; color:var(--neon-cyan); margin-top:-20px;">FLAME UPDATE</h3>
+    <h3 style="font-family:'Rajdhani'; letter-spacing:5px; color:var(--neon-cyan); margin-top:-20px;">SQUAD UPDATE</h3>
     <div style="height:40px;"></div>
     <button class="menu-btn" onclick="startGame()">DEPLOY</button>
     <button class="menu-btn" onclick="openInfo('armory')">ARMORY</button>
@@ -167,6 +170,13 @@
 <!-- ADMIN PANEL -->
 <div id="admin-panel" class="screen-overlay">
     <div class="admin-header">/// DEBUG CONTROL ///</div>
+    <div class="admin-grid" style="grid-template-columns: 1fr; width: 400px; margin-bottom: 20px;">
+        <label style="color:white; font-family:'Orbitron'; font-size:12px;">FORCE AUGMENTATION</label>
+        <div style="display:flex; gap:10px;">
+            <select id="admin-augment-select"></select>
+            <button class="admin-btn" style="padding:10px;" onclick="adminForceUpgrade()">ADD</button>
+        </div>
+    </div>
     <div class="admin-grid">
         <button class="admin-btn" onclick="toggleGodMode()">Toggle God Mode</button>
         <button class="admin-btn" onclick="adminLevelUp()">+1 Level</button>
@@ -252,7 +262,7 @@
         {id:'harmonika',name:'Harmonika Aura',icon:'🎹',desc:'Slows all enemies within range. +10% Slow per level.', tier:'rare', max:8},
         {id:'xp_boost',name:'Big Brain',icon:'🧠',desc:'+100% EXP Gain (Stacks)', tier:'rare', max:10},
         
-        {id:'serbian',name:'Serbian Attacker',icon:'⚔️',desc:'Summons a Legendary Warrior. 30s Respawn.', tier:'legendary', max:1},
+        {id:'serbian',name:'Serbian Warrior',icon:'⚔️',desc:'Summons a Friendly Unit. Targets Hordes. 30s Respawn.', tier:'legendary', max:1},
         
         {id:'speed',name:'Turbo Folk Speed',icon:'⚡',desc:'Increases Movement Speed by 20%.', tier:'common', max:10},
         {id:'magnet',name:'Super Magnet',icon:'🧲',desc:'Increases Item Pickup Range by 50%.', tier:'common', max:10},
@@ -265,7 +275,17 @@
 
     const EVOLUTIONS = [
         {id:'burek_evo',base:'burek',name:'FLAMING ORBS',icon:'🔥',desc:'EVOLUTION: Burning Orbs. Burns enemies. Spawns fire trails.', tier:'rare'},
-        {id:'pyramid_evo',base:'pyramid',name:'SOLAR FLARE',icon:'☀️',desc:'EVOLUTION: Instantly blasts enemies with a massive laser beam.', tier:'rare'}
+        {id:'pyramid_evo',base:'pyramid',name:'SOLAR FLARE',icon:'☀️',desc:'EVOLUTION: Instantly blasts enemies with a massive laser beam.', tier:'rare'},
+        
+        // LEVEL 2 SERBIAN PATHS
+        {id:'serbian_p1', base:'serbian', name:'PATH 1: TITAN SWORD', icon:'🗡️', desc:'LVL 2: Bigger Sword. Higher Damage. Same AI.', tier:'legendary', req:'serbian'},
+        {id:'serbian_p2', base:'serbian', name:'PATH 2: TACTICAL SQUAD', icon:'👥', desc:'LVL 2: Splits into 3 Units: Soldier, Defender, Mage.', tier:'legendary', req:'serbian'},
+        {id:'serbian_p3', base:'serbian', name:'PATH 3: VANGUARD', icon:'🛡️', desc:'LVL 2: Sword & Shield Unit. 20 Durability. Tanky.', tier:'legendary', req:'serbian'},
+        
+        // LEVEL 3 SERBIAN PATHS
+        {id:'serbian_p1_evo', base:'serbian_p1', name:'BERSERKER', icon:'🌪️', desc:'LVL 3: 1.5x Size/Dmg. Spin Attack (3 hits). 4s Cooldown.', tier:'legendary', req:'serbian_p1'},
+        {id:'serbian_p2_evo', base:'serbian_p2', name:'ELITE SQUAD', icon:'✨', desc:'LVL 3: Shield gets Pushback. Mage gets Visoko Beam.', tier:'legendary', req:'serbian_p2'},
+        {id:'serbian_p3_evo', base:'serbian_p3', name:'WARLORD TANK', icon:'💢', desc:'LVL 3: 30 Durability. Taunts enemies every 20s.', tier:'legendary', req:'serbian_p3'}
     ];
     
     const SUPERCHARGES = [
@@ -287,7 +307,7 @@
         frames:0, gameTime:0, score:0, level:1, xp:0, nextLevelXp:20, xpMult:1, shake:0, 
         enemies:[], particles:[], projectiles:[], beams:[], zones:[], texts:[], gems:[], perks:[], backgroundStars:[], 
         bossActive:false, bossSpawnedOnce:false, flashAlpha:0,
-        friendlyUnit: null, serbianCooldown: 0
+        friendlyUnits: [] 
     };
     let player = { 
         x:0, y:0, hp:100, maxHp:100, speed:6, radius:20, magnetRadius:140, armor:0, regen:0, critChance:0.05, cdr:1.0, facing:0, 
@@ -315,9 +335,30 @@
 
     function openAdmin(){
         if(!gameActive) return;
+        populateAdminSelect();
         document.getElementById('admin-panel').style.display='flex';
         if(!isPaused) togglePause();
     }
+    
+    function populateAdminSelect() {
+        const sel = document.getElementById('admin-augment-select');
+        sel.innerHTML = "";
+        const all = [...UPGRADES, ...EVOLUTIONS, ...SUPERCHARGES];
+        all.forEach(u => {
+            let opt = document.createElement('option');
+            opt.value = u.id;
+            opt.innerText = u.name;
+            sel.appendChild(opt);
+        });
+    }
+    
+    function adminForceUpgrade() {
+        const val = document.getElementById('admin-augment-select').value;
+        applyUpgrade(val);
+        spawnDamageText(player.x, player.y-80, "ADMIN UPGRADE", true);
+        closeAdmin();
+    }
+
     function closeAdmin(){
         document.getElementById('admin-panel').style.display='none';
         if(isPaused) togglePause();
@@ -427,7 +468,7 @@
             frames:0, gameTime:0, score:0, level:1, xp:0, nextLevelXp:20, xpMult:1, shake:0, 
             enemies:[], particles:[], projectiles:[], beams:[], zones:[], texts:[], gems:[], perks:[], backgroundStars:[],
             bossActive:false, bossSpawnedOnce:false, flashAlpha:0,
-            friendlyUnit: null, serbianCooldown: 0
+            friendlyUnits: []
         };
         initBackground();
         
@@ -440,7 +481,7 @@
                 rakija: { level:0, cooldown:190, baseCool:190, timer:0, damage:4, duration:300 }, 
                 pyramid: { level:0, cooldown:110, baseCool:110, timer:0, damage:50, evolved:false },
                 harmonika: { level:0, range:160, slow:0.10 },
-                serbian: { level:0 }
+                serbian: { level:0, path: 0, evolved: false } // path 0=base, 1=titan, 2=squad, 3=vanguard
             },
             items: {
                 speed:0, magnet:0, armor:0, heal:0, coffee:0, lily:0, vrelo:0, xp_boost:0
@@ -483,23 +524,101 @@
         return {d:dmg, c:isCrit}; 
     }
 
+    // --- REFACTORED FRIENDLY UNIT SYSTEM ---
     class FriendlyUnit {
-        constructor() {
-            this.x = player.x; this.y = player.y;
-            this.durability = 10; 
+        constructor(type, x, y) {
+            this.type = type; // 'soldier', 'titan', 'vanguard', 'defender', 'mage'
+            this.x = x; this.y = y;
+            
+            // Stats defaults
             this.maxDurability = 10;
-            this.radius = 25; this.range = 100;
+            this.damage = 50 + (5 * state.level);
+            this.radius = 25;
+            this.attackRange = 100;
+            this.attackSpeed = 180; // frames
+            this.moveSpeed = 3.5;
+            this.respawnTime = 30 * 60; // 30 sec
+            
+            this.durability = this.maxDurability;
             this.attackTimer = 0;
+            this.immuneTimer = 0;
             this.dead = false;
-            this.immuneTimer = 0; 
-            this.magnetRadius = 250; 
-            this.defensiveMode = false;
+            this.respawnTimer = 0;
+            this.magnetRadius = 250;
+            this.taunting = false;
+            this.tauntTimer = 0;
+            this.tauntCooldown = 0;
+
+            // Type specifics
+            if(type === 'soldier') { // Lvl 1 basic, Lvl 2 path 2 weak
+                this.maxDurability = 10; 
+            }
+            if(type === 'titan') { // Lvl 2 Path 1
+                this.damage *= 1.5; 
+            }
+            if(type === 'vanguard') { // Lvl 2 Path 3 (Sword + Shield)
+                this.maxDurability = 20;
+            }
+            if(type === 'defender') { // Lvl 2 Path 2 Shield Guy
+                this.maxDurability = 15;
+                this.damage = 0; 
+            }
+            if(type === 'mage') { // Lvl 2 Path 2 Mage
+                this.maxDurability = 3;
+                this.attackRange = 400;
+            }
+
+            // Upgrades Logic (Modifying stats based on Player Tech)
+            const tech = player.weapons.serbian;
+            
+            // Path 2 (Squad) specific adjustments
+            if(tech.path === 2 && type === 'soldier') this.maxDurability = 5;
+            
+            // Path 3 (Vanguard) Upgrade
+            if(tech.path === 3 && tech.evolved) { // Tank Taunt
+                 this.maxDurability = 30;
+                 this.canTaunt = true;
+            }
+
+            // Path 1 (Titan) Upgrade
+            if(tech.path === 1 && tech.evolved) { // Berserk
+                this.radius *= 1.5;
+                this.damage *= 1.5;
+                this.attackSpeed = 240; // 4s
+                this.isBerserk = true;
+            }
+
+            // Path 2 (Squad) Evolutions
+            if(tech.path === 2 && tech.evolved) {
+                if(type === 'defender') { 
+                    this.maxDurability = 10; // Nerf mentioned in prompt? or just set to 10.
+                    this.canPush = true;
+                    this.pushTimer = 0;
+                }
+                if(type === 'mage') {
+                    this.hasBeam = true;
+                }
+            }
+
+            this.durability = this.maxDurability;
         }
+
         update() {
-            if(this.dead) return;
+            if(this.dead) {
+                this.respawnTimer--;
+                if(this.respawnTimer <= 0) {
+                    this.dead = false;
+                    this.durability = this.maxDurability;
+                    this.immuneTimer = 60;
+                    this.x = player.x; this.y = player.y;
+                    spawnDamageText(this.x, this.y-50, "UNIT READY", true);
+                    createParticle(this.x, this.y, '#fff', 'plasma', 5);
+                }
+                return;
+            }
             if(this.immuneTimer > 0) this.immuneTimer--;
 
-            // XP Pickup Logic
+            // XP Pickup
             state.gems.forEach(g => {
                 if(!g.vacuum) {
                     let d = Math.hypot(g.x - this.x, g.y - this.y);
@@ -507,133 +626,230 @@
                 }
             });
 
-            // AI Targeting Logic (Cluster Detection)
-            let bestTarget = null;
-            let maxNeighbors = 0;
-            this.defensiveMode = false;
+            // --- AI MOVEMENT ---
+            let target = null;
+            let minDist = 9999;
+            let enemiesNearby = 0;
 
-            // Only scan enemies reasonably close to player to save performance
-            let potentialTargets = state.enemies.filter(e => Math.hypot(e.x - player.x, e.y - player.y) < 600);
-            
-            if(potentialTargets.length < 5) {
-                 // Fallback: Closest enemy
-                 let minDist = 9999;
-                 state.enemies.forEach(e => {
-                     let d = Math.hypot(e.x - this.x, e.y - this.y);
-                     if(d < minDist) { minDist = d; bestTarget = e; }
-                 });
-            } else {
-                // Find cluster center
-                potentialTargets.forEach(main => {
-                    let neighbors = 0;
-                    potentialTargets.forEach(other => {
-                        if(main !== other && Math.hypot(main.x - other.x, main.y - other.y) < 120) {
-                            neighbors++;
-                        }
-                    });
-                    
-                    if(neighbors > maxNeighbors) {
-                        maxNeighbors = neighbors;
-                        bestTarget = main;
-                    }
-                });
-            }
+            state.enemies.forEach(e => {
+                let d = Math.hypot(e.x - this.x, e.y - this.y);
+                if(d < 150) enemiesNearby++;
+                if(d < minDist) { minDist = d; target = e; }
+            });
 
-            // Movement Logic
+            // Logic Switch based on Type
             let moveX = 0, moveY = 0;
-            if(bestTarget) {
-                let distToTarget = Math.hypot(bestTarget.x - this.x, bestTarget.y - this.y);
+
+            if(this.type === 'mage') {
+                // Mage: Stay near defender if possible, else player. Keep distance from enemies.
+                let protectTarget = state.friendlyUnits.find(u => u.type === 'defender' && !u.dead) || player;
+                let dProt = Math.hypot(protectTarget.x - this.x, protectTarget.y - this.y);
                 
-                // If a large cluster is found (5+ enemies)
-                if(maxNeighbors >= 5) {
-                    // Tank Mode: Move to intercept, then hold ground
-                    if(distToTarget < 60) {
-                        this.defensiveMode = true; // Stop moving, act as wall
-                    } else {
-                        let ang = Math.atan2(bestTarget.y - this.y, bestTarget.x - this.x);
-                        moveX = Math.cos(ang); moveY = Math.sin(ang);
-                    }
+                if(minDist < 200) { // Enemy too close, run away
+                     let ang = Math.atan2(target.y - this.y, target.x - this.x);
+                     moveX = -Math.cos(ang); moveY = -Math.sin(ang);
+                } else if(dProt > 100) { // Stay near buddy
+                     let ang = Math.atan2(protectTarget.y - this.y, protectTarget.x - this.x);
+                     moveX = Math.cos(ang); moveY = Math.sin(ang);
+                }
+            } 
+            else if (this.type === 'defender') {
+                 // Shield: Stay near player, impose self between player and mobs
+                 if(target) {
+                     let ang = Math.atan2(target.y - player.y, target.x - player.x);
+                     let blockX = player.x + Math.cos(ang) * 60;
+                     let blockY = player.y + Math.sin(ang) * 60;
+                     let dBlock = Math.hypot(blockX - this.x, blockY - this.y);
+                     if(dBlock > 10) {
+                         let angM = Math.atan2(blockY - this.y, blockX - this.x);
+                         moveX = Math.cos(angM); moveY = Math.sin(angM);
+                     }
+                 } else {
+                     let dP = Math.hypot(player.x - this.x, player.y - this.y);
+                     if(dP > 60) {
+                         let ang = Math.atan2(player.y - this.y, player.x - this.x);
+                         moveX = Math.cos(ang); moveY = Math.sin(ang);
+                     }
+                 }
+            }
+            else { 
+                // Soldier / Titan / Vanguard / Berserk logic
+                // Rule: Stop moving if 5+ enemies in range
+                if(enemiesNearby >= 5) {
+                    moveX = 0; moveY = 0;
                 } else {
-                    // Chase Mode
-                    if(distToTarget > 40) {
-                        let ang = Math.atan2(bestTarget.y - this.y, bestTarget.x - this.x);
-                        moveX = Math.cos(ang); moveY = Math.sin(ang);
+                    if(target) {
+                        let d = Math.hypot(target.x - this.x, target.y - this.y);
+                        if(d > 40) {
+                             let ang = Math.atan2(target.y - this.y, target.x - this.x);
+                             moveX = Math.cos(ang); moveY = Math.sin(ang);
+                        }
+                    } else {
+                        // Return to player
+                        let dP = Math.hypot(player.x - this.x, player.y - this.y);
+                         if(dP > 100) {
+                             let ang = Math.atan2(player.y - this.y, player.x - this.x);
+                             moveX = Math.cos(ang); moveY = Math.sin(ang);
+                         }
                     }
                 }
-            } else {
-                 // Return to player
-                 let distToP = Math.hypot(player.x - this.x, player.y - this.y);
-                 if(distToP > 100) {
-                     let ang = Math.atan2(player.y - this.y, player.x - this.x);
-                     moveX = Math.cos(ang); moveY = Math.sin(ang);
+            }
+
+            this.x += moveX * this.moveSpeed;
+            this.y += moveY * this.moveSpeed;
+
+            // --- ABILITIES & ATTACK ---
+            
+            // Taunt Logic (Warlord Tank)
+            if(this.canTaunt) {
+                if(this.tauntCooldown > 0) this.tauntCooldown--;
+                if(this.taunting) {
+                    this.tauntTimer--;
+                    if(this.tauntTimer <= 0) {
+                        this.taunting = false;
+                        this.tauntCooldown = 1200; // 20s
+                    }
+                } else if(this.tauntCooldown <= 0 && enemiesNearby > 0) {
+                    this.taunting = true;
+                    this.tauntTimer = 300; // 5s
+                    spawnDamageText(this.x, this.y-60, "TAUNTING!", true);
+                    state.zones.push(new Zone(this.x, this.y, 'taunt_ring', 300));
+                }
+            }
+
+            // Pushback Logic (Elite Shield)
+            if(this.canPush) {
+                 this.pushTimer++;
+                 if(this.pushTimer > 900) { // 15s
+                     this.pushTimer = 0;
+                     state.zones.push(new Zone(this.x, this.y, 'shield_push', 20)); // Visual
+                     // Logic
+                     let range = player.weapons.harmonika.range * 1.5;
+                     state.enemies.forEach(e => {
+                         let d = Math.hypot(e.x - this.x, e.y - this.y);
+                         if(d < range) {
+                             let ang = Math.atan2(e.y - this.y, e.x - this.x);
+                             e.pushX = Math.cos(ang) * 25;
+                             e.pushY = Math.sin(ang) * 25;
+                         }
+                     });
+                     spawnDamageText(this.x, this.y-60, "PUSHBACK", true);
                  }
             }
 
-            if(!this.defensiveMode) {
-                this.x += moveX * 3.5; this.y += moveY * 3.5;
-            }
-
-            // Attack Logic
             this.attackTimer++;
-            if(this.attackTimer > 180) { 
-                this.attackTimer = 0;
-                addShake(5);
-                state.zones.push(new Zone(this.x, this.y, 'valk_swing', 15));
-                let dmg = 50 + (5 * state.level);
-                state.enemies.forEach(e => {
-                    if(Math.hypot(e.x - this.x, e.y - this.y) < 160) {
-                        e.takeDamage(dmg, true, 'friendly');
+            if(this.attackTimer > this.attackSpeed) {
+                // MAGE ATTACK
+                if(this.type === 'mage') {
+                    if(target) {
+                        this.attackTimer = 0;
+                        // Shoot Cevapi
+                        let pLevel = Math.max(1, player.weapons.cevapi.level);
+                        let p = new Projectile(this.x, this.y, target, 'cevapi');
+                        p.overrideDamage = 15 + (pLevel * 10);
+                        state.projectiles.push(p);
+
+                        // Visoko Beam (If evolved)
+                        if(this.hasBeam) {
+                             let beamLvl = Math.max(1, player.weapons.pyramid.level);
+                             // Just simplified beam logic for mage
+                             let ang = Math.atan2(target.y - this.y, target.x - this.x);
+                             state.beams.push(new Beam(this.x, this.y, ang));
+                             state.enemies.forEach(e => {
+                                 // Simple beam collision check
+                                 let d = Math.hypot(e.x - this.x, e.y - this.y); // Roughly cone check simplified
+                                 if(d < 600 && Math.abs(Math.atan2(e.y-this.y, e.x-this.x) - ang) < 0.2) {
+                                     e.takeDamage(50 * beamLvl, false, 'friendly_beam');
+                                 }
+                             });
+                        }
                     }
-                });
+                }
+                // DEFENDER (No Attack unless pushed)
+                else if(this.type === 'defender') {
+                    // Do nothing
+                }
+                // MELEE UNITS
+                else {
+                    this.attackTimer = 0;
+                    addShake(5);
+                    let dmg = this.damage;
+                    
+                    if(this.isBerserk) {
+                        // Spin attack
+                        state.zones.push(new Zone(this.x, this.y, 'berserk_spin', 45)); // 3 spins
+                        // Damage logic handled in Zone
+                    } else {
+                        state.zones.push(new Zone(this.x, this.y, 'valk_swing', 15));
+                        state.enemies.forEach(e => {
+                            if(Math.hypot(e.x - this.x, e.y - this.y) < 160) {
+                                e.takeDamage(dmg, true, 'friendly');
+                            }
+                        });
+                    }
+                }
             }
         }
-        draw(cX, cY) {
-            if(this.dead) return;
-            ctx.save(); ctx.translate(this.x - cX, this.y - cY);
-            
-            if(this.immuneTimer > 0) {
-                 ctx.save();
-                 ctx.globalAlpha = 0.4 + Math.sin(state.frames*0.5)*0.2;
-                 ctx.fillStyle = '#00f3ff';
-                 ctx.beginPath(); ctx.arc(0,0, 35, 0, 6.28); ctx.fill();
-                 ctx.strokeStyle = '#fff'; ctx.lineWidth=2; ctx.stroke();
-                 ctx.restore();
-            }
 
-            // Defensive Mode Indicator
-            if(this.defensiveMode) {
-                ctx.strokeStyle = '#0f0'; ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.arc(0, 0, 40 + Math.sin(state.frames*0.2)*5, 0, 6.28); ctx.stroke();
-            }
-
-            ctx.shadowBlur=10; ctx.shadowColor='rgba(0,100,255,0.8)';
-            ctx.fillStyle = '#eee'; ctx.beginPath(); ctx.arc(0,0,15,0,6.28); ctx.fill();
-            ctx.fillStyle = '#00f'; ctx.fillRect(-10, 5, 20, 15); 
-            ctx.fillStyle = '#aaa'; ctx.beginPath(); ctx.arc(0,-5,8,0,6.28); ctx.fill(); 
-
-            ctx.fillStyle = 'red'; ctx.fillRect(-20, -35, 40, 6);
-            ctx.fillStyle = '#0f0'; ctx.fillRect(-20, -35, 40 * (this.durability/this.maxDurability), 6);
-            
-            ctx.fillStyle = '#fff'; ctx.font='bold 10px Arial'; ctx.textAlign='center';
-            ctx.fillText(this.durability + " / " + this.maxDurability, 0, -40);
-
-            ctx.restore();
-        }
         takeDamage(amt) {
-            if(this.immuneTimer > 0) {
-                if(state.frames % 30 === 0) spawnDamageText(this.x, this.y - 40, "SHIELDED", false);
-                return; 
-            }
+            if(this.immuneTimer > 0) return;
             this.durability--;
-            this.immuneTimer = 300; 
-            spawnDamageText(this.x, this.y - 30, "-1 DURABILITY", true);
+            this.immuneTimer = 60; // 1s immunity
+            spawnDamageText(this.x, this.y - 30, "-1 DUR", true);
             createParticle(this.x, this.y, '#00f3ff', 'plasma', 3);
 
             if(this.durability <= 0) {
                 this.dead = true;
-                state.serbianCooldown = 1800; 
-                spawnDamageText(this.x, this.y-50, "UNIT LOST", true);
+                this.respawnTimer = this.respawnTime;
+                spawnDamageText(this.x, this.y-50, "UNIT DOWN", true);
             }
+        }
+
+        draw(cX, cY) {
+            if(this.dead) {
+                // Draw respawn timer
+                let sec = Math.ceil(this.respawnTimer / 60);
+                ctx.fillStyle = '#555'; ctx.font='12px Orbitron'; ctx.fillText(`RESPAWN: ${sec}s`, this.x - cX, this.y - cY);
+                return;
+            }
+            
+            ctx.save(); ctx.translate(this.x - cX, this.y - cY);
+            
+            if(this.taunting) {
+                ctx.strokeStyle = '#ff003c'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.arc(0,0, 40 + Math.sin(state.frames*0.5)*10, 0, 6.28); ctx.stroke();
+            }
+
+            // Visual based on type
+            if(this.type === 'soldier' || this.type === 'titan' || this.type === 'vanguard') {
+                 ctx.fillStyle = '#eee'; ctx.beginPath(); ctx.arc(0,0,15,0,6.28); ctx.fill();
+                 ctx.fillStyle = '#00f'; ctx.fillRect(-10, 5, 20, 15); 
+                 
+                 // Sword
+                 let swordSize = this.type==='titan' || this.isBerserk ? 30 : 20;
+                 ctx.fillStyle = '#aaa'; ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(10+swordSize, -5); ctx.lineTo(10+swordSize, 5); ctx.fill();
+
+                 if(this.type === 'vanguard') { // Shield
+                     ctx.fillStyle = '#448'; ctx.fillRect(-20, -10, 8, 20);
+                 }
+            }
+            else if (this.type === 'defender') {
+                 ctx.fillStyle = '#889'; ctx.beginPath(); ctx.arc(0,0,18,0,6.28); ctx.fill();
+                 ctx.fillStyle = '#224'; ctx.fillRect(-15, -20, 30, 40); // Big Shield
+                 ctx.strokeStyle = '#fff'; ctx.strokeRect(-15, -20, 30, 40);
+            }
+            else if (this.type === 'mage') {
+                 ctx.fillStyle = '#d000ff'; ctx.beginPath(); ctx.moveTo(0,-20); ctx.lineTo(-15,10); ctx.lineTo(15,10); ctx.fill();
+                 ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0,-25, 5, 0, 6.28); ctx.fill();
+            }
+
+            // Durability Bar
+            ctx.fillStyle = 'red'; ctx.fillRect(-20, -35, 40, 6);
+            ctx.fillStyle = '#0f0'; ctx.fillRect(-20, -35, 40 * (this.durability/this.maxDurability), 6);
+            ctx.fillStyle = '#fff'; ctx.font='bold 10px Arial'; ctx.textAlign='center';
+            ctx.fillText(this.durability + "/" + this.maxDurability, 0, -40);
+
+            ctx.restore();
         }
     }
 
@@ -728,6 +944,7 @@
         constructor(x,y,target,type){
             this.x=x;this.y=y;this.type=type;this.life=150;this.rotation=0;
             this.pierceHitList = [];
+            this.overrideDamage = 0;
 
             if(type === 'boss_missile') {
                 let a = Math.atan2(target.y-y, target.x-x);
@@ -806,7 +1023,24 @@
         constructor(x,y,type,dur){this.x=x;this.y=y;this.life=dur;this.maxLife=dur;this.radius=90;this.type=type;if(type==='blast') this.radius=120; if(type==='valk_swing') this.radius=160; if(type==='flame_trail') this.radius=50;}
         update(){ 
             this.life--; 
-            if(this.type==='blast' || this.type==='valk_swing') return this.life<=0;
+            if(this.type==='blast' || this.type==='valk_swing' || this.type==='shield_push' || this.type==='taunt_ring') return this.life<=0;
+
+            if(this.type==='berserk_spin') {
+                if(this.life % 10 === 0) { // Hit every 10 frames
+                    let baseDmg = 50 + (state.level*5);
+                    if(player.weapons.serbian.evolved) baseDmg *= 1.5;
+                    state.enemies.forEach(e => {
+                         if(Math.hypot(e.x - this.x, e.y - this.y) < 160) {
+                             e.takeDamage(baseDmg, true, 'berserk');
+                             createParticle(e.x, e.y, '#f00', 'blood', 1);
+                         }
+                    });
+                }
+                // follow the unit
+                let unit = state.friendlyUnits.find(u => u.isBerserk);
+                if(unit) { this.x = unit.x; this.y = unit.y; }
+                return this.life<=0;
+            }
 
             if(this.type==='flame_trail') {
                  if(state.frames % 10 === 0) {
@@ -840,17 +1074,35 @@
                 ctx.restore();
                 return;
             }
-            if(this.type === 'valk_swing') {
+            if(this.type === 'shield_push') {
+                ctx.save(); ctx.translate(this.x-cX, this.y-cY);
+                let p = 1 - (this.life/this.maxLife);
+                ctx.strokeStyle = `rgba(255, 255, 255, ${1-p})`;
+                ctx.lineWidth = 10;
+                ctx.beginPath(); ctx.arc(0,0, player.weapons.harmonika.range * 1.5 * p, 0, 6.28); ctx.stroke();
+                ctx.restore();
+                return;
+            }
+            if(this.type === 'taunt_ring') {
+                 // Invis logic, just handled in unit draw
+                 return;
+            }
+            if(this.type === 'valk_swing' || this.type === 'berserk_spin') {
                  ctx.save(); 
                  ctx.translate(this.x-cX, this.y-cY);
-                 let progress = 1 - (this.life / this.maxLife); 
-                 let angle = progress * Math.PI * 2; 
                  
-                 ctx.beginPath();
-                 ctx.arc(0, 0, this.radius, angle - 1, angle, false);
-                 ctx.lineWidth = 40;
-                 ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 * (1-progress)})`;
-                 ctx.stroke();
+                 let progress = 1 - (this.life / this.maxLife); 
+                 if(this.type === 'berserk_spin') progress = (state.frames * 0.5) % 6.28; // Spin continuous
+                 else progress = progress * Math.PI * 2;
+                 
+                 let angle = progress;
+                 if(this.type === 'valk_swing') {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius, angle - 1, angle, false);
+                    ctx.lineWidth = 40;
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 * (this.life/this.maxLife)})`;
+                    ctx.stroke();
+                 }
 
                  ctx.rotate(angle);
                  ctx.translate(20, 0); 
@@ -953,21 +1205,35 @@
                 return;
             }
             
+            // TARGETING LOGIC
             let targetX = player.x, targetY = player.y;
-            if(state.friendlyUnit && !state.friendlyUnit.dead) {
-                let dPlayer = Math.hypot(player.x - this.x, player.y - this.y);
-                let dFriendly = Math.hypot(state.friendlyUnit.x - this.x, state.friendlyUnit.y - this.y);
-                if(dFriendly < dPlayer && dPlayer > 120) {
-                    targetX = state.friendlyUnit.x; targetY = state.friendlyUnit.y;
-                }
 
-                let distToFriendly = Math.hypot(state.friendlyUnit.x - this.x, state.friendlyUnit.y - this.y);
-                let collisionDist = state.friendlyUnit.radius + this.radius;
-                
-                if(distToFriendly < collisionDist) {
-                    let ang = Math.atan2(this.y - state.friendlyUnit.y, this.x - state.friendlyUnit.x);
-                    this.x = state.friendlyUnit.x + Math.cos(ang) * collisionDist;
-                    this.y = state.friendlyUnit.y + Math.sin(ang) * collisionDist;
+            // Check for Taunting Units
+            let taunter = state.friendlyUnits.find(u => u.taunting && !u.dead);
+            if(taunter) {
+                targetX = taunter.x; targetY = taunter.y;
+            } else {
+                // Check closest friendly
+                let closestFriendly = null;
+                let minFD = 999;
+                state.friendlyUnits.forEach(u => {
+                    if(!u.dead) {
+                        let d = Math.hypot(u.x - this.x, u.y - this.y);
+                        if(d < minFD) { minFD = d; closestFriendly = u; }
+                    }
+                });
+
+                if(closestFriendly) {
+                    let dPlayer = Math.hypot(player.x - this.x, player.y - this.y);
+                    if(minFD < dPlayer && dPlayer > 120) {
+                        targetX = closestFriendly.x; targetY = closestFriendly.y;
+                    }
+                    // Collision push with friendly
+                    if(minFD < closestFriendly.radius + this.radius) {
+                        let ang = Math.atan2(this.y - closestFriendly.y, this.x - closestFriendly.x);
+                        this.x = closestFriendly.x + Math.cos(ang) * (closestFriendly.radius + this.radius);
+                        this.y = closestFriendly.y + Math.sin(ang) * (closestFriendly.radius + this.radius);
+                    }
                 }
             }
 
@@ -1225,19 +1491,8 @@
         handleWaves();
         if(Math.random() < 0.0008) spawnPerk();
 
-        if(player.weapons.serbian.level > 0) {
-            if(state.friendlyUnit && !state.friendlyUnit.dead) {
-                state.friendlyUnit.update();
-            } else {
-                if(state.serbianCooldown > 0) {
-                    state.serbianCooldown--;
-                } else {
-                    state.friendlyUnit = new FriendlyUnit();
-                    createParticle(player.x, player.y, '#fff', 'plasma', 5);
-                    spawnDamageText(player.x, player.y-60, "REINFORCEMENTS", true);
-                }
-            }
-        }
+        // Update Friendly Units
+        state.friendlyUnits.forEach(u => u.update());
 
         const wc=player.weapons.cevapi; if(wc.level>0){ wc.timer++; if(wc.timer>wc.cooldown){let t=getClosestEnemy();if(t){state.projectiles.push(new Projectile(player.x,player.y,t,'cevapi'));wc.timer=0;}} }
         const wa=player.weapons.ajvar; if(wa.level>0){ wa.timer++; if(wa.timer>wa.cooldown&&state.enemies.length>0){let ts=state.enemies.filter(e=>Math.hypot(e.x-player.x,e.y-player.y)<700);if(ts.length){state.projectiles.push(new Projectile(player.x,player.y,ts[Math.floor(Math.random()*ts.length)],'ajvar'));wa.timer=0;}} }
@@ -1293,9 +1548,12 @@
                     updateHud();
                     return false; 
                 }
-                if(state.friendlyUnit && !state.friendlyUnit.dead && Math.hypot(p.x - state.friendlyUnit.x, p.y - state.friendlyUnit.y) < state.friendlyUnit.radius + 10) {
-                     state.friendlyUnit.takeDamage(40); 
-                     return false;
+                // Also hit friendly units
+                for(let u of state.friendlyUnits) {
+                    if(!u.dead && Math.hypot(p.x - u.x, p.y - u.y) < u.radius + 10) {
+                        u.takeDamage(40);
+                        return false;
+                    }
                 }
                 return p.life > 0;
             }
@@ -1313,6 +1571,19 @@
                 });
                 return true;
             } 
+            
+            // Check collisions for Cevapi (Player + Friendly)
+            if(p.type==='cevapi') {
+                for(let e of state.enemies) {
+                    if(Math.hypot(e.x-p.x,e.y-p.y) < e.radius+15) {
+                        let dmg = p.overrideDamage > 0 ? {d:p.overrideDamage, c:false} : calcDamage(player.weapons.cevapi.damage);
+                        e.takeDamage(dmg.d, dmg.c, 'projectile');
+                        p.life = 0;
+                        return false;
+                    }
+                }
+            }
+
             return p.life>0;
         });
 
@@ -1337,11 +1608,12 @@
                 addShake(2); updateHud(); if(player.hp<=0){document.getElementById('final-score').innerText=state.score;document.getElementById('game-over').style.display='flex';gameActive=false;} 
             }
 
-            if(state.friendlyUnit && !state.friendlyUnit.dead && !e.frozen) {
-                if(Math.hypot(e.x - state.friendlyUnit.x, e.y - state.friendlyUnit.y) < state.friendlyUnit.radius + e.radius) {
-                    state.friendlyUnit.takeDamage(1);
+            // Friendly unit collision damage
+            state.friendlyUnits.forEach(u => {
+                if(!u.dead && !e.frozen && Math.hypot(e.x - u.x, e.y - u.y) < u.radius + e.radius) {
+                    u.takeDamage(1);
                 }
-            }
+            });
             
             while(bur.orbs.length<bur.count)bur.orbs.push({timer:0});
             for(let b=0;b<bur.count;b++){
@@ -1365,7 +1637,6 @@
                     }
                 }
             }
-            state.projectiles.forEach(p=>{if(p.type==='cevapi'&&Math.hypot(e.x-p.x,e.y-p.y)<e.radius+15){let dmg=calcDamage(player.weapons.cevapi.damage); e.takeDamage(dmg.d, dmg.c, 'projectile');p.life=0;}});
         });
         state.enemies=state.enemies.filter(e=>!e.dead && Math.hypot(e.x-player.x,e.y-player.y)<2000);
         state.particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=p.decay;p.vx*=0.95;p.vy*=0.95;}); state.particles=state.particles.filter(p=>p.life>0);
@@ -1395,7 +1666,9 @@
         state.zones.forEach(z=>z.draw(cX,cY)); 
         state.gems.forEach(g=>g.draw(cX,cY)); 
         state.perks.forEach(p=>p.draw(cX,cY));
-        if(state.friendlyUnit) state.friendlyUnit.draw(cX, cY);
+        
+        state.friendlyUnits.forEach(u => u.draw(cX, cY));
+
         state.enemies.forEach(e=>e.draw(cX,cY)); 
         state.projectiles.forEach(p=>p.draw(cX,cY));
         state.beams.forEach(b=>b.draw(cX,cY));
@@ -1502,18 +1775,35 @@
 
             if(currentLvl >= (u.max || 10)) return;
 
-            if(['burek','cevapi','ajvar','rakija','pyramid','harmonika'].includes(u.id)) {
-                 if(u.id === 'burek' && player.weapons.burek.evolved) return;
-                 if(u.id === 'pyramid' && player.weapons.pyramid.evolved) return;
-            }
+            // Evolution conditions
+            if(u.id === 'burek' && player.weapons.burek.evolved) return;
+            if(u.id === 'pyramid' && player.weapons.pyramid.evolved) return;
+            if(u.id === 'serbian' && player.weapons.serbian.level >= 1) return; // Only 1 level of basic serbian, then it evos
+
             available.push(u);
         });
 
+        // Add Evolutions
         if(player.weapons.burek.level >= 8 && !player.weapons.burek.evolved) available.push(EVOLUTIONS.find(e=>e.id==='burek_evo'));
         if(player.weapons.pyramid.level >= 6 && !player.weapons.pyramid.evolved) available.push(EVOLUTIONS.find(e=>e.id==='pyramid_evo'));
 
+        // Supercharges
         if(player.weapons.burek.evolved) available.push(SUPERCHARGES.find(s=>s.id==='supercharge_burek'));
         if(player.weapons.pyramid.evolved) available.push(SUPERCHARGES.find(s=>s.id==='supercharge_pyramid'));
+
+        // SERBIAN PATH LOGIC
+        if(player.weapons.serbian.level > 0 && !player.weapons.serbian.evolved) {
+             // Level 1 -> Level 2 Paths
+             if(player.weapons.serbian.path === 0) {
+                 available.push(EVOLUTIONS.find(e=>e.id==='serbian_p1'));
+                 available.push(EVOLUTIONS.find(e=>e.id==='serbian_p2'));
+                 available.push(EVOLUTIONS.find(e=>e.id==='serbian_p3'));
+             }
+             // Level 2 -> Level 3 Paths
+             else if (player.weapons.serbian.path === 1) available.push(EVOLUTIONS.find(e=>e.id==='serbian_p1_evo'));
+             else if (player.weapons.serbian.path === 2) available.push(EVOLUTIONS.find(e=>e.id==='serbian_p2_evo'));
+             else if (player.weapons.serbian.path === 3) available.push(EVOLUTIONS.find(e=>e.id==='serbian_p3_evo'));
+        }
 
         let pools = {
             legendary: available.filter(u => u.tier === 'legendary'),
@@ -1532,8 +1822,8 @@
                 let rng = Math.random() * 100;
                 let chosenTier = 'common';
 
-                if (rng < 1) chosenTier = 'legendary';
-                else if (rng < 6) chosenTier = 'rare'; 
+                if (rng < 2) chosenTier = 'legendary';
+                else if (rng < 8) chosenTier = 'rare'; 
                 else chosenTier = 'common';
 
                 if(chosenTier === 'legendary' && pools.legendary.length === 0) chosenTier = 'rare';
@@ -1550,7 +1840,14 @@
             
             if(!card && pools.common.length > 0) card = pools.common[Math.floor(Math.random() * pools.common.length)];
 
-            if(card) selectedCards.push(card);
+            if(card && !selectedCards.includes(card)) selectedCards.push(card);
+        }
+
+        // Fallback if empty
+        if(selectedCards.length < 3 && pools.common.length > 0) {
+            pools.common.forEach(c => {
+                 if(selectedCards.length < 3 && !selectedCards.includes(c)) selectedCards.push(c);
+            });
         }
 
         selectedCards.forEach(o=>{
@@ -1612,10 +1909,59 @@
             }
         }
 
+        // --- SERBIAN UPGRADE LOGIC ---
         if(id==='serbian'){
             player.weapons.serbian.level = 1;
-            state.friendlyUnit = new FriendlyUnit();
+            player.weapons.serbian.path = 0; // Basic
+            state.friendlyUnits = [new FriendlyUnit('soldier', player.x, player.y)];
+            spawnDamageText(player.x, player.y-80, "UNIT DEPLOYED", true);
         }
+        
+        // PATH 1: TITAN
+        if(id==='serbian_p1') {
+            player.weapons.serbian.path = 1;
+            state.friendlyUnits = [new FriendlyUnit('titan', player.x, player.y)];
+            spawnDamageText(player.x, player.y-80, "TITAN UPGRADE", true);
+        }
+        if(id==='serbian_p1_evo') {
+             player.weapons.serbian.evolved = true;
+             state.friendlyUnits = [new FriendlyUnit('titan', player.x, player.y)]; // Re-spawn to apply evo logic
+             spawnDamageText(player.x, player.y-80, "BERSERKER MODE", true);
+        }
+
+        // PATH 2: SQUAD
+        if(id==='serbian_p2') {
+            player.weapons.serbian.path = 2;
+            state.friendlyUnits = [
+                new FriendlyUnit('soldier', player.x + 20, player.y),
+                new FriendlyUnit('defender', player.x - 20, player.y),
+                new FriendlyUnit('mage', player.x, player.y - 20)
+            ];
+            spawnDamageText(player.x, player.y-80, "SQUAD DEPLOYED", true);
+        }
+        if(id==='serbian_p2_evo') {
+             player.weapons.serbian.evolved = true;
+             // Respawn entire squad to apply new stats
+             state.friendlyUnits = [
+                new FriendlyUnit('soldier', player.x + 20, player.y),
+                new FriendlyUnit('defender', player.x - 20, player.y),
+                new FriendlyUnit('mage', player.x, player.y - 20)
+            ];
+             spawnDamageText(player.x, player.y-80, "ELITE SQUAD", true);
+        }
+
+        // PATH 3: VANGUARD
+        if(id==='serbian_p3') {
+            player.weapons.serbian.path = 3;
+            state.friendlyUnits = [new FriendlyUnit('vanguard', player.x, player.y)];
+            spawnDamageText(player.x, player.y-80, "VANGUARD", true);
+        }
+        if(id==='serbian_p3_evo') {
+             player.weapons.serbian.evolved = true;
+             state.friendlyUnits = [new FriendlyUnit('vanguard', player.x, player.y)];
+             spawnDamageText(player.x, player.y-80, "WARLORD TANK", true);
+        }
+
         
         if(['speed','magnet','armor','heal','coffee','lily','vrelo','xp_boost'].includes(id)) {
             if(player.items[id] !== undefined) player.items[id]++;
