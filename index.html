@@ -114,11 +114,14 @@
     .card:hover .card-icon { transform: scale(1.1); }
 
     .card::after { content:''; position: absolute; top:0; left:0; width:100%; height:4px; background: var(--bosnia-yellow); }
-    .card.rare { border-color: var(--rare-blue); background:linear-gradient(170deg, #051025 0%, #000 100%); }
+    
+    /* RARE CARD STYLE */
+    .card.rare { border-color: var(--rare-blue); background:linear-gradient(170deg, #051025 0%, #001530 100%); }
     .card.rare::after { background: var(--rare-blue); }
     .card.rare .card-name { color: var(--rare-blue); }
     
-    .card.legendary { border-color: var(--legendary); background:linear-gradient(170deg, #1a0025 0%, #000 100%); }
+    /* LEGENDARY CARD STYLE */
+    .card.legendary { border-color: var(--legendary); background:linear-gradient(170deg, #1a0025 0%, #100020 100%); }
     .card.legendary::after { background: var(--legendary); }
     .card.legendary .card-name { color: var(--legendary); text-shadow: 0 0 5px var(--legendary); }
 
@@ -239,28 +242,41 @@
     let godMode = false;
 
     // ASSETS
+    // Added 'max' property to everything.
     const UPGRADES=[
-        {id:'burek',name:'Golden Burek',icon:'🥐',desc:'Spawns rotating pastry shields that damage enemies.'},
-        {id:'cevapi',name:'Rapid Cevapi',icon:'🌭',desc:'Fires delicious grilled meat missiles at nearest targets.'},
-        {id:'ajvar',name:'Nuclear Ajvar',icon:'🌶️',desc:'Throws explosive jars of pepper paste dealing AoE damage.'},
-        {id:'rakija',name:'Holy Rakija',icon:'🍾',desc:'Smashes bottles creating purifying fire zones on the ground.'},
-        {id:'pyramid',name:'Visoko Beam',icon:'⛰️',desc:'Fires a high-energy piercing triangle beam.'},
-        {id:'harmonika',name:'Harmonika',icon:'🎹',desc:'Emits a sonic shockwave that pushes enemies back.', rare:true},
-        {id:'serbian',name:'Serbian Attacker',icon:'⚔️',desc:'Summons a Legendary Warrior to distract and crush enemies. 30s Respawn.', legendary:true},
-        {id:'speed',name:'Turbo Folk Speed',icon:'⚡',desc:'Increases Movement Speed by 20%.'},
-        {id:'magnet',name:'Super Magnet',icon:'🧲',desc:'Increases Item Pickup Range by 50%.'},
-        {id:'armor',name:'Kevlar Vest',icon:'🛡️',desc:'Reduces incoming damage.'},
-        {id:'heal',name:'Grandma Soup',icon:'🍲',desc:'Instantly restores 50 HP.'},
-        {id:'coffee',name:'Bosnian Coffee',icon:'☕',desc:'Reduces all weapon cooldowns by 10%.'},
-        {id:'lily',name:'Golden Lily',icon:'⚜️',desc:'Increases Critical Hit Chance by 10%.'},
-        {id:'vrelo',name:'Vrelo Bosne',icon:'🏞️',desc:'Regenerates 2 HP per second.'},
-        {id:'xp_boost',name:'Big Brain',icon:'🧠',desc:'+100% EXP Gain (Stacks)', rare:true}
+        {id:'burek',name:'Golden Burek',icon:'🥐',desc:'Spawns rotating pastry shields that damage enemies.', tier:'common', max:8},
+        {id:'cevapi',name:'Rapid Cevapi',icon:'🌭',desc:'Fires delicious grilled meat missiles.', tier:'common', max:10},
+        {id:'ajvar',name:'Nuclear Ajvar',icon:'🌶️',desc:'Throws explosive jars of pepper paste.', tier:'common', max:10},
+        {id:'rakija',name:'Holy Rakija',icon:'🍾',desc:'Smashes bottles creating purifying fire zones.', tier:'common', max:10},
+        {id:'pyramid',name:'Visoko Beam',icon:'⛰️',desc:'Fires a high-energy piercing triangle beam.', tier:'common', max:6},
+        
+        // HARMONIKA: Max 8
+        {id:'harmonika',name:'Harmonika Aura',icon:'🎹',desc:'Slows all enemies within range. +10% Slow per level.', tier:'rare', max:8},
+        {id:'xp_boost',name:'Big Brain',icon:'🧠',desc:'+100% EXP Gain (Stacks)', tier:'rare', max:10},
+        
+        // LEGENDARY: Max 1
+        {id:'serbian',name:'Serbian Attacker',icon:'⚔️',desc:'Summons a Legendary Warrior. 30s Respawn.', tier:'legendary', max:1},
+        
+        // UTILITIES: Max 10
+        {id:'speed',name:'Turbo Folk Speed',icon:'⚡',desc:'Increases Movement Speed by 20%.', tier:'common', max:10},
+        {id:'magnet',name:'Super Magnet',icon:'🧲',desc:'Increases Item Pickup Range by 50%.', tier:'common', max:10},
+        {id:'armor',name:'Kevlar Vest',icon:'🛡️',desc:'Reduces incoming damage.', tier:'common', max:10},
+        {id:'heal',name:'Grandma Soup',icon:'🍲',desc:'Instantly restores 50 HP.', tier:'common', max:10},
+        {id:'coffee',name:'Bosnian Coffee',icon:'☕',desc:'Reduces all weapon cooldowns by 10%.', tier:'common', max:10},
+        {id:'lily',name:'Golden Lily',icon:'⚜️',desc:'Increases Critical Hit Chance by 10%.', tier:'common', max:10},
+        {id:'vrelo',name:'Vrelo Bosne',icon:'🏞️',desc:'Regenerates 2 HP per second.', tier:'common', max:10}
     ];
 
+    // Evolutions
     const EVOLUTIONS = [
-        // UPDATED TESLA ORBS TO FLAMING ORBS
-        {id:'burek_evo',base:'burek',name:'FLAMING ORBS',icon:'🔥',desc:'EVOLUTION: Burning Orbs. Burns enemies. Every 10s spawns a damaging fire trail.',legendary:true},
-        {id:'pyramid_evo',base:'pyramid',name:'SOLAR FLARE',icon:'☀️',desc:'EVOLUTION: Instantly blasts enemies with a massive laser beam.',legendary:true}
+        {id:'burek_evo',base:'burek',name:'FLAMING ORBS',icon:'🔥',desc:'EVOLUTION: Burning Orbs. Burns enemies. Spawns fire trails.', tier:'rare'},
+        {id:'pyramid_evo',base:'pyramid',name:'SOLAR FLARE',icon:'☀️',desc:'EVOLUTION: Instantly blasts enemies with a massive laser beam.', tier:'rare'}
+    ];
+    
+    // Supercharges
+    const SUPERCHARGES = [
+        {id:'supercharge_burek', name:'SUPERCHARGE: MAGMA', icon:'🌋', desc:'Increases Burn Damage and Trail Duration.', tier:'legendary'},
+        {id:'supercharge_pyramid', name:'SUPERCHARGE: SOLAR', icon:'🔥', desc:'+20% Damage for Solar Flare.', tier:'legendary'}
     ];
 
     const ENEMY_INFO = [
@@ -280,7 +296,11 @@
         bossActive:false, bossSpawnedOnce:false, flashAlpha:0,
         friendlyUnit: null, serbianCooldown: 0
     };
-    let player = { x:0, y:0, hp:100, maxHp:100, speed:6, radius:20, magnetRadius:140, armor:0, regen:0, critChance:0.05, cdr:1.0, facing:0, weapons:{} };
+    let player = { 
+        x:0, y:0, hp:100, maxHp:100, speed:6, radius:20, magnetRadius:140, armor:0, regen:0, critChance:0.05, cdr:1.0, facing:0, 
+        weapons:{},
+        items:{} // Tracks levels of utilities (speed, armor etc)
+    };
 
     function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
     window.addEventListener('resize', resize); resize();
@@ -300,7 +320,7 @@
     }); 
     window.addEventListener('keyup', e=>keys[e.key.toLowerCase()]=false);
 
-    // --- ADMIN FUNCTIONS (FIXED: removed closeAdmin() calls) ---
+    // --- ADMIN FUNCTIONS ---
     function openAdmin(){
         if(!gameActive) return;
         document.getElementById('admin-panel').style.display='flex';
@@ -314,23 +334,19 @@
         godMode = !godMode;
         document.getElementById('god-mode-indicator').style.display = godMode ? 'block' : 'none';
         spawnDamageText(player.x, player.y-60, godMode ? "GOD MODE ON" : "GOD MODE OFF", true);
-        // Panel stays open
     }
     function adminLevelUp(){
         state.xp = state.nextLevelXp;
         checkLevelUp();
-        // Panel stays open
     }
     function adminKillAll(){
         state.enemies.forEach(e => {
             if(e.type !== 'BOSS') e.takeDamage(99999, true);
         });
-        // Panel stays open
     }
     function adminHeal(){
         player.hp = player.maxHp;
         updateHud();
-        // Panel stays open
     }
     function adminMaxWeapons(){
         applyUpgrade('burek_evo');
@@ -338,10 +354,9 @@
         player.weapons.cevapi.level = 10; player.weapons.cevapi.damage=200;
         player.weapons.ajvar.level = 10; player.weapons.ajvar.damage=500;
         player.weapons.rakija.level = 10; player.weapons.rakija.damage=50;
-        player.weapons.harmonika.level = 10; player.weapons.harmonika.range=800;
+        player.weapons.harmonika.level = 8; player.weapons.harmonika.slow=0.8;
         player.speed = 10;
         player.magnetRadius = 500;
-        // Panel stays open
     }
 
     // --- MENU SYSTEM ---
@@ -357,8 +372,8 @@
             const allItems = [...UPGRADES, ...EVOLUTIONS];
             allItems.forEach(u => {
                 let extraClass = '';
-                if(u.rare) extraClass = 'rare';
-                if(u.legendary) extraClass = 'legendary';
+                if(u.tier === 'rare') extraClass = 'rare';
+                if(u.tier === 'legendary') extraClass = 'legendary';
                 content.innerHTML += `
                 <div class="info-card ${extraClass}">
                     <div class="info-icon">${u.icon}</div>
@@ -429,14 +444,19 @@
         player = { 
             x:W/2, y:H/2, hp:100, maxHp:100, speed:6, radius:20, magnetRadius:140, armor:0, regen:0, critChance:0.05, cdr:1.0, facing:0, 
             weapons:{
-                // burek updated: trailTimer added
-                burek: { level:1, count:1, damage:10, dist:100, speed:0.04, evolved:false, orbs:[], trailTimer:0 },
+                // burek updated: trailTimer added, speed 0.02
+                burek: { level:1, count:1, damage:10, dist:100, speed:0.02, evolved:false, orbs:[], trailTimer:0 },
                 cevapi: { level:1, cooldown:30, baseCool:30, timer:0, damage:15 }, 
                 ajvar: { level:0, cooldown:140, baseCool:140, timer:0, damage:80 },
                 rakija: { level:0, cooldown:190, baseCool:190, timer:0, damage:4, duration:300 }, 
                 pyramid: { level:0, cooldown:110, baseCool:110, timer:0, damage:50, evolved:false },
-                harmonika: { level:0, cooldown:186, baseCool:186, timer:0, damage:60, range:500 },
+                // Harmonika REWORKED: Fixed radius 160, slow 10%
+                harmonika: { level:0, range:160, slow:0.10 },
                 serbian: { level:0 }
+            },
+            // Initialize tracking for utility levels
+            items: {
+                speed:0, magnet:0, armor:0, heal:0, coffee:0, lily:0, vrelo:0, xp_boost:0
             }
         };
 
@@ -734,23 +754,16 @@
         }
     }
     class Zone {
-        constructor(x,y,type,dur){this.x=x;this.y=y;this.life=dur;this.maxLife=dur;this.radius=90;this.type=type;if(type==='harmonika')this.radius=150; if(type==='blast') this.radius=120; if(type==='valk_swing') this.radius=160; if(type==='flame_trail') this.radius=50;}
+        constructor(x,y,type,dur){this.x=x;this.y=y;this.life=dur;this.maxLife=dur;this.radius=90;this.type=type;if(type==='blast') this.radius=120; if(type==='valk_swing') this.radius=160; if(type==='flame_trail') this.radius=50;}
         update(){ 
             this.life--; 
             if(this.type==='blast' || this.type==='valk_swing') return this.life<=0;
 
-            if(this.type==='harmonika') { 
-                this.radius+=25; 
-                if(this.life%5===0)createParticle(this.x+(Math.random()-0.5)*100, this.y+(Math.random()-0.5)*100, '#fff', 'note'); 
-            }
-            // FLAME TRAIL LOGIC - High tick rate (every 10 frames), lower damage
-            else if(this.type==='flame_trail') {
+            // FLAME TRAIL LOGIC 
+            if(this.type==='flame_trail') {
                  if(state.frames % 10 === 0) {
                      state.enemies.forEach(e => {
                          if(Math.hypot(e.x-this.x, e.y-this.y) < this.radius) {
-                             // Deals 75% less damage than Orb. 
-                             // Base orb dmg ~10, evolved maybe 12. 
-                             // Trail dmg = 0.25 * 12 = 3.
                              let baseDmg = player.weapons.burek.damage * 0.25; 
                              let dmg = calcDamage(Math.max(1, baseDmg));
                              e.takeDamage(dmg.d, false, 'flame_trail');
@@ -760,7 +773,7 @@
                  }
                  if(state.frames % 5 === 0) createParticle(this.x + (Math.random()-0.5)*40, this.y + (Math.random()-0.5)*40, '#ff5e00', 'fire', 1.0);
             }
-            else if(state.frames%10===0) state.enemies.forEach(e=>{if(Math.hypot(e.x-this.x,e.y-this.y)<this.radius){
+            else if(this.type==='fire' && state.frames%10===0) state.enemies.forEach(e=>{if(Math.hypot(e.x-this.x,e.y-this.y)<this.radius){
                 let dmg = calcDamage(player.weapons.rakija.damage);
                 e.takeDamage(dmg.d, false, 'zone');
                 createParticle(e.x,e.y,'#00ffff','fire',0.5);
@@ -839,34 +852,39 @@
             
             if(this.type==='BOSS') {
                 this.hp=5000; this.maxHp=5000; 
-                this.speed=2.5; this.radius=60; 
+                this.baseSpeed=2.5; this.radius=60; 
                 this.frozen=0; this.hitFlash=0; this.pushX=0; this.pushY=0;
                 this.attackTimer = 150; this.damageCooldown = 0;
             } 
             else if(this.type==='MINI_BOSS') {
                 this.hp=800; this.maxHp=800;
-                this.speed=2.2; this.radius=45;
+                this.baseSpeed=2.2; this.radius=45;
                 this.frozen=0; this.hitFlash=0; this.pushX=0; this.pushY=0;
                 this.attackTimer = 200; this.damageCooldown = 0;
             }
             else {
-                if(this.type==='promaja'){this.hp=40+state.level*6;this.speed=2+Math.random();this.radius=22;} 
-                else if(this.type==='yugo'){this.hp=200+state.level*20;this.speed=1.5;this.radius=35;this.angle=0;} 
-                else if(this.type==='hornet'){this.hp=25+state.level*3;this.speed=4.5;this.radius=15;}
+                if(this.type==='promaja'){this.hp=40+state.level*6;this.baseSpeed=2+Math.random();this.radius=22;} 
+                else if(this.type==='yugo'){this.hp=200+state.level*20;this.baseSpeed=1.5;this.radius=35;this.angle=0;} 
+                else if(this.type==='hornet'){this.hp=25+state.level*3;this.baseSpeed=4.5;this.radius=15;}
                 this.maxHp=this.hp; this.hitFlash=0; this.pushX=0; this.pushY=0; this.frozen=0;
             }
-            this.burnTimer = 0; // NEW: Burn timer
+            this.speed = this.baseSpeed;
+            this.burnTimer = 0; 
+            // BUREK NERF: Timer
+            this.burekHitTimer = 0;
         }
         update(){
             if(this.type === 'BOSS') {
                 document.getElementById('boss-bar-fill').style.width = (this.hp/this.maxHp*100)+'%';
             }
             
+            if(this.burekHitTimer > 0) this.burekHitTimer--;
+
             // BURN DAMAGE LOGIC
             if(this.burnTimer > 0) {
                 this.burnTimer--;
                 if(state.frames % 15 === 0) { // Tick damage
-                    this.takeDamage(5, false, 'burn'); // Burn damage tick
+                    this.takeDamage(5, false, 'burn'); 
                     createParticle(this.x, this.y, '#ff5e00', 'fire', 0.5);
                 }
             }
@@ -915,6 +933,7 @@
                 state.enemies.forEach(o=>{if(o!==this){let ox=this.x-o.x,oy=this.y-o.y,od=Math.sqrt(ox*ox+oy*oy);if(od<this.radius+o.radius){px+=ox/od;py+=oy/od;}}});
             }
 
+            // Apply movement using speed (which might be modified by harmonika)
             this.x+=(Math.cos(this.angle)*this.speed+px*0.5)+this.pushX; this.y+=(Math.sin(this.angle)*this.speed+py*0.5)+this.pushY; 
             this.pushX*=0.9; this.pushY*=0.9; if(this.hitFlash>0)this.hitFlash--;
             if(this.type==='yugo'&&state.frames%5===0)createParticle(this.x-Math.cos(this.angle)*35,this.y-Math.sin(this.angle)*35,'#333','smoke', 0.5);
@@ -1212,24 +1231,14 @@
             } 
         }
 
-        const wh=player.weapons.harmonika; if(wh.level>0){ wh.timer++; if(wh.timer>wh.cooldown){
-            addShake(15); state.zones.push(new Zone(player.x,player.y,'harmonika',20));
-            state.enemies.forEach(e=>{ 
-                let dist=Math.hypot(e.x-player.x,e.y-player.y); 
-                if(dist<wh.range){ 
-                    let pushP = (e.type === 'BOSS' || e.type === 'MINI_BOSS') ? 0 : 45;
-                    let pushA=Math.atan2(e.y-player.y,e.x-player.x); e.pushX=Math.cos(pushA)*pushP; e.pushY=Math.sin(pushA)*pushP; let dmg = calcDamage(wh.damage); e.takeDamage(dmg.d, dmg.c, 'zone'); 
-                } 
-            });
-            wh.timer=0;
-        }}
-        
-        // --- FLAMING ORBS TRAIL LOGIC ---
+        // REMOVED HARMONIKA PROJECTILE LOGIC
+        // Harmonika is now handled inside Enemy Loop
+
         const bur = player.weapons.burek;
         if(bur.evolved) {
              bur.trailTimer++;
-             if(bur.trailTimer > 600) { // 10 seconds (60fps * 10)
-                 state.zones.push(new Zone(player.x, player.y, 'flame_trail', 120)); // Lasts 2 seconds
+             if(bur.trailTimer > 600) { 
+                 state.zones.push(new Zone(player.x, player.y, 'flame_trail', 120)); 
                  bur.trailTimer = 0;
              }
         }
@@ -1271,7 +1280,24 @@
             return p.life>0;
         });
 
+        // HARMONIKA DATA
+        const harm = player.weapons.harmonika;
+
         state.enemies.forEach(e=>{
+            // RESET SPEED
+            e.speed = e.baseSpeed;
+
+            // HARMONIKA AURA LOGIC
+            if(harm.level > 0) {
+                if(Math.hypot(e.x - player.x, e.y - player.y) < harm.range) {
+                    // Cap slow at 80% (0.8) if somehow level exceeds logic
+                    let effectiveSlow = Math.min(harm.slow, 0.8);
+                    e.speed = e.baseSpeed * (1 - effectiveSlow);
+                    
+                    if(state.frames % 20 === 0) createParticle(e.x, e.y, '#00f3ff', 'spark', 0.2);
+                }
+            }
+
             e.update();
             let safeDist = player.radius + e.radius - 5;
             
@@ -1293,21 +1319,20 @@
                 if(bur.orbs[b].timer>0){ bur.orbs[b].timer--; continue; }
                 const ang=(state.frames*bur.speed)+(b*6.28/bur.count), bx=player.x+Math.cos(ang)*bur.dist, by=player.y+Math.sin(ang)*bur.dist;
                 
-                // Radius is standard, slightly larger for evolved but not huge explosion
                 let hitRadius = 45; 
-                if(Math.hypot(e.x-bx,e.y-by) < hitRadius){
+                if(Math.hypot(e.x-bx,e.y-by) < hitRadius && e.burekHitTimer <= 0){
                     if(bur.evolved){ 
-                        // REWORK: Just standard damage + Burn, no explosion
                         let dmg = calcDamage(bur.damage);
                         e.takeDamage(dmg.d, dmg.c, 'burek');
-                        e.burnTimer = 60; // Burn for 1 second
+                        e.burnTimer = 60; 
                         createParticle(bx, by, '#ff5e00', 'fire', 1.0);
-                        bur.orbs[b].timer = 20; // Short cooldown so it doesn't hit every single frame
+                        e.burekHitTimer = 30; 
                     }
-                    else if(state.frames%6===0){ 
+                    else { 
                         let dmg=calcDamage(bur.damage); 
                         e.takeDamage(dmg.d, dmg.c, 'burek'); 
                         createParticle(e.x,e.y,'#e67e22','spark'); 
+                        e.burekHitTimer = 30; 
                     }
                 }
             }
@@ -1377,19 +1402,11 @@
             let ang=(state.frames*bur.speed)+(i*6.28/bur.count), bx=pX+Math.cos(ang)*bur.dist, by=pY+Math.sin(ang)*bur.dist;
             ctx.save(); ctx.translate(bx,by);
             if(bur.evolved){ 
-                // DRAW FLAMING ORB
                 ctx.globalCompositeOperation = 'lighter';
-                
-                // Inner core
                 ctx.fillStyle='#ffaa00'; ctx.beginPath(); ctx.arc(0,0,8,0,6.28); ctx.fill();
-                
-                // Outer flame
                 let f = Math.sin(state.frames*0.5)*3;
                 ctx.fillStyle='rgba(255, 50, 0, 0.6)'; ctx.beginPath(); ctx.arc(0,0,14+f,0,6.28); ctx.fill();
-                
-                // Particle emitter visual
                 if(state.frames % 5 === 0) createParticle(bx + cX, by + cY, '#ffaa00', 'fire', 0.5);
-
             } else { 
                 ctx.rotate(ang*4);
                 ctx.strokeStyle='#e67e22';ctx.lineWidth=4;
@@ -1410,9 +1427,18 @@
             else { ctx.beginPath();ctx.arc(p.x-cX,p.y-cY,p.size,0,6.28);ctx.fill(); }
         });
         
-        if(state.frames%20===0 && player.weapons.harmonika.level>0){ 
-            ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=2;
-            ctx.beginPath();ctx.arc(pX,pY,player.weapons.harmonika.range,0,6.28);ctx.stroke(); 
+        // DRAW HARMONIKA AURA
+        if(player.weapons.harmonika.level > 0){ 
+            ctx.strokeStyle='rgba(0, 243, 255, 0.3)'; ctx.lineWidth=2;
+            ctx.fillStyle='rgba(0, 243, 255, 0.05)';
+            ctx.beginPath(); ctx.arc(pX,pY,player.weapons.harmonika.range,0,6.28); 
+            ctx.fill(); ctx.stroke();
+            
+            // Rotating ring effect
+            ctx.strokeStyle='rgba(0, 243, 255, 0.1)';
+            ctx.beginPath(); 
+            ctx.arc(pX, pY, player.weapons.harmonika.range - 10, state.frames*0.02, state.frames*0.02 + 4);
+            ctx.stroke();
         }
         
         ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1; ctx.shadowBlur=0;
@@ -1435,59 +1461,113 @@
         });
     }
 
+    // --- REWORKED PROBABILITY ---
     function generateCards(){
-        const c=document.getElementById('cards-box'); c.innerHTML=''; document.getElementById('levelup-screen').style.display='flex';
-        let pool=UPGRADES.slice(); 
+        const container = document.getElementById('cards-box'); 
+        container.innerHTML=''; 
+        document.getElementById('levelup-screen').style.display='flex';
         
-        pool = pool.filter(u => !['xp_boost', 'harmonika', 'serbian'].includes(u.id) || Math.random() < 0.30);
+        let available = [];
 
-        if(player.weapons.burek.evolved || player.weapons.burek.level >= 8) { pool = pool.filter(u => u.id !== 'burek'); }
-        if(player.weapons.pyramid.evolved || player.weapons.pyramid.level >= 6) { pool = pool.filter(u => u.id !== 'pyramid'); }
-        if(player.weapons.serbian.level > 0) { pool = pool.filter(u => u.id !== 'serbian'); } 
+        UPGRADES.forEach(u => {
+            // CHECK MAX LEVELS
+            let currentLvl = 0;
+            // Check weapon slot first
+            if(player.weapons[u.id]) currentLvl = player.weapons[u.id].level;
+            // Check item/utility slot second
+            else if(player.items[u.id] !== undefined) currentLvl = player.items[u.id];
 
-        if(player.weapons.burek.level>=8 && !player.weapons.burek.evolved) pool.unshift(EVOLUTIONS.find(e=>e.id==='burek_evo'));
-        if(player.weapons.pyramid.level>=6 && !player.weapons.pyramid.evolved) pool.unshift(EVOLUTIONS.find(e=>e.id==='pyramid_evo'));
+            // If max level reached, do not add to pool
+            if(currentLvl >= (u.max || 10)) return;
 
-        // REWORKED SUPERCHARGE
-        if(player.weapons.burek.evolved) pool.push({id:'supercharge_burek', name:'SUPERCHARGE: MAGMA', icon:'🌋', desc:'Increases Burn Damage and Trail Duration.', supercharge:true});
-        if(player.weapons.pyramid.evolved) pool.push({id:'supercharge_pyramid', name:'SUPERCHARGE: SOLAR', icon:'🔥', desc:'+20% Damage for Solar Flare.', supercharge:true});
+            // Evo Pre-checks (dont show base card if evo is active)
+            if(['burek','cevapi','ajvar','rakija','pyramid','harmonika'].includes(u.id)) {
+                 if(u.id === 'burek' && player.weapons.burek.evolved) return;
+                 if(u.id === 'pyramid' && player.weapons.pyramid.evolved) return;
+            }
+            available.push(u);
+        });
 
-        if(Math.random() < 0.01 && player.weapons.serbian.level === 0) {
-            pool.unshift(UPGRADES.find(u => u.id === 'serbian'));
+        // Evo Logic: If Base is Max Level (or specific level) and NOT evolved, show Evo card
+        if(player.weapons.burek.level >= 8 && !player.weapons.burek.evolved) available.push(EVOLUTIONS.find(e=>e.id==='burek_evo'));
+        if(player.weapons.pyramid.level >= 6 && !player.weapons.pyramid.evolved) available.push(EVOLUTIONS.find(e=>e.id==='pyramid_evo'));
+
+        if(player.weapons.burek.evolved) available.push(SUPERCHARGES.find(s=>s.id==='supercharge_burek'));
+        if(player.weapons.pyramid.evolved) available.push(SUPERCHARGES.find(s=>s.id==='supercharge_pyramid'));
+
+        let pools = {
+            legendary: available.filter(u => u.tier === 'legendary'),
+            rare: available.filter(u => u.tier === 'rare'),
+            common: available.filter(u => u.tier === 'common')
+        };
+
+        let selectedCards = [];
+
+        for(let i=0; i<3; i++) {
+            let card = null;
+            let safetyCounter = 0;
+            
+            while(card === null && safetyCounter < 10) {
+                safetyCounter++;
+                let rng = Math.random() * 100;
+                let chosenTier = 'common';
+
+                // Probability: 1% Leg, 5% Rare, 94% Common
+                if (rng < 1) chosenTier = 'legendary';
+                else if (rng < 6) chosenTier = 'rare'; 
+                else chosenTier = 'common';
+
+                if(chosenTier === 'legendary' && pools.legendary.length === 0) chosenTier = 'rare';
+                if(chosenTier === 'rare' && pools.rare.length === 0) chosenTier = 'common';
+                
+                let pool = pools[chosenTier];
+                if(pool.length > 0) {
+                    let candidate = pool[Math.floor(Math.random() * pool.length)];
+                    if(!selectedCards.includes(candidate)) {
+                        card = candidate;
+                    }
+                }
+            }
+            
+            if(!card && pools.common.length > 0) card = pools.common[Math.floor(Math.random() * pools.common.length)];
+
+            if(card) selectedCards.push(card);
         }
 
-        let opts=(pool.length>3 && !pool[0].legendary) ? pool.sort(()=>0.5-Math.random()).slice(0,3) : pool.slice(0,3);
-        
-        opts.forEach(o=>{
+        selectedCards.forEach(o=>{
             const el=document.createElement('div'); el.className='card'; 
-            if(o.legendary) el.classList.add('legendary');
-            if(o.rare) el.classList.add('rare');
-            if(o.supercharge) { el.classList.add('legendary'); el.style.borderColor='var(--danger)'; }
+            if(o.tier === 'legendary') el.classList.add('legendary');
+            if(o.tier === 'rare') el.classList.add('rare');
             
-            el.innerHTML=`<div class="card-level">${['burek','cevapi','ajvar','rakija','pyramid','harmonika'].includes(o.id)?'Lvl '+(player.weapons[o.id].level+1):''}</div><div class="card-icon">${o.icon}</div><div class="card-name">${o.name}</div><div class="card-desc">${o.desc}</div>`;
-            el.onclick=()=>{applyUpgrade(o.id);}; c.appendChild(el);
+            let lvlText = '';
+            if(player.weapons[o.id]) lvlText = 'Lvl ' + (player.weapons[o.id].level + 1);
+            else if(player.items[o.id] !== undefined) lvlText = 'Lvl ' + (player.items[o.id] + 1);
+            else if(o.base && player.weapons[o.base]) lvlText = 'EVO';
+
+            el.innerHTML=`<div class="card-level">${lvlText}</div><div class="card-icon">${o.icon}</div><div class="card-name">${o.name}</div><div class="card-desc">${o.desc}</div>`;
+            el.onclick=()=>{applyUpgrade(o.id);}; container.appendChild(el);
         });
     }
 
     function applyUpgrade(id){
-        // FLAMING ORBS EVOLUTION LOGIC
         if(id==='burek_evo'){
             player.weapons.burek.evolved=true;
-            // No massive speed/dist increase anymore, just slight adjustments
             player.weapons.burek.count+=1; 
             player.weapons.burek.damage+=5;
         }
         if(id==='pyramid_evo'){player.weapons.pyramid.evolved=true;player.weapons.pyramid.damage=400;player.weapons.pyramid.baseCool=180;player.weapons.pyramid.timer=0;}
         
-        // SUPERCHARGE UPDATE
         if(id==='supercharge_burek'){ 
             player.weapons.burek.damage *= 1.2; 
-            // Just raw damage buff handles both orb hits and trail damage calculation
             spawnDamageText(player.x, player.y-50, "MAGMA INTENSIFIES", true); 
         }
         if(id==='supercharge_pyramid'){ player.weapons.pyramid.damage *= 1.2; spawnDamageText(player.x, player.y-50, "POWER UP!", true); }
 
-        if(id==='burek'){player.weapons.burek.count++;player.weapons.burek.level++;player.weapons.burek.speed+=0.01;}
+        if(id==='burek'){
+            player.weapons.burek.count++;
+            player.weapons.burek.level++;
+            player.weapons.burek.speed+=0.005;
+        }
         
         if(id==='cevapi'){
             player.weapons.cevapi.level++;
@@ -1506,9 +1586,13 @@
             player.weapons.pyramid.level++; 
             if(player.weapons.pyramid.level>1){player.weapons.pyramid.baseCool*=0.85;player.weapons.pyramid.damage+=15;}
         }
+        // HARMONIKA UPGRADE LOGIC
         if(id==='harmonika'){
             player.weapons.harmonika.level++;
-            if(player.weapons.harmonika.level>1){player.weapons.harmonika.baseCool*=0.80;player.weapons.harmonika.range+=40;player.weapons.harmonika.damage+=20;}
+            // Increase slow by 10% per level. No radius increase.
+            if(player.weapons.harmonika.level > 1) {
+                player.weapons.harmonika.slow += 0.10;
+            }
         }
 
         if(id==='serbian'){
@@ -1516,12 +1600,17 @@
             state.friendlyUnit = new FriendlyUnit();
         }
         
+        // UTILITY UPGRADES TRACKING
+        if(['speed','magnet','armor','heal','coffee','lily','vrelo','xp_boost'].includes(id)) {
+            if(player.items[id] !== undefined) player.items[id]++;
+        }
+
         if(id==='speed')player.speed*=1.15; if(id==='magnet')player.magnetRadius+=50; if(id==='armor')player.armor+=1.5; if(id==='heal')player.hp=Math.min(player.maxHp,player.hp+50);
         if(id==='coffee')player.cdr*=0.9; if(id==='lily')player.critChance+=0.10; if(id==='vrelo')player.regen+=2;
         
         if(id==='xp_boost') state.xpMult += 1; 
 
-        ['cevapi','ajvar','rakija','pyramid','harmonika'].forEach(w=>{ player.weapons[w].cooldown = player.weapons[w].baseCool * player.cdr; });
+        ['cevapi','ajvar','rakija','pyramid'].forEach(w=>{ player.weapons[w].cooldown = player.weapons[w].baseCool * player.cdr; });
 
         if(document.getElementById('levelup-screen').style.display === 'flex'){
              document.getElementById('levelup-screen').style.display='none'; 
