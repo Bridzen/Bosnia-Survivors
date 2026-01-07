@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bosnian Survivors: LUCK & DURABILITY UPDATE</title>
+<title>Bosnian Survivors: INFERNO UPDATE</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
     :root { 
@@ -166,7 +166,7 @@
 <!-- MAIN MENU -->
 <div id="main-menu" class="screen-overlay" style="display:flex;">
     <h1 class="title-glitch">BOSNIAN<br><span style="color:var(--bosnia-yellow)">SURVIVORS</span></h1>
-    <h3 style="font-family:'Rajdhani'; letter-spacing:5px; color:var(--neon-cyan); margin-top:-20px;">LUCK UPDATE</h3>
+    <h3 style="font-family:'Rajdhani'; letter-spacing:5px; color:var(--neon-cyan); margin-top:-20px;">INFERNO UPDATE</h3>
     <div style="height:40px;"></div>
     <button class="menu-btn" onclick="startGame()">DEPLOY</button>
     <button class="menu-btn" onclick="openInfo('armory')">ARMORY</button>
@@ -183,7 +183,7 @@
 <!-- ADMIN PANEL -->
 <div id="admin-panel" class="screen-overlay">
     <div class="admin-header">/// DEBUG CONTROL ///</div>
-    <div class="admin-grid" style="grid-template-columns: 1fr; width: 400px; margin-bottom: 20px;">
+    <div class="admin-grid" style="grid-template-columns: 1fr 1fr; width: 400px; margin-bottom: 20px;">
         <label style="color:white; font-family:'Orbitron'; font-size:12px;">FORCE AUGMENTATION</label>
         <div style="display:flex; gap:10px;">
             <select id="admin-augment-select"></select>
@@ -290,7 +290,7 @@
     ];
 
     const EVOLUTIONS = [
-        {id:'burek_evo',base:'burek',name:'FLAMING ORBS',icon:'🔥',desc:'EVOLUTION: Burning Orbs. Burns enemies. Spawns fire trails.', tier:'rare'},
+        {id:'burek_evo',base:'burek',name:'RING OF FIRE',icon:'🔥',desc:'EVOLUTION: Massive permanent fire zone. 2x Radius. Burns ALL enemies constantly.', tier:'rare'},
         {id:'pyramid_evo',base:'pyramid',name:'SOLAR FLARE',icon:'☀️',desc:'EVOLUTION: Instantly blasts enemies with a massive laser beam.', tier:'rare'},
         
         // LEVEL 2 SERBIAN PATHS
@@ -305,7 +305,7 @@
     ];
     
     const SUPERCHARGES = [
-        {id:'supercharge_burek', name:'SUPERCHARGE: MAGMA', icon:'🌋', desc:'Increases Burn Damage and Trail Duration.', tier:'legendary'},
+        {id:'supercharge_burek', name:'SUPERCHARGE: MAGMA', icon:'🌋', desc:'Increases Burn Damage.', tier:'legendary'},
         {id:'supercharge_pyramid', name:'SUPERCHARGE: SOLAR', icon:'🔥', desc:'+20% Damage for Solar Flare.', tier:'legendary'}
     ];
 
@@ -1503,10 +1503,23 @@
 
         const bur = player.weapons.burek;
         if(bur.evolved) {
-             bur.trailTimer++;
-             if(bur.trailTimer > 600) { 
-                 state.zones.push(new Zone(player.x, player.y, 'flame_trail', 120)); 
-                 bur.trailTimer = 0;
+             // Permanent Ring of Fire Logic
+             let fireDist = bur.dist * 2.0;
+             if(state.frames % 15 === 0) { // Tick speed
+                 let baseTick = Math.max(1, bur.damage * 0.5);
+                 state.enemies.forEach(e => {
+                     if(Math.hypot(e.x - player.x, e.y - player.y) < fireDist) {
+                         let dmg = calcDamage(baseTick);
+                         e.takeDamage(dmg.d, false, 'fire_aura');
+                         createParticle(e.x, e.y, '#ff5e00', 'fire', 0.5);
+                     }
+                 });
+             }
+             // Visual FX for the ring
+             if(state.frames % 5 === 0) {
+                  let rAng = Math.random() * 6.28;
+                  let rDist = Math.random() * fireDist;
+                  createParticle(player.x + Math.cos(rAng)*rDist, player.y + Math.sin(rAng)*rDist, 'rgba(255,100,0,0.3)', 'fire', 0.5);
              }
         }
 
@@ -1670,6 +1683,27 @@
         ctx.restore();
 
         const bur=player.weapons.burek;
+        
+        // --- DRAW PERMANENT FLAME AURA IF EVOLVED ---
+        if(bur.evolved) {
+             let range = bur.dist * 2.0;
+             ctx.save(); ctx.translate(pX, pY);
+             // Create radial gradient for massive fire aura
+             let fireGrad = ctx.createRadialGradient(0,0, 40, 0,0, range);
+             fireGrad.addColorStop(0, 'rgba(255, 150, 0, 0.1)');
+             fireGrad.addColorStop(0.8, 'rgba(255, 60, 0, 0.2)');
+             fireGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+             
+             ctx.fillStyle = fireGrad;
+             ctx.beginPath(); ctx.arc(0,0, range, 0, 6.28); ctx.fill();
+             
+             // Edge highlight
+             ctx.strokeStyle = `rgba(255, 100, 0, ${0.3 + Math.sin(state.frames*0.1)*0.2})`;
+             ctx.lineWidth = 2;
+             ctx.beginPath(); ctx.arc(0,0, range, 0, 6.28); ctx.stroke();
+             ctx.restore();
+        }
+
         for(let i=0;i<bur.count;i++){
             if(!bur.orbs[i] || bur.orbs[i].timer>0) continue;
             let ang=(state.frames*bur.speed)+(i*6.28/bur.count), bx=pX+Math.cos(ang)*bur.dist, by=pY+Math.sin(ang)*bur.dist;
