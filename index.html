@@ -275,8 +275,8 @@
         {id:'rakija',name:'Holy Rakija',icon:'🍾',desc:'Smashes bottles creating purifying fire zones.', tier:'common', max:10},
         {id:'pyramid',name:'Visoko Beam',icon:'⛰️',desc:'Fires a high-energy piercing triangle beam.', tier:'common', max:6},
         
-        {id:'harmonika',name:'Harmonika Aura',icon:'🎹',desc:'Slows all enemies within range. +10% Slow per level.', tier:'rare', max:8},
-        {id:'xp_boost',name:'Big Brain',icon:'🧠',desc:'+100% EXP Gain (Stacks)', tier:'rare', max:10},
+        {id:'harmonika',name:'Harmonika Aura',icon:'🎹',desc:'Slows all enemies within range. (30% Base, +10% per level, Max 80%)', tier:'rare', max:8},
+        {id:'xp_boost',name:'Poor Jewelry',icon:'💍',desc:'+50% EXP Gain (Stacks)', tier:'rare', max:10},
         
         {id:'serbian',name:'Serbian Warrior',icon:'⚔️',desc:'Summons a Friendly Unit. Targets Hordes. 30s Respawn.', tier:'legendary', max:1},
         
@@ -510,7 +510,7 @@
                 ajvar: { level:0, cooldown:140, baseCool:140, timer:0, damage:80 },
                 rakija: { level:0, cooldown:190, baseCool:190, timer:0, damage:4, duration:300 }, 
                 pyramid: { level:0, cooldown:110, baseCool:110, timer:0, damage:50, evolved:false },
-                harmonika: { level:0, range:160, slow:0.10 },
+                harmonika: { level:0, range:240, slow:0.30 }, // Increased Base Range/Slow
                 serbian: { level:0, path: 0, evolved: false } // path 0=base, 1=titan, 2=squad, 3=vanguard
             },
             items: {
@@ -632,52 +632,61 @@
             });
 
             let moveX = 0, moveY = 0;
-
-            if(this.type === 'mage') {
-                let protectTarget = state.friendlyUnits.find(u => u.type === 'defender' && !u.dead) || player;
-                let dProt = Math.hypot(protectTarget.x - this.x, protectTarget.y - this.y);
-                if(minDist < 200) { 
-                     let ang = Math.atan2(target.y - this.y, target.x - this.x);
-                     moveX = -Math.cos(ang); moveY = -Math.sin(ang);
-                } else if(dProt > 100) { 
-                     let ang = Math.atan2(protectTarget.y - this.y, protectTarget.x - this.x);
-                     moveX = Math.cos(ang); moveY = Math.sin(ang);
-                }
-            } 
-            else if (this.type === 'defender') {
-                 if(target) {
-                     let ang = Math.atan2(target.y - player.y, target.x - player.x);
-                     let blockX = player.x + Math.cos(ang) * 60;
-                     let blockY = player.y + Math.sin(ang) * 60;
-                     let dBlock = Math.hypot(blockX - this.x, blockY - this.y);
-                     if(dBlock > 10) {
-                         let angM = Math.atan2(blockY - this.y, blockX - this.x);
-                         moveX = Math.cos(angM); moveY = Math.sin(angM);
-                     }
-                 } else {
-                     let dP = Math.hypot(player.x - this.x, player.y - this.y);
-                     if(dP > 60) {
-                         let ang = Math.atan2(player.y - this.y, player.x - this.x);
+            
+            // --- TETHER LOGIC (New) ---
+            let distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
+            if(distToPlayer > 800) {
+                 // Force move to player
+                 let ang = Math.atan2(player.y - this.y, player.x - this.x);
+                 moveX = Math.cos(ang) * 2; // Sprint back
+                 moveY = Math.sin(ang) * 2;
+            } else {
+                if(this.type === 'mage') {
+                    let protectTarget = state.friendlyUnits.find(u => u.type === 'defender' && !u.dead) || player;
+                    let dProt = Math.hypot(protectTarget.x - this.x, protectTarget.y - this.y);
+                    if(minDist < 200) { 
+                         let ang = Math.atan2(target.y - this.y, target.x - this.x);
+                         moveX = -Math.cos(ang); moveY = -Math.sin(ang);
+                    } else if(dProt > 100) { 
+                         let ang = Math.atan2(protectTarget.y - this.y, protectTarget.x - this.x);
                          moveX = Math.cos(ang); moveY = Math.sin(ang);
-                     }
-                 }
-            }
-            else { 
-                if(enemiesNearby >= 5) {
-                    moveX = 0; moveY = 0;
-                } else {
-                    if(target) {
-                        let d = Math.hypot(target.x - this.x, target.y - this.y);
-                        if(d > 40) {
-                             let ang = Math.atan2(target.y - this.y, target.x - this.x);
-                             moveX = Math.cos(ang); moveY = Math.sin(ang);
-                        }
-                    } else {
-                        let dP = Math.hypot(player.x - this.x, player.y - this.y);
-                         if(dP > 100) {
+                    }
+                } 
+                else if (this.type === 'defender') {
+                     if(target) {
+                         let ang = Math.atan2(target.y - player.y, target.x - player.x);
+                         let blockX = player.x + Math.cos(ang) * 60;
+                         let blockY = player.y + Math.sin(ang) * 60;
+                         let dBlock = Math.hypot(blockX - this.x, blockY - this.y);
+                         if(dBlock > 10) {
+                             let angM = Math.atan2(blockY - this.y, blockX - this.x);
+                             moveX = Math.cos(angM); moveY = Math.sin(angM);
+                         }
+                     } else {
+                         let dP = Math.hypot(player.x - this.x, player.y - this.y);
+                         if(dP > 60) {
                              let ang = Math.atan2(player.y - this.y, player.x - this.x);
                              moveX = Math.cos(ang); moveY = Math.sin(ang);
                          }
+                     }
+                }
+                else { 
+                    if(enemiesNearby >= 5) {
+                        moveX = 0; moveY = 0;
+                    } else {
+                        if(target) {
+                            let d = Math.hypot(target.x - this.x, target.y - this.y);
+                            if(d > 40) {
+                                 let ang = Math.atan2(target.y - this.y, target.x - this.x);
+                                 moveX = Math.cos(ang); moveY = Math.sin(ang);
+                            }
+                        } else {
+                            let dP = Math.hypot(player.x - this.x, player.y - this.y);
+                             if(dP > 100) {
+                                 let ang = Math.atan2(player.y - this.y, player.x - this.x);
+                                 moveX = Math.cos(ang); moveY = Math.sin(ang);
+                             }
+                        }
                     }
                 }
             }
@@ -1830,9 +1839,10 @@
                 let rng = Math.random() * 100;
                 let chosenTier = 'common';
 
-                // LUCK MODIFIER
-                if (rng < (2 * player.luck)) chosenTier = 'legendary';
-                else if (rng < (8 * player.luck)) chosenTier = 'rare'; 
+                // LUCK MODIFIER & UPDATED DROP RATES
+                // 1% Legendary, 15% Rare, Rest Common
+                if (rng < (1 * player.luck)) chosenTier = 'legendary';
+                else if (rng < (16 * player.luck)) chosenTier = 'rare'; // 1% + 15%
                 else chosenTier = 'common';
 
                 if(chosenTier === 'legendary' && pools.legendary.length === 0) chosenTier = 'rare';
@@ -1949,7 +1959,7 @@
         if(id==='harmonika'){
             player.weapons.harmonika.level++;
             if(player.weapons.harmonika.level > 1) {
-                player.weapons.harmonika.slow += 0.10;
+                player.weapons.harmonika.slow += 0.05; // Slightly reduced increment to balance new 30% base
             }
         }
 
@@ -2014,9 +2024,24 @@
         if(id==='speed')player.speed*=1.15; if(id==='magnet')player.magnetRadius+=50; if(id==='armor')player.armor+=1.5; if(id==='heal')player.hp=Math.min(player.maxHp,player.hp+50);
         if(id==='coffee')player.cdr*=0.9; if(id==='lily')player.critChance+=0.10; if(id==='vrelo')player.regen+=2;
         
-        if(id==='xp_boost') state.xpMult += 1; 
+        if(id==='xp_boost') state.xpMult += 0.5; // Nerfed to 50%
 
         ['cevapi','ajvar','rakija','pyramid'].forEach(w=>{ player.weapons[w].cooldown = player.weapons[w].baseCool * player.cdr; });
+        
+        // --- HARD CAP LOGIC (SPECIFIC REQUESTS) ---
+        let maxCoffee = player.items.coffee >= 10;
+        
+        // Cevapi Limits
+        if(player.weapons.cevapi.level >= 10) {
+            let limit = maxCoffee ? 12 : 30; // 0.2s or 0.5s
+            player.weapons.cevapi.cooldown = limit;
+        }
+
+        // Pyramid Limits
+        if(player.weapons.pyramid.level >= 6) {
+             let limit = maxCoffee ? 42 : 60; // 0.7s or 1.0s
+             player.weapons.pyramid.cooldown = limit;
+        }
 
         if(document.getElementById('levelup-screen').style.display === 'flex'){
              document.getElementById('levelup-screen').style.display='none'; 
