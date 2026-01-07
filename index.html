@@ -1308,7 +1308,12 @@
             state.level++;
             player.maxHp += 10; player.hp += 10;
             spawnDamageText(player.x, player.y-60, "+10 HP", true);
-            state.nextLevelXp=Math.floor(state.nextLevelXp*1.5);
+            
+            // REWORKED LEVELING FORMULA
+            // Old was * 1.5 (Exponential) which became impossible at lvl 16
+            // New is Linear + Slight Scale: Prev + 50 + (Level * 25)
+            state.nextLevelXp = Math.floor(state.nextLevelXp + 50 + (state.level * 25));
+            
             isPaused = true;
             generateCards();
         } 
