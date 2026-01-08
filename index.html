@@ -936,101 +936,182 @@
                  ctx.restore();
             }
             
-            // --- VISUAL UPGRADES FOR LEVEL 3 & PATHS ---
+            // --- DRAWING LOGIC ---
 
             if(this.type === 'soldier') {
                  // Level 1: Basic Soldier
-                 // Helmet
-                 ctx.fillStyle = '#aaa'; ctx.beginPath(); ctx.arc(0,0,15,0,6.28); ctx.fill();
-                 // Blue Cape
-                 let sway = Math.sin(state.frames * 0.2) * 2;
-                 ctx.fillStyle = '#002395'; ctx.beginPath(); ctx.moveTo(-12, 5); ctx.lineTo(12, 5); ctx.lineTo(12+sway, 25); ctx.lineTo(-12+sway, 25); ctx.fill();
-                 // Sword
-                 ctx.fillStyle = '#ddd'; ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(12+25, -2); ctx.lineTo(12+25, 2); ctx.fill();
-                 ctx.fillStyle = '#555'; ctx.fillRect(12, -5, 4, 10); 
+                 // Feet (Marching)
+                 let legOffset = Math.sin(state.frames * 0.2) * 5;
+                 ctx.fillStyle = '#333';
+                 ctx.beginPath(); ctx.arc(-8, 20+legOffset, 5, 0, 6.28); ctx.fill(); // Left foot
+                 ctx.beginPath(); ctx.arc(8, 20-legOffset, 5, 0, 6.28); ctx.fill(); // Right foot
+
+                 // Body / Blue Tabard
+                 ctx.fillStyle = '#002395'; 
+                 ctx.beginPath(); 
+                 ctx.moveTo(-10, -10); ctx.lineTo(10, -10); 
+                 ctx.lineTo(12, 15); ctx.lineTo(-12, 15); 
+                 ctx.fill();
+                 
+                 // Silver Helmet
+                 ctx.fillStyle = '#aaa'; 
+                 ctx.beginPath(); ctx.arc(0, -12, 10, 0, Math.PI, true); ctx.lineTo(10, -5); ctx.lineTo(-10, -5); ctx.fill();
+                 
+                 // Arms & Sword
+                 ctx.fillStyle = '#999';
+                 ctx.beginPath(); ctx.arc(-12, -2, 4, 0, 6.28); ctx.fill(); // Left Shoulder
+                 ctx.beginPath(); ctx.arc(12, -2, 4, 0, 6.28); ctx.fill(); // Right Shoulder
+                 
+                 // Sword Hand
+                 ctx.save();
+                 ctx.translate(15, 5); 
+                 // Swing animation
+                 let swing = Math.sin(this.attackTimer * 0.2) * 0.5;
+                 if(this.attackTimer < 10) swing = -1.5; // Attack frame
+                 ctx.rotate(swing);
+                 
+                 ctx.fillStyle = '#ddd'; ctx.fillRect(-2, -25, 4, 30); // Blade
+                 ctx.fillStyle = '#555'; ctx.fillRect(-4, 0, 8, 2); // Crossguard
+                 ctx.fillStyle = '#444'; ctx.beginPath(); ctx.arc(0, 5, 3, 0, 6.28); ctx.fill(); // Pommel
+                 ctx.restore();
             }
             else if (this.type === 'titan') {
                  // Level 2/3: Titan / Berserker
-                 // Armor
-                 ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(0,0,20,0,6.28); ctx.fill();
+                 // Massive Feet
+                 let legOffset = Math.sin(state.frames * 0.15) * 3;
+                 ctx.fillStyle = '#111';
+                 ctx.fillRect(-15, 25+legOffset, 12, 8);
+                 ctx.fillRect(5, 25-legOffset, 12, 8);
+
+                 // Bulky Dark Armor
+                 ctx.fillStyle = '#222'; 
+                 ctx.beginPath(); 
+                 ctx.moveTo(-20, -20); ctx.lineTo(20, -20); 
+                 ctx.lineTo(15, 20); ctx.lineTo(-15, 20); 
+                 ctx.fill();
+                 
                  // Spikes if Berserker
                  if(this.isBerserk) {
-                     ctx.fillStyle = '#a00'; ctx.beginPath(); ctx.moveTo(0,-25); ctx.lineTo(-10,-35); ctx.lineTo(10,-35); ctx.fill();
-                 } else {
-                     ctx.fillStyle = '#555'; ctx.beginPath(); ctx.moveTo(0,-20); ctx.lineTo(-5,-30); ctx.lineTo(5,-30); ctx.fill();
+                     ctx.fillStyle = '#800'; 
+                     ctx.beginPath(); ctx.moveTo(-20,-20); ctx.lineTo(-25,-35); ctx.lineTo(-15,-25); ctx.fill();
+                     ctx.beginPath(); ctx.moveTo(20,-20); ctx.lineTo(25,-35); ctx.lineTo(15,-25); ctx.fill();
                  }
-                 // Eyes
+
+                 // Helmet & Eyes
+                 ctx.fillStyle = '#333';
+                 ctx.beginPath(); ctx.arc(0, -20, 12, 0, 6.28); ctx.fill();
                  ctx.fillStyle = this.isBerserk ? '#f00' : '#fa0'; 
-                 ctx.beginPath(); ctx.arc(-5, -5, 3, 0, 6.28); ctx.arc(5, -5, 3, 0, 6.28); ctx.fill();
-                 
-                 // Sword
+                 ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 10;
+                 ctx.beginPath(); ctx.rect(-5, -22, 3, 2); ctx.rect(2, -22, 3, 2); ctx.fill();
+                 ctx.shadowBlur = 0;
+
+                 // Massive Sword
                  ctx.save();
-                 // If spin attacking, blur it
-                 if(this.isBerserk && this.attackTimer < 20) {
-                     ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
-                     ctx.beginPath(); ctx.arc(0,0, 60, 0, 6.28); ctx.fill();
-                 } else {
-                     ctx.fillStyle = this.isBerserk ? '#500' : '#888'; 
-                     ctx.beginPath(); ctx.moveTo(15, -8); ctx.lineTo(this.isBerserk?80:60, 0); ctx.lineTo(15, 8); ctx.fill();
-                     ctx.fillStyle = '#222'; ctx.fillRect(15, -12, 5, 24);
+                 ctx.translate(25, 0); 
+                 let angle = 0.5;
+                 if(this.isBerserk && this.attackTimer < 15) {
+                     angle = -2.0 + (this.attackTimer/15)*3.0; // Spin/Slash
+                     // Blur effect
+                     ctx.fillStyle = 'rgba(255,0,0,0.3)';
+                     ctx.beginPath(); ctx.arc(-25, 0, 70, 0, 6.28); ctx.fill();
                  }
+                 ctx.rotate(angle);
+                 ctx.fillStyle = '#111'; ctx.fillRect(-5, -60, 14, 70); // Blade slab
+                 ctx.fillStyle = '#444'; ctx.fillRect(-8, 5, 20, 5); // Guard
                  ctx.restore();
             }
             else if (this.type === 'vanguard') {
                  // Level 2/3: Vanguard / Warlord Tank
-                 // Armor
-                 ctx.fillStyle = this.canTaunt ? '#111' : '#223'; 
-                 ctx.beginPath(); ctx.arc(0,0,this.canTaunt?25:18,0,6.28); ctx.fill();
+                 // Heavy Feet
+                 ctx.fillStyle = '#223';
+                 ctx.fillRect(-12, 22, 10, 8); ctx.fillRect(2, 22, 10, 8);
+
+                 // Plate Body
+                 ctx.fillStyle = this.canTaunt ? '#111' : '#445';
+                 ctx.fillRect(-15, -15, 30, 40);
                  
-                 // Tower Shield
-                 ctx.fillStyle = this.canTaunt ? '#300' : '#445'; 
-                 ctx.fillRect(10, -25, 12, 50);
-                 ctx.strokeStyle = '#fff'; ctx.lineWidth=2; ctx.strokeRect(10, -25, 12, 50);
+                 // Helmet Visor
+                 ctx.fillStyle = '#556';
+                 ctx.beginPath(); ctx.arc(0, -18, 12, 0, 6.28); ctx.fill();
+                 ctx.fillStyle = '#000'; ctx.fillRect(-8, -20, 16, 4); // Eye slit
+
+                 // TOWER SHIELD (Front)
+                 ctx.fillStyle = this.canTaunt ? '#311' : '#556';
+                 ctx.fillRect(-20, -10, 25, 50); // Covers left side mostly
+                 ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; 
+                 ctx.strokeRect(-20, -10, 25, 50);
                  
+                 // Weapon (Mace)
+                 ctx.save();
+                 ctx.translate(20, 5);
+                 ctx.rotate(-0.5);
+                 ctx.fillStyle = '#654321'; ctx.fillRect(-2, -20, 4, 25);
+                 ctx.fillStyle = '#888'; ctx.beginPath(); ctx.arc(0, -22, 8, 0, 6.28); ctx.fill(); // Head
+                 ctx.restore();
+
                  if(this.taunting) {
-                     // Taunt Ring Visual
                      ctx.strokeStyle = '#ff003c'; ctx.lineWidth = 3;
                      ctx.beginPath(); ctx.arc(0,0, 60 + Math.sin(state.frames*0.5)*10, 0, 6.28); ctx.stroke();
                  }
             }
             else if (this.type === 'defender') {
-                 // Level 2/3: Defender / Elite Defender
-                 ctx.fillStyle = '#889'; ctx.beginPath(); ctx.arc(0,0,18,0,6.28); ctx.fill();
-                 // Shield
-                 ctx.fillStyle = this.canPush ? '#00f3ff' : '#224'; 
-                 if(this.canPush) ctx.globalAlpha = 0.7; // Holographic shield
-                 ctx.beginPath(); ctx.arc(15, 0, 18, 0, 6.28); ctx.fill();
+                 // Level 2/3: Defender
+                 // Chainmail legs
+                 ctx.fillStyle = '#777'; 
+                 ctx.fillRect(-10, 15, 8, 12); ctx.fillRect(2, 15, 8, 12);
+
+                 // Body with Surcoat
+                 ctx.fillStyle = '#889'; ctx.fillRect(-12, -10, 24, 30);
+                 ctx.fillStyle = '#fff'; ctx.fillRect(-5, -10, 10, 30); // Cross line
+
+                 // Kettle Hat
+                 ctx.fillStyle = '#667';
+                 ctx.beginPath(); ctx.arc(0, -15, 10, 3.14, 0); ctx.fill(); // Dome
+                 ctx.fillRect(-12, -15, 24, 4); // Brim
+
+                 // Round Shield
+                 ctx.fillStyle = this.canPush ? '#00f3ff' : '#334'; 
+                 if(this.canPush) ctx.globalAlpha = 0.7; 
+                 ctx.beginPath(); ctx.arc(10, 5, 16, 0, 6.28); ctx.fill();
+                 ctx.strokeStyle = '#aaa'; ctx.lineWidth=3; ctx.stroke();
                  ctx.globalAlpha = 1;
-                 ctx.strokeStyle = '#fff'; ctx.lineWidth=2; ctx.stroke();
             }
             else if (this.type === 'mage') {
-                 // Level 2/3: Mage / Elite Mage
-                 let sway = Math.sin(state.frames * 0.2) * 2;
-                 ctx.fillStyle = this.hasBeam ? '#4b0082' : '#d000ff'; 
-                 ctx.beginPath(); 
+                 // Level 2/3: Mage
+                 // Robes
+                 let sway = Math.sin(state.frames * 0.1) * 3;
+                 ctx.fillStyle = this.hasBeam ? '#4b0082' : '#800080'; // Dark Purple vs Purple
+                 ctx.beginPath();
                  ctx.moveTo(0, -20);
-                 ctx.bezierCurveTo(-15, 0, -15, 15+sway, 0, 20);
-                 ctx.bezierCurveTo(15, 15-sway, 15, 0, 0, -20);
+                 ctx.bezierCurveTo(-15, 0, -20+sway, 25, 0, 30);
+                 ctx.bezierCurveTo(20+sway, 25, 15, 0, 0, -20);
                  ctx.fill();
 
-                 ctx.fillStyle = this.hasBeam ? '#fff' : '#a000d0'; 
-                 ctx.beginPath(); ctx.arc(0, -5, 10, 0, 6.28); ctx.fill();
-                 
-                 // Runic Circles for Elite
+                 // Gold trim
+                 ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 1; ctx.stroke();
+
+                 // Head/Hood
+                 ctx.fillStyle = this.hasBeam ? '#eee' : '#d000ff';
+                 ctx.beginPath(); ctx.arc(0, -20, 8, 0, 6.28); ctx.fill();
+                 // Hat
+                 ctx.fillStyle = '#222';
+                 ctx.beginPath(); ctx.moveTo(-10, -24); ctx.lineTo(10, -24); ctx.lineTo(0, -40); ctx.fill();
+
+                 // Floating Book
+                 let bookBob = Math.sin(state.frames * 0.15) * 5;
+                 ctx.fillStyle = '#8B4513'; ctx.fillRect(15, -10 + bookBob, 12, 16);
+                 ctx.fillStyle = '#fff'; ctx.fillRect(17, -8 + bookBob, 8, 12); // Pages
+
+                 // Elite Rune
                  if(this.hasBeam) {
                      ctx.strokeStyle = '#d000ff'; ctx.lineWidth = 1;
-                     ctx.beginPath(); ctx.arc(0,0, 25, state.frames*0.1, state.frames*0.1+4); ctx.stroke();
-                     ctx.beginPath(); ctx.arc(0,0, 30, -state.frames*0.1, -state.frames*0.1+4); ctx.stroke();
-                 } else {
-                     // Floating Book
-                     let bookBob = Math.sin(state.frames * 0.15) * 3;
-                     ctx.fillStyle = '#ffd700'; ctx.fillRect(15, -15 + bookBob, 10, 12);
+                     ctx.beginPath(); ctx.arc(0, 0, 35, state.frames*0.1, state.frames*0.1+4); ctx.stroke();
                  }
             }
 
             // HP Bar for Unit
-            ctx.fillStyle = 'red'; ctx.fillRect(-20, -35, 40, 6);
-            ctx.fillStyle = '#0f0'; ctx.fillRect(-20, -35, 40 * (this.durability/this.maxDurability), 6);
+            ctx.fillStyle = 'red'; ctx.fillRect(-20, -45, 40, 4);
+            ctx.fillStyle = '#0f0'; ctx.fillRect(-20, -45, 40 * (this.durability/this.maxDurability), 4);
             ctx.restore();
         }
     }
