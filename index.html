@@ -633,7 +633,7 @@
 
             let moveX = 0, moveY = 0;
             
-            // --- TETHER LOGIC (New) ---
+            // --- TETHER LOGIC ---
             let distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
             if(distToPlayer > 800) {
                  // Force move to player
@@ -1113,8 +1113,20 @@
         }
     }
     
+    // Helper to calculate difficulty scaling
+    function getDifficultyScaling() {
+        let minutes = state.gameTime / 60;
+        // HP +25% per minute
+        let hpScale = 1 + (minutes * 0.25);
+        // DMG +4% per minute
+        let dmgScale = 1 + (minutes * 0.04);
+        return { hpScale, dmgScale };
+    }
+
     class Enemy {
         constructor(overrideType=null, x=null, y=null){
+            const scaling = getDifficultyScaling();
+            
             if(overrideType === 'BOSS' || overrideType === 'MINI_BOSS') {
                  this.type = overrideType;
                  let a=Math.random()*6.28, d=(Math.max(W,H)/2)+200; 
@@ -1130,24 +1142,49 @@
                  this.type = overrideType || 'promaja';
             }
             
+            this.damage = 0.5; // Base default damage
+            
             if(this.type==='BOSS') {
-                this.hp=5000; this.maxHp=5000; 
+                this.hp = 5000 * scaling.hpScale; 
+                this.maxHp = this.hp;
                 this.baseSpeed=2.5; this.radius=60; 
                 this.frozen=0; this.hitFlash=0; this.pushX=0; this.pushY=0;
                 this.attackTimer = 150; this.damageCooldown = 0;
+                this.damage = 2; // Boss deals heavy contact damage
             } 
             else if(this.type==='MINI_BOSS') {
-                this.hp=800; this.maxHp=800;
+                this.hp = 800 * scaling.hpScale; 
+                this.maxHp = this.hp;
                 this.baseSpeed=2.2; this.radius=45;
                 this.frozen=0; this.hitFlash=0; this.pushX=0; this.pushY=0;
                 this.attackTimer = 200; this.damageCooldown = 0;
+                this.damage = 2;
             }
             else {
-                if(this.type==='promaja'){this.hp=40+state.level*6;this.baseSpeed=2+Math.random();this.radius=22;} 
-                else if(this.type==='yugo'){this.hp=200+state.level*20;this.baseSpeed=1.5;this.radius=35;this.angle=0;} 
-                else if(this.type==='hornet'){this.hp=25+state.level*3;this.baseSpeed=4.5;this.radius=15;}
+                if(this.type==='promaja'){
+                    let baseHp = 40+state.level*6;
+                    this.hp = baseHp * scaling.hpScale;
+                    this.baseSpeed=2+Math.random();this.radius=22;
+                    this.damage = 0.4;
+                } 
+                else if(this.type==='yugo'){
+                    let baseHp = 200+state.level*20;
+                    this.hp = baseHp * scaling.hpScale;
+                    this.baseSpeed=1.5;this.radius=35;this.angle=0;
+                    this.damage = 1;
+                } 
+                else if(this.type==='hornet'){
+                    let baseHp = 25+state.level*3;
+                    this.hp = baseHp * scaling.hpScale;
+                    this.baseSpeed=4.5;this.radius=15;
+                    this.damage = 0.4;
+                }
                 this.maxHp=this.hp; this.hitFlash=0; this.pushX=0; this.pushY=0; this.frozen=0;
             }
+            
+            // Apply Damage Scaling
+            this.damage = this.damage * scaling.dmgScale;
+
             this.speed = this.baseSpeed;
             this.burnTimer = 0; 
             this.burekHitTimer = 0;
@@ -1602,7 +1639,9 @@
             let safeDist = player.radius + e.radius - 5;
             
             if(!e.frozen && Math.hypot(e.x-player.x,e.y-player.y)<safeDist){ 
-                let dmgAmt = (e.type==='BOSS' || e.type==='MINI_BOSS') ? 2 : (Math.max(0.1,((e.type==='yugo'?1:0.4)-(player.armor*0.05))));
+                // Updated Logic: Use calculated Enemy Damage
+                let dmgAmt = Math.max(0.1, (e.damage - (player.armor * 0.05)));
+                
                 if(!godMode) player.hp-=dmgAmt; 
                 addShake(2); updateHud(); if(player.hp<=0){document.getElementById('final-score').innerText=state.score;document.getElementById('game-over').style.display='flex';gameActive=false;} 
             }
@@ -2028,7 +2067,7 @@
 
         ['cevapi','ajvar','rakija','pyramid'].forEach(w=>{ player.weapons[w].cooldown = player.weapons[w].baseCool * player.cdr; });
         
-        // --- HARD CAP LOGIC (SPECIFIC REQUESTS) ---
+        // --- HARD CAP LOGIC ---
         let maxCoffee = player.items.coffee >= 10;
         
         // Cevapi Limits
