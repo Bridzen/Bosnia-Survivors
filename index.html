@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bosnian Survivors: BALANCE UPDATE</title>
+<title>Bosnian Survivors: BRAXTON UPDATE</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
     :root { 
@@ -16,6 +16,7 @@
         --dark:#050510; 
         --fire-orange:#ff5e00;
         --medic-green:#00ff41;
+        --braxton-green:#2ecc71;
     }
     body { margin:0; overflow:hidden; background-color:var(--dark); font-family:'Rajdhani', sans-serif; color:white; user-select:none; }
     
@@ -42,7 +43,6 @@
     .label { font-size:10px; color:var(--neon-cyan); text-transform:uppercase; letter-spacing:2px; font-family:'Orbitron'; margin-bottom:2px; opacity: 0.8; }
     .value { font-size:24px; font-weight:700; color:#fff; text-shadow:0 0 5px var(--neon-cyan); }
     
-    /* TIMER */
     #timer-box {
         position: absolute; top: 10px; left: 50%; transform: translateX(-50%) skewX(-15deg);
         background:rgba(0, 0, 0, 0.8); border:1px solid var(--bosnia-yellow);
@@ -52,7 +52,6 @@
         font-family: 'Orbitron'; font-size: 32px; color: var(--bosnia-yellow); transform: skewX(15deg); letter-spacing: 3px;
     }
 
-    /* HP BAR */
     #hp-container {
         position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
         width: 500px; text-align: center; pointer-events: none;
@@ -63,7 +62,6 @@
     }
     #hp-fill { height:100%; width:100%; background:linear-gradient(90deg, #ff003c, #ff5e00); transition:width 0.1s linear; }
 
-    /* BOSS BAR */
     #boss-hud { display:none; position:fixed; top:80px; left:50%; transform:translateX(-50%); width:600px; z-index:60; flex-direction:column; align-items:center; }
     #boss-name { font-family:'Orbitron'; font-size:28px; color:var(--danger); margin-bottom:5px; letter-spacing:8px; font-weight:900; }
     #boss-bar-bg { width:100%; height:12px; background:rgba(0,0,0,0.8); border:1px solid var(--danger); transform: skewX(-20deg); overflow:hidden; }
@@ -77,110 +75,52 @@
     
     .screen-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5, 5, 10, 0.95); z-index:2000; flex-direction:column; align-items:center; justify-content:center; pointer-events:auto; overflow-y:auto;}
     
-    /* UPDATED MAIN MENU */
+    /* MAIN MENU */
     #main-menu { 
         display:flex; 
         background: radial-gradient(circle at center, rgba(10, 20, 40, 0.9), #000), url('https://img.freepik.com/free-vector/blue-futuristic-networking-technology-background-vector_53876-114068.jpg'); 
         background-size:cover; background-position: center; 
     }
-    
-    .title-container {
-        position: relative;
-        text-align: center;
-        animation: floatTitle 3s ease-in-out infinite;
-        z-index: 10;
-    }
-
-    .title-glitch { 
-        font-family:'Orbitron'; font-weight: 900; font-size:90px; color:white; 
-        text-shadow: 
-            0 0 10px var(--bosnia-blue), 
-            4px 4px 0px #000, 
-            -2px -2px 0 var(--bosnia-yellow);
-        letter-spacing: 5px;
-        margin: 0;
-        line-height: 0.9;
-    }
-    
-    .subtitle {
-        font-family:'Rajdhani'; font-weight: 700; letter-spacing:15px; 
-        color:var(--neon-cyan); margin-top:10px; font-size: 32px;
-        text-shadow: 0 0 20px var(--bosnia-blue);
-        animation: pulseText 2s infinite alternate;
-    }
-
-    /* BALANCING ANIMATION BACKGROUND */
-    #balance-scale-bg {
-        position: absolute;
-        top: 50%; left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 400px;
-        opacity: 0.15;
-        color: var(--bosnia-yellow);
-        animation: balanceRock 5s ease-in-out infinite;
-        pointer-events: none;
-        z-index: 1;
-        filter: drop-shadow(0 0 20px var(--bosnia-yellow));
-    }
-
-    @keyframes balanceRock {
-        0% { transform: translate(-50%, -50%) rotate(-10deg); }
-        50% { transform: translate(-50%, -50%) rotate(10deg); }
-        100% { transform: translate(-50%, -50%) rotate(-10deg); }
-    }
-
+    .title-container { position: relative; text-align: center; animation: floatTitle 3s ease-in-out infinite; z-index: 10; }
+    .title-glitch { font-family:'Orbitron'; font-weight: 900; font-size:90px; color:white; text-shadow: 0 0 10px var(--bosnia-blue), 4px 4px 0px #000, -2px -2px 0 var(--bosnia-yellow); letter-spacing: 5px; margin: 0; line-height: 0.9; }
+    .subtitle { font-family:'Rajdhani'; font-weight: 700; letter-spacing:15px; color:var(--neon-cyan); margin-top:10px; font-size: 32px; text-shadow: 0 0 20px var(--bosnia-blue); animation: pulseText 2s infinite alternate; }
+    #balance-scale-bg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 400px; opacity: 0.15; color: var(--bosnia-yellow); animation: balanceRock 5s ease-in-out infinite; pointer-events: none; z-index: 1; filter: drop-shadow(0 0 20px var(--bosnia-yellow)); }
+    @keyframes balanceRock { 0% { transform: translate(-50%, -50%) rotate(-10deg); } 50% { transform: translate(-50%, -50%) rotate(10deg); } 100% { transform: translate(-50%, -50%) rotate(-10deg); } }
     @keyframes floatTitle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
     @keyframes pulseText { 0% { opacity: 0.7; text-shadow: 0 0 10px var(--neon-cyan); } 100% { opacity: 1; text-shadow: 0 0 30px var(--bosnia-blue); } }
     
-    .menu-btn { 
-        background:linear-gradient(90deg, rgba(0,0,0,0.8), rgba(0, 35, 149, 0.6)); 
-        border:1px solid var(--bosnia-blue); 
-        border-left: 4px solid var(--bosnia-yellow);
-        color:white; padding:20px 60px; margin:15px; font-size:24px; font-family:'Orbitron'; 
-        cursor:pointer; text-transform:uppercase; letter-spacing:4px; width:350px; 
-        transition:0.3s; 
-        z-index: 10;
-        clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
-        position: relative; overflow: hidden;
-    }
+    .menu-btn { background:linear-gradient(90deg, rgba(0,0,0,0.8), rgba(0, 35, 149, 0.6)); border:1px solid var(--bosnia-blue); border-left: 4px solid var(--bosnia-yellow); color:white; padding:20px 60px; margin:15px; font-size:24px; font-family:'Orbitron'; cursor:pointer; text-transform:uppercase; letter-spacing:4px; width:350px; transition:0.3s; z-index: 10; clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px); position: relative; overflow: hidden; }
     .menu-btn:hover { background:var(--bosnia-yellow); color:black; border-color:white; font-weight: 900; transform: scale(1.05); box-shadow: 0 0 30px rgba(254, 203, 0, 0.4); }
 
+    /* ADMIN */
     #admin-panel { display:none; border:2px solid var(--danger); background:rgba(0,0,0,0.95); box-shadow: 0 0 50px rgba(255,0,0,0.2); flex-direction: column; align-items: center;}
     .admin-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; width:600px; padding:20px; }
     .admin-btn { background:#111; border:1px solid #555; color:white; padding:15px; cursor:pointer; font-family:'Orbitron'; text-transform:uppercase; transition:0.2s; font-size: 14px; }
     .admin-btn:hover { background:var(--danger); color:white; border-color:white; box-shadow: 0 0 10px var(--danger); }
     .admin-header { font-family:'Orbitron'; color:var(--danger); font-size:30px; margin:20px 0; text-shadow:0 0 10px red; letter-spacing: 5px; text-align: center; width: 100%; border-bottom: 1px solid #333; padding-bottom: 10px;}
     #admin-augment-select { background: #000; color: var(--neon-cyan); border: 1px solid var(--neon-cyan); padding: 10px; width: 100%; font-family: 'Rajdhani'; font-size: 16px; margin-bottom: 10px; }
+    .spawn-control { display:flex; gap: 5px; grid-column: span 2; }
+    .spawn-select { flex-grow: 1; background: #000; color: #fff; padding: 10px; font-family: Orbitron; border: 1px solid #555; }
 
-    /* Pause Stats */
-    #pause-stats { 
-        display: grid; grid-template-columns: 1fr 1fr; gap: 10px; 
-        width: 80%; max-width: 600px; margin-bottom: 20px;
-        max-height: 400px; overflow-y: auto;
+    /* BRAXTON CUTSCENE */
+    #braxton-cutscene { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9000; flex-direction:column; align-items:center; justify-content:center; }
+    #taco-anim { font-size: 200px; animation: tacoDrop 2s ease-out forwards; }
+    @keyframes tacoDrop { 0% { transform: translateY(-100vh) rotate(0deg); opacity: 0;} 70% { transform: translateY(0) rotate(360deg); opacity: 1;} 85% { transform: translateY(-20px) rotate(360deg); } 100% { transform: translateY(0) rotate(360deg); } }
+    
+    .dialogue-box { 
+        margin-top: 50px; background: #000; border: 4px solid var(--braxton-green); padding: 20px; width: 60%; 
+        color: var(--braxton-green); font-family: 'Orbitron'; font-size: 24px; text-align: center; display:none;
+        box-shadow: 0 0 20px var(--braxton-green);
     }
-    .pause-item { 
-        background: rgba(255,255,255,0.05); padding: 10px; border: 1px solid #333;
-        display: flex; justify-content: space-between; align-items: center;
-    }
+
+    #pause-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 80%; max-width: 600px; margin-bottom: 20px; max-height: 400px; overflow-y: auto; }
+    .pause-item { background: rgba(255,255,255,0.05); padding: 10px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
     .pause-item span { font-family: 'Rajdhani'; font-size: 18px; color: var(--bosnia-yellow); }
 
     /* Evolution Overlay Styles */
     #evolution-overlay { display:none; background: #000; z-index: 3000; flex-direction: column; align-items: center; justify-content: center; }
-    
-    .evo-text {
-        font-family: 'Orbitron'; font-weight: 900; font-size: 80px; text-align: center;
-        color: var(--legendary); text-shadow: 0 0 20px var(--legendary);
-        animation: glitch-text 0.5s infinite;
-    }
-
-    @keyframes glitch-text {
-        0% { transform: translate(0); }
-        20% { transform: translate(-2px, 2px); }
-        40% { transform: translate(-2px, -2px); }
-        60% { transform: translate(2px, 2px); }
-        80% { transform: translate(2px, -2px); }
-        100% { transform: translate(0); }
-    }
+    .evo-text { font-family: 'Orbitron'; font-weight: 900; font-size: 80px; text-align: center; color: var(--legendary); text-shadow: 0 0 20px var(--legendary); animation: glitch-text 0.5s infinite; }
+    @keyframes glitch-text { 0% { transform: translate(0); } 20% { transform: translate(-2px, 2px); } 40% { transform: translate(-2px, -2px); } 60% { transform: translate(2px, 2px); } 80% { transform: translate(2px, -2px); } 100% { transform: translate(0); } }
 
     .info-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:20px; max-width:1100px; width:90%; padding:20px; }
     .info-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); padding:20px; border-radius:4px; display:flex; align-items:center; gap:15px; position:relative; overflow:hidden;}
@@ -194,30 +134,16 @@
     .close-btn:hover { color:var(--danger); }
 
     .cards-container { display:flex; gap:25px; margin-top:30px; flex-wrap:wrap; justify-content:center; max-width:1200px;perspective: 1000px; }
-    
-    .card { 
-        background:linear-gradient(170deg, #0a0a15 0%, #101025 100%); 
-        border:1px solid #333; 
-        width:220px; height:380px; 
-        border-radius:2px; padding:20px; 
-        cursor:pointer; transition:0.3s; 
-        display:flex; flex-direction:column; align-items:center; text-align:center; 
-        box-shadow:0 10px 30px rgba(0,0,0,0.8); 
-        position:relative; overflow:hidden; 
-        clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
-    }
+    .card { background:linear-gradient(170deg, #0a0a15 0%, #101025 100%); border:1px solid #333; width:220px; height:380px; border-radius:2px; padding:20px; cursor:pointer; transition:0.3s; display:flex; flex-direction:column; align-items:center; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.8); position:relative; overflow:hidden; clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px); }
     .card:hover { transform:translateY(-10px); border-color:var(--bosnia-yellow); z-index: 10; }
     .card:hover .card-icon { transform: scale(1.1); }
     .card::after { content:''; position: absolute; top:0; left:0; width:100%; height:4px; background: var(--bosnia-yellow); }
-    
     .card.rare { border-color: var(--rare-blue); background:linear-gradient(170deg, #051025 0%, #001530 100%); }
     .card.rare::after { background: var(--rare-blue); }
     .card.rare .card-name { color: var(--rare-blue); }
-    
     .card.legendary { border-color: var(--legendary); background:linear-gradient(170deg, #1a0025 0%, #100020 100%); }
     .card.legendary::after { background: var(--legendary); }
     .card.legendary .card-name { color: var(--legendary); text-shadow: 0 0 5px var(--legendary); }
-
     .card-icon { font-size:60px; margin: 30px 0; transition: 0.3s; filter: drop-shadow(0 0 5px rgba(255,255,255,0.2)); }
     .card-name { font-family:'Orbitron'; font-weight:900; color:#fff; margin-bottom:10px; font-size:18px; text-transform:uppercase; letter-spacing: 1px;}
     .card-desc { font-size:13px; color:#99a; line-height:1.5; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; width: 100%; }
@@ -238,6 +164,12 @@
 <div id="boss-hud">
     <div id="boss-name">TURBO FOLK WARLORD</div>
     <div id="boss-bar-bg"><div id="boss-bar-fill"></div></div>
+</div>
+
+<!-- BRAXTON CUTSCENE -->
+<div id="braxton-cutscene">
+    <div id="taco-anim">🌮</div>
+    <div class="dialogue-box" id="braxton-dialogue"></div>
 </div>
 
 <!-- MAIN MENU -->
@@ -274,9 +206,24 @@
         <button class="admin-btn" onclick="toggleGodMode()">Toggle God Mode</button>
         <button class="admin-btn" onclick="adminLevelUp()">+1 Level</button>
         <button class="admin-btn" onclick="adminKillAll()">Kill All Enemies</button>
-        <button class="admin-btn" onclick="spawnBoss()">Force Boss Spawn</button>
+        <button class="admin-btn" onclick="adminToggleSpawns()">Toggle Spawns</button>
         <button class="admin-btn" onclick="adminCycleLuck()">CYCLE LUCK: <span id="admin-luck-val">1x</span></button>
         <button class="admin-btn" onclick="adminHeal()">Full Heal</button>
+        
+        <div class="spawn-control">
+            <select id="spawn-enemy-select" class="spawn-select">
+                <option value="promaja">Promaja</option>
+                <option value="yugo">Yugo</option>
+                <option value="hornet">Hornet</option>
+                <option value="snajper">Snajper</option>
+                <option value="medic">Medic</option>
+                <option value="NOLAN">Nolan-ite</option>
+                <option value="MINI_BOSS">Mini Boss</option>
+                <option value="BOSS">Warlord</option>
+                <option value="BRAXTON">Braxton-inite</option>
+            </select>
+            <button class="admin-btn" style="padding:10px; width:100px;" onclick="adminSpawnEnemy()">SPAWN</button>
+        </div>
     </div>
     <button class="menu-btn" style="width:200px; margin-top:20px;" onclick="closeAdmin()">RESUME</button>
 </div>
@@ -349,6 +296,7 @@
     const CHEAT_CODE = "Roblox13_isme";
     let inputBuffer = "";
     let godMode = false;
+    let spawningEnabled = true;
 
     // ASSETS
     const UPGRADES=[
@@ -379,11 +327,9 @@
     const EVOLUTIONS = [
         {id:'burek_evo',base:'burek',name:'RING OF FIRE',icon:'🔥',desc:'EVOLUTION: Massive permanent fire zone. 2x Radius. Burns ALL enemies constantly.', tier:'rare'},
         {id:'pyramid_evo',base:'pyramid',name:'SOLAR FLARE',icon:'☀️',desc:'EVOLUTION: Instantly blasts enemies with a massive laser beam.', tier:'rare'},
-        
         {id:'serbian_p1', base:'serbian', name:'PATH 1: TITAN SWORD', icon:'🗡️', desc:'LVL 2: Bigger Sword. Higher Damage. Same AI.', tier:'legendary', req:'serbian'},
         {id:'serbian_p2', base:'serbian', name:'PATH 2: TACTICAL SQUAD', icon:'👥', desc:'LVL 2: Splits into 3 Units: Soldier, Defender, Mage.', tier:'legendary', req:'serbian'},
         {id:'serbian_p3', base:'serbian', name:'PATH 3: VANGUARD', icon:'🛡️', desc:'LVL 2: Sword & Shield Unit. 20 Durability. Tanky.', tier:'legendary', req:'serbian'},
-        
         {id:'serbian_p1_evo', base:'serbian_p1', name:'BERSERKER', icon:'🌪️', desc:'LVL 3: 1.5x Size/Dmg. Spin Attack (3 hits). 4s Cooldown.', tier:'legendary', req:'serbian_p1'},
         {id:'serbian_p2_evo', base:'serbian_p2', name:'ELITE SQUAD', icon:'✨', desc:'LVL 3: Shield gets Pushback. Mage gets Visoko Beam.', tier:'legendary', req:'serbian_p2'},
         {id:'serbian_p3_evo', base:'serbian_p3', name:'WARLORD TANK', icon:'💢', desc:'LVL 3: 30 Durability. Taunts enemies every 20s.', tier:'legendary', req:'serbian_p3'}
@@ -400,16 +346,19 @@
         {name:'Hornet', icon:'🐝', desc:'Swarm unit. Fast, aggressive, attacks in groups.'},
         {name:'Snajper', icon:'🟥', desc:'Long-range sniper. Punishment for standing still.'},
         {name:'Medic', icon:'🚑', desc:'Healer unit. Sustains the horde. Priority target.'},
-        {name:'WARLORD', icon:'👹', desc:'The Final Boss. Immune to Nuke/Freeze. 5000 HP.'}
+        {name:'Nolan-ite', icon:'🇵🇱', desc:'Summoned by Braxton. Fast, shoots Warsaw blasts.'},
+        {name:'WARLORD', icon:'👹', desc:'The Final Boss. Immune to Nuke/Freeze. 5000 HP.'},
+        {name:'BRAXTON-inite', icon:'🌮', desc:'15,000 HP. Kills everything. Summons Nolans. Lasers.'}
     ];
 
     let gameActive = false;
     let isPaused = false;
+    let isCutscene = false;
     
     let state = { 
         frames:0, gameTime:0, score:0, level:1, xp:0, nextLevelXp:20, xpMult:1, shake:0, 
         enemies:[], particles:[], projectiles:[], beams:[], zones:[], texts:[], gems:[], perks:[], backgroundStars:[], 
-        bossActive:false, bossSpawnedOnce:false, flashAlpha:0,
+        bossActive:false, bossSpawnedOnce:false, braxtonSpawned:false, braxtonActive:false, flashAlpha:0,
         friendlyUnits: [] 
     };
     let player = { 
@@ -471,6 +420,23 @@
         document.getElementById('admin-luck-val').innerText = player.luck + "x";
     }
 
+    function adminToggleSpawns() {
+        spawningEnabled = !spawningEnabled;
+        spawnDamageText(player.x, player.y-60, spawningEnabled ? "SPAWNS ON" : "SPAWNS OFF", true);
+    }
+
+    function adminSpawnEnemy() {
+        const type = document.getElementById('spawn-enemy-select').value;
+        let e = new Enemy(type);
+        if(type === 'BRAXTON') { 
+            triggerBraxtonCutscene(); 
+            closeAdmin();
+            return;
+        }
+        state.enemies.push(e);
+        spawnDamageText(player.x, player.y-80, "SPAWNED " + type, true);
+    }
+
     function closeAdmin(){
         document.getElementById('admin-panel').style.display='none';
         if(isPaused) togglePause();
@@ -486,7 +452,7 @@
     }
     function adminKillAll(){
         state.enemies.forEach(e => {
-            if(e.type !== 'BOSS') e.takeDamage(99999, true);
+            if(e.type !== 'BRAXTON') e.takeDamage(99999, true);
         });
     }
     function adminHeal(){
@@ -541,11 +507,13 @@
         document.getElementById('boss-hud').style.display='none';
         document.getElementById('admin-panel').style.display='none';
         document.getElementById('evolution-overlay').style.display='none';
+        document.getElementById('braxton-cutscene').style.display='none';
         document.getElementById('main-menu').style.display='flex';
     }
 
     function togglePause(){
         if(!gameActive) return;
+        if(isCutscene) return;
         if(document.getElementById('levelup-screen').style.display === 'flex') return;
         if(document.getElementById('evolution-overlay').style.display === 'flex') return;
         isPaused = !isPaused;
@@ -598,12 +566,14 @@
     function resetGame(){
         gameActive = true;
         isPaused = false;
+        isCutscene = false;
         godMode = false;
+        spawningEnabled = true;
         document.getElementById('god-mode-indicator').style.display='none';
         state = { 
             frames:0, gameTime:0, score:0, level:1, xp:0, nextLevelXp:20, xpMult:1, shake:0, 
             enemies:[], particles:[], projectiles:[], beams:[], zones:[], texts:[], gems:[], perks:[], backgroundStars:[],
-            bossActive:false, bossSpawnedOnce:false, flashAlpha:0,
+            bossActive:false, bossSpawnedOnce:false, flashAlpha:0, braxtonSpawned:false, braxtonActive:false,
             friendlyUnits: []
         };
         initBackground();
@@ -617,7 +587,7 @@
                 ajvar: { level:0, cooldown:140, baseCool:140, timer:0, damage:80 },
                 rakija: { level:0, cooldown:190, baseCool:190, timer:0, damage:4, duration:300 }, 
                 pyramid: { level:0, cooldown:110, baseCool:110, timer:0, damage:50, evolved:false },
-                spike: { level:0, cooldown:180, baseCool:180, timer:0, damage:60 }, // COOLDOWN 3 SECONDS
+                spike: { level:0, cooldown:180, baseCool:180, timer:0, damage:60 }, 
                 harmonika: { level:0, range:240, slow:0.30 },
                 serbian: { level:0, path: 0, evolved: false }
             },
@@ -633,6 +603,7 @@
         document.getElementById('boss-hud').style.display='none';
         document.getElementById('admin-panel').style.display='none';
         document.getElementById('evolution-overlay').style.display='none';
+        document.getElementById('braxton-cutscene').style.display='none';
         document.getElementById('ui-layer').style.display='flex';
         updateHud();
     }
@@ -671,7 +642,6 @@
         constructor(type, x, y) {
             this.type = type;
             this.x = x; this.y = y;
-            
             this.maxDurability = 10;
             this.baseDamage = 50;
             this.radius = 25;
@@ -689,7 +659,7 @@
             this.taunting = false;
             this.tauntTimer = 0;
             this.tauntCooldown = 0;
-            this.invisibleTimer = 0; // NEW for Mage
+            this.invisibleTimer = 0;
 
             if(type === 'soldier') { this.maxDurability = 10; }
             if(type === 'titan') { this.baseDamage = 75; }
@@ -700,7 +670,6 @@
             const tech = player.weapons.serbian;
             if(tech.path === 2 && type === 'soldier') this.maxDurability = 5;
             
-            // --- LEVEL 3 (EVOLUTION) LOGIC ---
             this.isBerserk = false; this.canTaunt = false; this.canPush = false; this.hasBeam = false;
 
             if(tech.path === 3 && tech.evolved) { this.maxDurability = 30; this.canTaunt = true; } // Warlord Tank
@@ -806,7 +775,6 @@
             this.x += moveX * this.moveSpeed;
             this.y += moveY * this.moveSpeed;
 
-            // --- LEVEL 3: WARLORD TANK TAUNT ---
             if(this.canTaunt) {
                 if(this.tauntCooldown > 0) this.tauntCooldown--;
                 if(this.taunting) {
@@ -823,7 +791,6 @@
                 }
             }
 
-            // --- LEVEL 3: ELITE DEFENDER PUSH ---
             if(this.canPush) {
                  this.pushTimer++;
                  if(this.pushTimer > 900) { 
@@ -852,7 +819,6 @@
                         p.overrideDamage = 15 + (pLevel * 10) + (state.level * 1);
                         state.projectiles.push(p);
 
-                        // --- LEVEL 3: ELITE MAGE BEAM ---
                         if(this.hasBeam) {
                              let beamLvl = Math.max(1, player.weapons.pyramid.level);
                              let ang = Math.atan2(target.y - this.y, target.x - this.x);
@@ -872,7 +838,6 @@
                     addShake(5);
                     let damageCalc = this.baseDamage + (state.level * 5);
                     
-                    // --- LEVEL 3: BERSERKER SPIN ---
                     if(this.isBerserk) {
                         state.zones.push(new Zone(this.x, this.y, 'berserk_spin', 45, damageCalc)); 
                         spawnDamageText(this.x, this.y-60, "SPIN!", true);
@@ -890,13 +855,12 @@
 
         takeDamage(amt) {
             if(this.immuneTimer > 0) return;
-            if(this.invisibleTimer > 0) return; // Mage invisible, no damage
+            if(this.invisibleTimer > 0) return;
 
-            // MAGE SPECIAL ABILITY: Invisibility on hit
             if(this.type === 'mage') {
                 this.invisibleTimer = 180; // 3 seconds
                 spawnDamageText(this.x, this.y - 40, "PHASE SHIFT", true);
-                return; // NO DURABILITY LOSS
+                return;
             }
 
             this.durability--;
@@ -939,7 +903,6 @@
             // --- DRAWING LOGIC ---
 
             if(this.type === 'soldier') {
-                 // Level 1: Basic Soldier
                  // Feet (Marching)
                  let legOffset = Math.sin(state.frames * 0.2) * 5;
                  ctx.fillStyle = '#333';
@@ -976,7 +939,6 @@
                  ctx.restore();
             }
             else if (this.type === 'titan') {
-                 // Level 2/3: Titan / Berserker
                  // Massive Feet
                  let legOffset = Math.sin(state.frames * 0.15) * 3;
                  ctx.fillStyle = '#111';
@@ -1021,7 +983,6 @@
                  ctx.restore();
             }
             else if (this.type === 'vanguard') {
-                 // Level 2/3: Vanguard / Warlord Tank
                  // Heavy Feet
                  ctx.fillStyle = '#223';
                  ctx.fillRect(-12, 22, 10, 8); ctx.fillRect(2, 22, 10, 8);
@@ -1055,7 +1016,6 @@
                  }
             }
             else if (this.type === 'defender') {
-                 // Level 2/3: Defender
                  // Chainmail legs
                  ctx.fillStyle = '#777'; 
                  ctx.fillRect(-10, 15, 8, 12); ctx.fillRect(2, 15, 8, 12);
@@ -1077,7 +1037,6 @@
                  ctx.globalAlpha = 1;
             }
             else if (this.type === 'mage') {
-                 // Level 2/3: Mage
                  // Robes
                  let sway = Math.sin(state.frames * 0.1) * 3;
                  ctx.fillStyle = this.hasBeam ? '#4b0082' : '#800080'; // Dark Purple vs Purple
@@ -1133,14 +1092,14 @@
                 if(this.type==='nuke'){ 
                     addShake(30); state.flashAlpha=0.8;
                     state.enemies.forEach(e=>{ 
-                        if(!e.dead && e.type !== 'BOSS' && e.type !== 'MINI_BOSS'){ e.takeDamage(9999, true); } 
-                        else if(e.type === 'BOSS') { spawnDamageText(e.x, e.y-50, "IMMUNE", false); }
+                        if(!e.dead && e.type !== 'BOSS' && e.type !== 'MINI_BOSS' && e.type !== 'BRAXTON'){ e.takeDamage(9999, true); } 
+                        else if(e.type === 'BOSS' || e.type === 'BRAXTON') { spawnDamageText(e.x, e.y-50, "IMMUNE", false); }
                     }); 
                     spawnDamageText(player.x,player.y-50,"NUKE",true); for(let i=0;i<50;i++)createParticle(player.x,player.y,'#ffaa00','fire',5); 
                 }
                 if(this.type==='freeze'){ 
                     state.enemies.forEach(e=>{ 
-                        if(e.type !== 'BOSS') e.frozen=300; 
+                        if(e.type !== 'BOSS' && e.type !== 'BRAXTON') e.frozen=300; 
                         else spawnDamageText(e.x, e.y-50, "IMMUNE", false);
                     }); 
                     spawnDamageText(player.x,player.y-50,"FROZEN",true); for(let i=0;i<20;i++)createParticle(player.x,player.y,'#00ffff','spark',2); 
@@ -1209,14 +1168,18 @@
             this.pierceHitList = [];
             this.overrideDamage = 0;
 
-            if(type === 'boss_missile' || type === 'sniper_shot') {
+            if(type === 'boss_missile' || type === 'sniper_shot' || type === 'warsaw') {
                 let a = Math.atan2(target.y-y, target.x-x);
-                this.speed = 12; // Fast
+                this.speed = 12; 
                 if(type === 'sniper_shot') this.speed = 18;
+                if(type === 'warsaw') this.speed = 10;
                 this.radius = 15;
                 if(type === 'sniper_shot') this.radius = 5;
                 this.vx = Math.cos(a)*this.speed;
                 this.vy = Math.sin(a)*this.speed;
+                // Warsaw Logic
+                this.isPiercing = (type === 'warsaw');
+                this.hitCooldowns = [];
                 return;
             }
 
@@ -1236,6 +1199,13 @@
             }
             if(this.type === 'sniper_shot') {
                  createParticle(this.x, this.y, '#ff0000', 'spark', 0.2);
+                 return;
+            }
+            if(this.type === 'warsaw') {
+                 createParticle(this.x, this.y, '#fff', 'spark', 0.2);
+                 // Cooldown management for piercing
+                 this.hitCooldowns = this.hitCooldowns.filter(c => c.time > 0);
+                 this.hitCooldowns.forEach(c => c.time--);
                  return;
             }
 
@@ -1265,6 +1235,10 @@
             else if(this.type==='sniper_shot'){
                  ctx.fillStyle='#ff0000'; ctx.beginPath(); ctx.arc(0,0,4,0,6.28); ctx.fill();
             }
+            else if(this.type==='warsaw'){
+                 ctx.fillStyle='#fff'; ctx.fillRect(-6, -4, 12, 4);
+                 ctx.fillStyle='#f00'; ctx.fillRect(-6, 0, 12, 4);
+            }
             else if(this.type==='cevapi'){ 
                 for(let i=-1;i<=1;i++) {
                     ctx.fillStyle='#6d4c41'; ctx.beginPath(); ctx.roundRect(-8, i*5-2, 16, 4, 2); ctx.fill();
@@ -1292,10 +1266,37 @@
         }
     }
     class Zone {
-        constructor(x,y,type,dur,overrideDamage=0){this.x=x;this.y=y;this.life=dur;this.maxLife=dur;this.radius=90;this.type=type;this.overrideDamage=overrideDamage;if(type==='blast') this.radius=120; if(type==='valk_swing') this.radius=160; if(type==='flame_trail') this.radius=50; if(type==='spike_burst') this.radius=30;}
+        constructor(x,y,type,dur,overrideDamage=0){this.x=x;this.y=y;this.life=dur;this.maxLife=dur;this.radius=90;this.type=type;this.overrideDamage=overrideDamage;if(type==='blast') this.radius=120; if(type==='valk_swing') this.radius=160; if(type==='flame_trail') this.radius=50; if(type==='spike_burst') this.radius=30; if(type==='gaster_laser') this.radius=40;}
         update(){ 
             this.life--; 
             if(this.type==='blast' || this.type==='valk_swing' || this.type==='shield_push' || this.type==='taunt_ring' || this.type==='spike_burst') return this.life<=0;
+
+            if(this.type==='gaster_laser') {
+                // First half is warning, second half is damage
+                if(this.life < this.maxLife * 0.4) { // Active phase
+                    if(this.life % 5 === 0) { // Damage ticks
+                        if(player.invincible <= 0) {
+                            // Check collision with line
+                            // Simple distance check to player
+                            // Need angle from source.
+                            // To keep it simple, Gaster Laser Zone is an area effect or directed.
+                            // Implemented as directed beam in draw, collision logic here:
+                            // We need start X,Y and Angle.
+                            // Storing these in overrideDamage object for convenience {ang: 0, sx: 0, sy: 0}
+                            let d = this.overrideDamage;
+                            if(lineCircleCollide(player.x, player.y, d.sx, d.sy, d.sx + Math.cos(d.ang)*1000, d.sy + Math.sin(d.ang)*1000, 30)) {
+                                if(!godMode) {
+                                    player.hp -= 20; // High damage per tick
+                                    player.invincible = 30;
+                                    spawnDamageText(player.x, player.y-50, "100", false);
+                                    addShake(10);
+                                }
+                            }
+                        }
+                    }
+                }
+                return this.life<=0;
+            }
 
             if(this.type==='berserk_spin') {
                 if(this.life % 10 === 0) { 
@@ -1333,6 +1334,28 @@
             return this.life<=0;
         }
         draw(cX,cY){ 
+            if(this.type === 'gaster_laser') {
+                let d = this.overrideDamage; // {ang, sx, sy}
+                ctx.save(); ctx.translate(d.sx - cX, d.sy - cY); ctx.rotate(d.ang);
+                
+                if(this.life > this.maxLife * 0.4) {
+                    // Warning phase
+                    ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([10, 10]);
+                    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(1000, 0); ctx.stroke();
+                } else {
+                    // Blast phase
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 40 + Math.random()*10;
+                    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(1000, 0); ctx.stroke();
+                    ctx.strokeStyle = '#2ecc71'; // Green energy
+                    ctx.lineWidth = 20;
+                    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(1000, 0); ctx.stroke();
+                }
+                ctx.restore();
+                return;
+            }
             if(this.type === 'spike_burst') {
                 ctx.save(); ctx.translate(this.x-cX, this.y-cY);
                 let p = this.life/this.maxLife;
@@ -1423,7 +1446,7 @@
     
     class Enemy {
         constructor(overrideType=null, x=null, y=null){
-            if(overrideType === 'BOSS' || overrideType === 'MINI_BOSS') {
+            if(overrideType === 'BOSS' || overrideType === 'MINI_BOSS' || overrideType === 'BRAXTON') {
                  this.type = overrideType;
                  let a=Math.random()*6.28, d=(Math.max(W,H)/2)+200; 
                  if(x!==null && y!==null) { this.x=x; this.y=y; }
@@ -1443,6 +1466,9 @@
             if (this.type === 'BOSS') {
                 this.maxHp = 5000;
                 this.hp = 5000;
+            } else if (this.type === 'BRAXTON') {
+                this.maxHp = 15000;
+                this.hp = 15000;
             } else {
                 let baseHp = 40;
                 // --- NERFED EARLY GAME HP ---
@@ -1452,6 +1478,7 @@
                 else if(this.type==='hornet') baseHp = 20 + state.level*1;
                 else if(this.type==='snajper') baseHp = 10 + state.level*1; // Low HP
                 else if(this.type==='medic') baseHp = 300 + state.level*5; // Tanky healer
+                else if(this.type==='NOLAN') baseHp = 600; // Fixed 600
                 else if(this.type==='MINI_BOSS') baseHp = 800 + state.level*100;
 
                 const minutes = state.gameTime / 60;
@@ -1480,6 +1507,12 @@
                 this.baseSpeed=2.5; this.radius=60; 
                 this.attackTimer = 150; this.damageCooldown = 0;
             } 
+            else if(this.type==='BRAXTON') {
+                this.baseSpeed=1.8; this.radius=80;
+                this.attackTimer = 300; // Laser timer (5s)
+                this.summonTimer = 600; // Summon timer (10s)
+                this.damageCooldown = 0;
+            }
             else if(this.type==='MINI_BOSS') {
                 this.baseSpeed=2.2; this.radius=45;
                 this.attackTimer = 200; this.damageCooldown = 0;
@@ -1488,6 +1521,7 @@
             else if(this.type==='yugo'){this.baseSpeed=1.4;this.radius=35;this.angle=0;} 
             else if(this.type==='hornet'){this.baseSpeed=4.2;this.radius=15;}
             else if(this.type==='medic'){this.baseSpeed=1.5;this.radius=25;}
+            else if(this.type==='NOLAN'){this.baseSpeed=5.0; this.radius=20; this.attackTimer = 120;}
             else if(this.type==='snajper'){
                 this.baseSpeed=1.5; this.radius=15; 
                 this.state = 'move'; // move, charge, fire
@@ -1499,6 +1533,13 @@
         }
         update(){
             if(this.type === 'BOSS') {
+                document.getElementById('boss-hud').style.display = 'flex';
+                document.getElementById('boss-name').innerText = "TURBO FOLK WARLORD";
+                document.getElementById('boss-bar-fill').style.width = (this.hp/this.maxHp*100)+'%';
+            }
+            if(this.type === 'BRAXTON') {
+                document.getElementById('boss-hud').style.display = 'flex';
+                document.getElementById('boss-name').innerText = "BRAXTON-INITE";
                 document.getElementById('boss-bar-fill').style.width = (this.hp/this.maxHp*100)+'%';
             }
             
@@ -1512,6 +1553,7 @@
                 }
             }
 
+            // --- BOSS BEHAVIORS ---
             if((this.type === 'BOSS' || this.type === 'MINI_BOSS')) {
                 if(this.damageCooldown > 0) this.damageCooldown--;
                 this.attackTimer--;
@@ -1523,6 +1565,29 @@
                     this.attackTimer = this.type==='BOSS' ? 150 : 200; 
                     state.projectiles.push(new Projectile(this.x, this.y, player, 'boss_missile'));
                 }
+            }
+
+            if(this.type === 'BRAXTON') {
+                // Summon Logic (Nolan)
+                this.summonTimer--;
+                if(this.summonTimer <= 0) {
+                    this.summonTimer = 600; // 10s
+                    state.enemies.push(new Enemy('NOLAN', this.x + 50, this.y));
+                    spawnDamageText(this.x, this.y-100, "SUMMON!", false);
+                }
+
+                // Laser Logic
+                this.attackTimer--;
+                if(this.attackTimer <= 0) {
+                    this.attackTimer = 300; // 5s
+                    // Spawn Gaster Blaster Zone
+                    // Logic: Warning line for 60 frames, then damage for 30 frames
+                    let ang = Math.atan2(player.y - this.y, player.x - this.x);
+                    state.zones.push(new Zone(this.x, this.y, 'gaster_laser', 90, {ang: ang, sx: this.x, sy: this.y}));
+                }
+
+                // Contact Damage Cooldown
+                if(this.damageCooldown > 0) this.damageCooldown--;
             }
 
             // --- MEDIC HEALING LOGIC ---
@@ -1546,36 +1611,38 @@
                 return;
             }
             
+            // --- NOLAN LOGIC ---
+            if(this.type === 'NOLAN') {
+                this.attackTimer--;
+                if(this.attackTimer <= 0) {
+                    this.attackTimer = 120; // 2s
+                    // WARSAW BLAST (20 dmg, 20 ticks = 1/3 sec cooldown per hit)
+                    state.projectiles.push(new Projectile(this.x, this.y, player, 'warsaw'));
+                }
+            }
+
             // --- SNAJPER LOGIC ---
             if(this.type === 'snajper') {
                 let dist = Math.hypot(player.x - this.x, player.y - this.y);
-                
                 if(this.state === 'move') {
-                    if(dist < 400) {
-                        this.state = 'charge';
-                        this.snajperTimer = 60; 
-                    } else {
+                    if(dist < 400) { this.state = 'charge'; this.snajperTimer = 60; } 
+                    else {
                         let ang = Math.atan2(player.y - this.y, player.x - this.x);
                         this.x += Math.cos(ang) * this.speed + this.pushX;
                         this.y += Math.sin(ang) * this.speed + this.pushY;
                     }
                 } else if(this.state === 'charge') {
                     this.snajperTimer--;
-                    if(this.snajperTimer <= 0) {
-                        this.state = 'fire';
-                    }
+                    if(this.snajperTimer <= 0) { this.state = 'fire'; }
                 } else if(this.state === 'fire') {
                     state.projectiles.push(new Projectile(this.x, this.y, player, 'sniper_shot'));
-                    this.state = 'cooldown';
-                    this.snajperTimer = 120; // 2s cooldown
+                    this.state = 'cooldown'; this.snajperTimer = 120;
                 } else if(this.state === 'cooldown') {
                     this.snajperTimer--;
                     let ang = Math.atan2(player.y - this.y, player.x - this.x);
-                    this.x -= Math.cos(ang) * 1.0; 
-                    this.y -= Math.sin(ang) * 1.0;
+                    this.x -= Math.cos(ang) * 1.0; this.y -= Math.sin(ang) * 1.0;
                     if(this.snajperTimer <= 0) this.state = 'move';
                 }
-                
                 this.pushX*=0.9; this.pushY*=0.9;
                 return; 
             }
@@ -1615,7 +1682,7 @@
             let dx=targetX-this.x, dy=targetY-this.y, dist=Math.sqrt(dx*dx+dy*dy); this.angle=Math.atan2(dy,dx);
             
             let px=0,py=0; 
-            if(this.type !== 'BOSS' && this.type !== 'MINI_BOSS') {
+            if(this.type !== 'BOSS' && this.type !== 'MINI_BOSS' && this.type !== 'BRAXTON') {
                 state.enemies.forEach(o=>{if(o!==this){let ox=this.x-o.x,oy=this.y-o.y,od=Math.sqrt(ox*ox+oy*oy);if(od<this.radius+o.radius){px+=ox/od;py+=oy/od;}}});
             }
 
@@ -1625,7 +1692,7 @@
         }
         
         takeDamage(a, crit, source){
-            if(this.type === 'BOSS' || this.type === 'MINI_BOSS') {
+            if(this.type === 'BOSS' || this.type === 'MINI_BOSS' || this.type === 'BRAXTON') {
                 if(this.damageCooldown > 0) return; 
                 this.damageCooldown = 5; 
             }
@@ -1635,19 +1702,26 @@
             if(this.type==='yugo') c='#000';
             if(this.type==='hornet') c='#bfff00';
             if(this.type==='BOSS' || this.type==='MINI_BOSS') c='#ff00ff';
+            if(this.type==='BRAXTON') c='#2ecc71';
             if(this.type==='snajper') c='#ff0000';
             if(this.type==='medic') c='#fff';
+            if(this.type==='NOLAN') c='#fff';
 
             for(let i=0;i<3;i++)createParticle(this.x,this.y,c,'spark');
             
             if(this.hp<=0){ 
                 this.dead=true; state.score++; 
-                if(this.type==='BOSS'){
+                if(this.type==='BOSS' || this.type==='BRAXTON'){
                      state.bossActive = false;
                      document.getElementById('boss-hud').style.display='none';
                      addShake(50); state.flashAlpha=1;
-                     spawnDamageText(this.x, this.y-100, "WARLORD DEFEATED", true);
-                     for(let i=0; i<30; i++) state.gems.push(new Gem(this.x + (Math.random()-0.5)*200, this.y + (Math.random()-0.5)*200, 150));
+                     spawnDamageText(this.x, this.y-100, "BOSS DEFEATED", true);
+                     for(let i=0; i<50; i++) state.gems.push(new Gem(this.x + (Math.random()-0.5)*200, this.y + (Math.random()-0.5)*200, 150));
+                     
+                     if(this.type === 'BRAXTON') {
+                         // Resume spawning
+                         state.braxtonActive = false;
+                     }
                 } 
                 else if(this.type==='MINI_BOSS') {
                      spawnDamageText(this.x, this.y-80, "MINI BOSS DOWN", true);
@@ -1675,6 +1749,28 @@
                     ctx.beginPath(); ctx.moveTo(-30,-30); ctx.lineTo(30,-30); ctx.lineTo(0,30); ctx.closePath(); ctx.stroke();
                     ctx.fillStyle='#300'; ctx.fill();
                     ctx.fillStyle='#f00'; ctx.beginPath(); ctx.arc(0,0,10,0,6.28); ctx.fill();
+                }
+                else if(this.type==='BRAXTON'){
+                    // Mexican Character
+                    // Poncho
+                    ctx.fillStyle = '#ff5e00';
+                    ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(40, 40); ctx.lineTo(-40, 40); ctx.fill();
+                    // Stripes
+                    ctx.fillStyle = '#2ecc71'; ctx.fillRect(-20, 0, 40, 5);
+                    ctx.fillStyle = '#fff'; ctx.fillRect(-30, 20, 60, 5);
+                    // Sombrero
+                    ctx.fillStyle = '#e67e22';
+                    ctx.beginPath(); ctx.ellipse(0, -20, 60, 15, 0, 0, 6.28); ctx.fill(); // Brim
+                    ctx.beginPath(); ctx.ellipse(0, -35, 20, 20, 0, 0, 6.28); ctx.fill(); // Top
+                    ctx.strokeStyle = '#f1c40f'; ctx.lineWidth=3; ctx.stroke();
+                }
+                else if(this.type==='NOLAN'){
+                    // Poland Ball Style
+                    ctx.beginPath(); ctx.arc(0, 0, 20, 0, 6.28); ctx.clip();
+                    ctx.fillStyle = '#fff'; ctx.fillRect(-20, -20, 40, 20);
+                    ctx.fillStyle = '#f00'; ctx.fillRect(-20, 0, 40, 20);
+                    // Eyes
+                    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-8, -5, 3, 0, 6.28); ctx.arc(8, -5, 3, 0, 6.28); ctx.fill();
                 }
                 else if(this.type==='snajper'){
                     // Draw Square with Crosshair
@@ -1772,6 +1868,58 @@
         state.enemies.push(new Enemy('BOSS'));
     }
 
+    function triggerBraxtonCutscene() {
+        if(state.braxtonSpawned) return;
+        state.braxtonSpawned = true;
+        
+        // KILL ALL ENEMIES
+        state.enemies = [];
+        
+        // Pause Game Engine Logic
+        isCutscene = true;
+        
+        // Show DOM Elements
+        const cutscene = document.getElementById('braxton-cutscene');
+        const dialogue = document.getElementById('braxton-dialogue');
+        const taco = document.getElementById('taco-anim');
+        
+        cutscene.style.display = 'flex';
+        taco.style.display = 'block';
+        dialogue.style.display = 'none';
+        
+        // Wait for Taco Drop (2s)
+        setTimeout(() => {
+            taco.style.display = 'none';
+            dialogue.style.display = 'block';
+            
+            // Dialogue Sequence
+            const lines = ["THIS SUCKS!", "YOU SUCK!", "GAME BAD!"];
+            let lineIdx = 0;
+            
+            const lineInterval = setInterval(() => {
+                if(lineIdx < lines.length) {
+                    dialogue.innerText = lines[lineIdx];
+                    lineIdx++;
+                } else {
+                    clearInterval(lineInterval);
+                    setTimeout(() => {
+                        // End Cutscene
+                        cutscene.style.display = 'none';
+                        isCutscene = false;
+                        state.braxtonActive = true;
+                        
+                        // Spawn Braxton
+                        let a=Math.random()*6.28, d=600; 
+                        let bx=player.x+Math.cos(a)*d, by=player.y+Math.sin(a)*d;
+                        state.enemies.push(new Enemy('BRAXTON', bx, by));
+                        spawnDamageText(bx, by-100, "BRAXTON HAS ARRIVED", true);
+                    }, 1000);
+                }
+            }, 1000);
+            
+        }, 2000);
+    }
+
     function updateHud(){ 
         document.getElementById('lvl-display').innerText=state.level; 
         document.getElementById('score-display').innerText=state.score; 
@@ -1785,7 +1933,7 @@
     }
     
     function gameLoop(){ 
-        if(gameActive && !isPaused){ update(); draw(); } 
+        if(gameActive && !isPaused && !isCutscene){ update(); draw(); } 
         else if(!gameActive) {
             ctx.fillStyle='#050510'; ctx.fillRect(0,0,W,H);
             state.backgroundStars.forEach(s => {
@@ -1827,8 +1975,17 @@
     }
 
     function handleWaves() {
+        if(state.braxtonActive) return; // Stop spawning if Braxton is fighting
+        if(!spawningEnabled) return;
+
         let t = state.gameTime;
         
+        // 10 MINUTE MARK - BRAXTON
+        if(t >= 600 && !state.braxtonSpawned) {
+            triggerBraxtonCutscene();
+            return;
+        }
+
         // --- RANDOM CHANCE FOR SWARMS INSTEAD OF TIMED ---
         // ONLY AFTER 5 MINUTES AND NOT IF BOSS IS ACTIVE
         if(t >= 300 && !state.bossActive && state.frames % 60 === 0) { 
@@ -1848,7 +2005,7 @@
             else if(t < 120) {
                 if(state.frames % 60 === 0) state.enemies.push(new Enemy('promaja'));
                 if(state.frames % 120 === 0) state.enemies.push(new Enemy('hornet')); 
-                if(state.frames % 400 === 0) state.enemies.push(new Enemy('snajper')); // Rare sniper spawn
+                if(state.frames % 400 === 0) state.enemies.push(new Enemy('snajper')); 
             }
             else if(t < 180) {
                 if(state.frames % 40 === 0) state.enemies.push(new Enemy('promaja'));
@@ -1927,12 +2084,11 @@
         const wa=player.weapons.ajvar; if(wa.level>0){ wa.timer++; if(wa.timer>wa.cooldown&&state.enemies.length>0){let ts=state.enemies.filter(e=>Math.hypot(e.x-player.x,e.y-player.y)<700);if(ts.length){state.projectiles.push(new Projectile(player.x,player.y,ts[Math.floor(Math.random()*ts.length)],'ajvar'));wa.timer=0;}} }
         const wr=player.weapons.rakija; if(wr.level>0){ wr.timer++; if(wr.timer>wr.cooldown){let t=getClosestEnemy();if(t){state.projectiles.push(new Projectile(player.x,player.y,t,'rakija'));wr.timer=0;}} }
         
-        // --- IMPALER SPIKES: COOLDOWN 3 SECONDS (180 frames) ---
+        // --- IMPALER SPIKES ---
         const ws = player.weapons.spike;
         if(ws.level > 0) {
             ws.timer++;
             if(ws.timer > ws.cooldown && state.enemies.length > 0) {
-                // Find 3 strongest
                 let targets = state.enemies.sort((a,b) => b.hp - a.hp).slice(0, 3);
                 targets.forEach(t => {
                     let baseDmg = 60 + (ws.level * 15) + (state.level * 2);
@@ -1997,11 +2153,21 @@
         
         state.projectiles.forEach(p=>p.update()); 
         state.projectiles=state.projectiles.filter(p=>{
-            if(p.type === 'boss_missile' || p.type === 'sniper_shot') {
+            if(p.type === 'boss_missile' || p.type === 'sniper_shot' || p.type === 'warsaw') {
                 if(Math.hypot(p.x-player.x, p.y-player.y) < player.radius + 10) {
                     if(!godMode) {
                         let hitDmg = p.type === 'sniper_shot' ? 60 : 40; 
+                        if(p.type === 'warsaw') hitDmg = 20;
+                        
                         if(player.invincible <= 0) player.hp -= hitDmg; 
+                        
+                        // WARSAW MULTI HIT LOGIC
+                        if(p.type === 'warsaw') {
+                            // Check cooldown on player hit? No, just pierce.
+                            // To prevent 1 frame kill, give player Invincibility
+                            if(player.invincible <= 0) player.invincible = 30; // .5 sec
+                            return true; // Don't die
+                        }
                     }
                     if(godMode) spawnDamageText(player.x, player.y-50, "BLOCKED", true);
                     
@@ -2012,7 +2178,7 @@
                 for(let u of state.friendlyUnits) {
                     if(!u.dead && Math.hypot(p.x - u.x, p.y - u.y) < u.radius + 10) {
                         u.takeDamage(40);
-                        return false;
+                        if(p.type !== 'warsaw') return false;
                     }
                 }
                 return p.life > 0;
@@ -2062,12 +2228,28 @@
             
             // COLLISION
             if(!e.frozen && Math.hypot(e.x-player.x,e.y-player.y)<safeDist){ 
-                let dmgAmt = (e.type==='BOSS' || e.type==='MINI_BOSS') ? 2 : (Math.max(0.1,((e.type==='yugo'?1:0.4)-(player.armor*0.05))));
-                if(!godMode) {
-                    player.hp-=dmgAmt; 
+                
+                if(e.type === 'BRAXTON') {
+                    if(e.damageCooldown <= 0) {
+                        if(!godMode) player.hp -= 60;
+                        e.damageCooldown = 30; 
+                        addShake(10);
+                        if(player.invincible <= 0) player.invincible = 30;
+                    }
+                } else {
+                    let dmgAmt = (e.type==='BOSS' || e.type==='MINI_BOSS') ? 2 : (Math.max(0.1,((e.type==='yugo'?1:0.4)-(player.armor*0.05))));
+                    if(!godMode) {
+                        player.hp-=dmgAmt; 
+                        // MAGE INVIS
+                        if(player.invincible <= 0) {
+                            player.invincible = 180;
+                            spawnDamageText(player.x, player.y-60, "INVISIBLE!", false);
+                        }
+                    }
+                    addShake(2); 
                 }
                 
-                addShake(2); updateHud(); 
+                updateHud(); 
                 if(player.hp<=0){
                     document.getElementById('final-score').innerText=state.score;
                     document.getElementById('game-over').style.display='flex';
