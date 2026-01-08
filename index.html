@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bosnian Survivors: INFERNO UPDATE</title>
+<title>Bosnian Survivors: BALANCE UPDATE</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
     :root { 
@@ -88,6 +88,7 @@
         position: relative;
         text-align: center;
         animation: floatTitle 3s ease-in-out infinite;
+        z-index: 10;
     }
 
     .title-glitch { 
@@ -103,13 +104,33 @@
     
     .subtitle {
         font-family:'Rajdhani'; font-weight: 700; letter-spacing:15px; 
-        color:var(--fire-orange); margin-top:10px; font-size: 32px;
-        text-shadow: 0 0 20px var(--danger);
-        animation: pulseText 1.5s infinite alternate;
+        color:var(--neon-cyan); margin-top:10px; font-size: 32px;
+        text-shadow: 0 0 20px var(--bosnia-blue);
+        animation: pulseText 2s infinite alternate;
+    }
+
+    /* BALANCING ANIMATION BACKGROUND */
+    #balance-scale-bg {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 400px;
+        opacity: 0.15;
+        color: var(--bosnia-yellow);
+        animation: balanceRock 5s ease-in-out infinite;
+        pointer-events: none;
+        z-index: 1;
+        filter: drop-shadow(0 0 20px var(--bosnia-yellow));
+    }
+
+    @keyframes balanceRock {
+        0% { transform: translate(-50%, -50%) rotate(-10deg); }
+        50% { transform: translate(-50%, -50%) rotate(10deg); }
+        100% { transform: translate(-50%, -50%) rotate(-10deg); }
     }
 
     @keyframes floatTitle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-    @keyframes pulseText { 0% { opacity: 0.8; text-shadow: 0 0 10px var(--danger); } 100% { opacity: 1; text-shadow: 0 0 30px var(--fire-orange), 0 0 50px red; } }
+    @keyframes pulseText { 0% { opacity: 0.7; text-shadow: 0 0 10px var(--neon-cyan); } 100% { opacity: 1; text-shadow: 0 0 30px var(--bosnia-blue); } }
     
     .menu-btn { 
         background:linear-gradient(90deg, rgba(0,0,0,0.8), rgba(0, 35, 149, 0.6)); 
@@ -118,6 +139,7 @@
         color:white; padding:20px 60px; margin:15px; font-size:24px; font-family:'Orbitron'; 
         cursor:pointer; text-transform:uppercase; letter-spacing:4px; width:350px; 
         transition:0.3s; 
+        z-index: 10;
         clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
         position: relative; overflow: hidden;
     }
@@ -220,9 +242,10 @@
 
 <!-- MAIN MENU -->
 <div id="main-menu" class="screen-overlay" style="display:flex;">
+    <div id="balance-scale-bg">⚖️</div>
     <div class="title-container">
         <h1 class="title-glitch">BOSNIAN<br><span style="color:var(--bosnia-yellow)">SURVIVORS</span></h1>
-        <div class="subtitle">INFERNO UPDATE</div>
+        <div class="subtitle">BALANCE UPDATE</div>
     </div>
     <div style="height:60px;"></div>
     <button class="menu-btn" onclick="startGame()">DEPLOY</button>
@@ -896,6 +919,12 @@
             }
             ctx.save(); ctx.translate(this.x - cX, this.y - cY);
             
+            // COMMON ANIMATION VARIABLES
+            let breath = 1 + Math.sin(state.frames * 0.05) * 0.03;
+            let bob = Math.sin(state.frames * 0.1) * 2;
+            ctx.scale(breath, breath);
+            ctx.translate(0, bob);
+
             if(this.invisibleTimer > 0) ctx.globalAlpha = 0.3;
 
             if(this.immuneTimer > 0) {
@@ -911,8 +940,12 @@
 
             if(this.type === 'soldier') {
                  // Level 1: Basic Soldier
+                 // Helmet
                  ctx.fillStyle = '#aaa'; ctx.beginPath(); ctx.arc(0,0,15,0,6.28); ctx.fill();
-                 ctx.fillStyle = '#002395'; ctx.fillRect(-12, 5, 24, 18);
+                 // Blue Cape
+                 let sway = Math.sin(state.frames * 0.2) * 2;
+                 ctx.fillStyle = '#002395'; ctx.beginPath(); ctx.moveTo(-12, 5); ctx.lineTo(12, 5); ctx.lineTo(12+sway, 25); ctx.lineTo(-12+sway, 25); ctx.fill();
+                 // Sword
                  ctx.fillStyle = '#ddd'; ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(12+25, -2); ctx.lineTo(12+25, 2); ctx.fill();
                  ctx.fillStyle = '#555'; ctx.fillRect(12, -5, 4, 10); 
             }
@@ -972,8 +1005,14 @@
             }
             else if (this.type === 'mage') {
                  // Level 2/3: Mage / Elite Mage
+                 let sway = Math.sin(state.frames * 0.2) * 2;
                  ctx.fillStyle = this.hasBeam ? '#4b0082' : '#d000ff'; 
-                 ctx.beginPath(); ctx.moveTo(0,-20); ctx.lineTo(-15,15); ctx.lineTo(15,15); ctx.fill();
+                 ctx.beginPath(); 
+                 ctx.moveTo(0, -20);
+                 ctx.bezierCurveTo(-15, 0, -15, 15+sway, 0, 20);
+                 ctx.bezierCurveTo(15, 15-sway, 15, 0, 0, -20);
+                 ctx.fill();
+
                  ctx.fillStyle = this.hasBeam ? '#fff' : '#a000d0'; 
                  ctx.beginPath(); ctx.arc(0, -5, 10, 0, 6.28); ctx.fill();
                  
@@ -983,7 +1022,9 @@
                      ctx.beginPath(); ctx.arc(0,0, 25, state.frames*0.1, state.frames*0.1+4); ctx.stroke();
                      ctx.beginPath(); ctx.arc(0,0, 30, -state.frames*0.1, -state.frames*0.1+4); ctx.stroke();
                  } else {
-                     ctx.fillStyle = '#ffd700'; ctx.fillRect(15, -15, 10, 12);
+                     // Floating Book
+                     let bookBob = Math.sin(state.frames * 0.15) * 3;
+                     ctx.fillStyle = '#ffd700'; ctx.fillRect(15, -15 + bookBob, 10, 12);
                  }
             }
 
