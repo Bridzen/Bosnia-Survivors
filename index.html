@@ -15,6 +15,7 @@
         --danger:#ff003c; 
         --dark:#050510; 
         --fire-orange:#ff5e00;
+        --medic-green:#00ff41;
     }
     body { margin:0; overflow:hidden; background-color:var(--dark); font-family:'Rajdhani', sans-serif; color:white; user-select:none; }
     
@@ -342,6 +343,7 @@
         {name:'Yugo 45', icon:'🚗', desc:'Tanky unit. Hard to destroy, hits like a truck.'},
         {name:'Hornet', icon:'🐝', desc:'Swarm unit. Fast, aggressive, attacks in groups.'},
         {name:'Snajper', icon:'🟥', desc:'Long-range sniper. Punishment for standing still.'},
+        {name:'Medic', icon:'🚑', desc:'Healer unit. Sustains the horde. Priority target.'},
         {name:'WARLORD', icon:'👹', desc:'The Final Boss. Immune to Nuke/Freeze. 5000 HP.'}
     ];
 
@@ -588,6 +590,7 @@
         if(type==='plasma'){p.decay=0.08;p.size=Math.random()*12+4;}
         if(type==='note'){p.decay=0.02;p.size=10;p.vx*=0.5;p.vy=-2;p.char='🎵';}
         if(type==='blood'){p.decay=0.03;p.size=Math.random()*5+2;p.color='#aa0000';}
+        if(type==='heal'){p.decay=0.05; p.vy=-1; p.size=4; p.color='#00ff41';}
         state.particles.push(p);
     }
     
@@ -1225,6 +1228,7 @@
                 else if(this.type==='yugo') baseHp = 180 + state.level*8;
                 else if(this.type==='hornet') baseHp = 20 + state.level*1;
                 else if(this.type==='snajper') baseHp = 10 + state.level*1; // Low HP
+                else if(this.type==='medic') baseHp = 300 + state.level*5; // Tanky healer
                 else if(this.type==='MINI_BOSS') baseHp = 800 + state.level*100;
 
                 const minutes = state.gameTime / 60;
@@ -1260,6 +1264,7 @@
             else if(this.type==='promaja'){this.baseSpeed=1.8+Math.random();this.radius=22;} 
             else if(this.type==='yugo'){this.baseSpeed=1.4;this.radius=35;this.angle=0;} 
             else if(this.type==='hornet'){this.baseSpeed=4.2;this.radius=15;}
+            else if(this.type==='medic'){this.baseSpeed=1.5;this.radius=25;}
             else if(this.type==='snajper'){
                 this.baseSpeed=1.5; this.radius=15; 
                 this.state = 'move'; // move, charge, fire
@@ -1297,6 +1302,21 @@
                 }
             }
 
+            // --- MEDIC HEALING LOGIC ---
+            if(this.type === 'medic') {
+                if(state.frames % 60 === 0) { // Heal every second
+                    let healCount = 0;
+                    state.enemies.forEach(e => {
+                        if(e !== this && e.type !== 'medic' && e.hp < e.maxHp && Math.hypot(e.x - this.x, e.y - this.y) < 200) {
+                            e.hp = Math.min(e.maxHp, e.hp + 50);
+                            createParticle(e.x, e.y, '#00ff41', 'heal', 2);
+                            healCount++;
+                        }
+                    });
+                    if(healCount > 0) spawnDamageText(this.x, this.y-40, "HEAL", false);
+                }
+            }
+
             if(this.frozen > 0) { 
                 this.frozen--; 
                 if(state.frames%20===0) createParticle(this.x,this.y,'#0ff','spark');
@@ -1308,12 +1328,10 @@
                 let dist = Math.hypot(player.x - this.x, player.y - this.y);
                 
                 if(this.state === 'move') {
-                    // Move until closeish range (400px)
                     if(dist < 400) {
                         this.state = 'charge';
-                        this.snajperTimer = 60; // 1s charge
+                        this.snajperTimer = 60; 
                     } else {
-                        // Standard movement towards player
                         let ang = Math.atan2(player.y - this.y, player.x - this.x);
                         this.x += Math.cos(ang) * this.speed + this.pushX;
                         this.y += Math.sin(ang) * this.speed + this.pushY;
@@ -1324,13 +1342,11 @@
                         this.state = 'fire';
                     }
                 } else if(this.state === 'fire') {
-                    // Fire projectile
                     state.projectiles.push(new Projectile(this.x, this.y, player, 'sniper_shot'));
                     this.state = 'cooldown';
                     this.snajperTimer = 120; // 2s cooldown
                 } else if(this.state === 'cooldown') {
                     this.snajperTimer--;
-                    // Kite away while cooldown
                     let ang = Math.atan2(player.y - this.y, player.x - this.x);
                     this.x -= Math.cos(ang) * 1.0; 
                     this.y -= Math.sin(ang) * 1.0;
@@ -1338,7 +1354,7 @@
                 }
                 
                 this.pushX*=0.9; this.pushY*=0.9;
-                return; // Snajper handles its own movement
+                return; 
             }
 
             // TARGETING LOGIC (Standard Enemies)
@@ -1397,6 +1413,7 @@
             if(this.type==='hornet') c='#bfff00';
             if(this.type==='BOSS' || this.type==='MINI_BOSS') c='#ff00ff';
             if(this.type==='snajper') c='#ff0000';
+            if(this.type==='medic') c='#fff';
 
             for(let i=0;i<3;i++)createParticle(this.x,this.y,c,'spark');
             
@@ -1464,6 +1481,18 @@
                         ctx.fillRect(-15, -25, 30 * (1 - this.snajperTimer/60), 5);
                     }
                 }
+                else if(this.type==='medic'){
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(-20, -15, 40, 30);
+                    ctx.fillStyle = '#00ff41'; // Green Cross
+                    ctx.fillRect(-5, -10, 10, 20);
+                    ctx.fillRect(-15, -5, 30, 10);
+                    // Lightbar
+                    if(state.frames % 10 < 5) ctx.fillStyle = '#f00'; else ctx.fillStyle = '#00f';
+                    ctx.fillRect(-15, -20, 10, 5);
+                    if(state.frames % 10 < 5) ctx.fillStyle = '#00f'; else ctx.fillStyle = '#f00';
+                    ctx.fillRect(5, -20, 10, 5);
+                }
                 else if(this.type==='promaja'){ 
                     ctx.rotate(state.frames*0.2); 
                     ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(200, 255, 255, 0.5)';
@@ -1485,8 +1514,7 @@
                     ctx.rotate(this.angle+1.57);
                     ctx.fillStyle='rgba(255,255,255,0.6)'; 
                     let flap = Math.sin(state.frames*0.8)*5;
-                    ctx.beginPath(); ctx.ellipse(8+flap, -5, 5, 12, 0.5, 0, 6.28); ctx.fill();
-                    ctx.beginPath(); ctx.ellipse(-8-flap, -5, 5, 12, -0.5, 0, 6.28); ctx.fill();
+                    ctx.beginPath(); ctx.ellipse(8+flap, -5, 5, 12, 0.5, 0, 6.28); ctx.beginPath(); ctx.ellipse(-8-flap, -5, 5, 12, -0.5, 0, 6.28); ctx.fill();
                     ctx.fillStyle='#f1c40f';
                     ctx.beginPath(); ctx.ellipse(0, 0, 8, 14, 0, 0, 6.28); ctx.fill();
                     ctx.fillStyle='#000'; ctx.fillRect(-6, -2, 12, 2); ctx.fillRect(-6, 4, 12, 2);
@@ -1579,12 +1607,12 @@
         let t = state.gameTime;
         
         // --- RANDOM CHANCE FOR SWARMS INSTEAD OF TIMED ---
-        if(t < 300 && state.frames % 60 === 0) { // Check every second
-            // Small chance (1%) every second to trigger a random swarm
+        // ONLY AFTER 5 MINUTES AND NOT IF BOSS IS ACTIVE
+        if(t >= 300 && !state.bossActive && state.frames % 60 === 0) { 
             if(Math.random() < 0.01) {
                 let types = ['promaja', 'hornet', 'yugo'];
                 let chosen = types[Math.floor(Math.random() * types.length)];
-                let amount = 15 + Math.floor(t / 10); // Scale swarm size slightly with time
+                let amount = 15 + Math.floor(t / 10); 
                 spawnCircle(chosen, amount);
             }
         }
@@ -1592,24 +1620,24 @@
         if(t < 300) {
             // NERFED SPAWN RATES FOR EARLY GAME
             if(t < 60) {
-                // Was 50, now 90 (approx 1.5 seconds)
                 if(state.frames % 90 === 0) state.enemies.push(new Enemy('promaja'));
             } 
             else if(t < 120) {
-                // Was 40, now 60 (1 second)
                 if(state.frames % 60 === 0) state.enemies.push(new Enemy('promaja'));
-                if(state.frames % 120 === 0) state.enemies.push(new Enemy('hornet')); // Slower hornet spawn
+                if(state.frames % 120 === 0) state.enemies.push(new Enemy('hornet')); 
+                if(state.frames % 400 === 0) state.enemies.push(new Enemy('snajper')); // Rare sniper spawn
             }
             else if(t < 180) {
                 if(state.frames % 40 === 0) state.enemies.push(new Enemy('promaja'));
                 if(state.frames % 80 === 0) state.enemies.push(new Enemy('hornet'));
-                if(state.frames % 300 === 0) state.enemies.push(new Enemy('yugo')); // Rare yugo
+                if(state.frames % 300 === 0) state.enemies.push(new Enemy('yugo'));
+                if(state.frames % 300 === 0) state.enemies.push(new Enemy('snajper'));
             }
             else if(t < 240) {
                 if(state.frames % 30 === 0) state.enemies.push(new Enemy('promaja'));
                 if(state.frames % 60 === 0) state.enemies.push(new Enemy('hornet'));
                 if(state.frames % 120 === 0) state.enemies.push(new Enemy('yugo'));
-                if(state.frames % 300 === 0) state.enemies.push(new Enemy('snajper')); // Intro Snajper
+                if(state.frames % 300 === 0) state.enemies.push(new Enemy('snajper'));
             }
             else if(t < 300) {
                 if(state.frames % 20 === 0) state.enemies.push(new Enemy(Math.random()<0.5?'promaja':'hornet'));
@@ -1627,9 +1655,16 @@
                 if(state.frames % 200 === 0) state.enemies.push(new Enemy('hornet'));
             } 
             else {
+                // MID GAME INTENSITY
                 if(state.frames % 15 === 0) state.enemies.push(new Enemy(Math.random()<0.5?'promaja':'hornet'));
                 if(state.frames % 50 === 0) state.enemies.push(new Enemy('yugo'));
-                if(state.frames % 150 === 0) state.enemies.push(new Enemy('snajper'));
+                
+                // MORE SNIPERS
+                if(state.frames % 200 === 0) state.enemies.push(new Enemy('snajper'));
+                
+                // MEDICS APPEAR
+                if(state.frames % 300 === 0) state.enemies.push(new Enemy('medic'));
+
                 if(state.frames % 600 === 0) {
                     if(Math.random() < 0.05) state.enemies.push(new Enemy('MINI_BOSS'));
                 }
@@ -1737,7 +1772,7 @@
             if(p.type === 'boss_missile' || p.type === 'sniper_shot') {
                 if(Math.hypot(p.x-player.x, p.y-player.y) < player.radius + 10) {
                     if(!godMode) {
-                        let hitDmg = p.type === 'sniper_shot' ? 60 : 40; // High damage sniper
+                        let hitDmg = p.type === 'sniper_shot' ? 60 : 40; 
                         if(player.invincible <= 0) player.hp -= hitDmg; 
                     }
                     if(godMode) spawnDamageText(player.x, player.y-50, "BLOCKED", true);
