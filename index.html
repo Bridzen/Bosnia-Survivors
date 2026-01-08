@@ -869,22 +869,52 @@
                 ctx.strokeStyle = '#ff003c'; ctx.lineWidth = 3;
                 ctx.beginPath(); ctx.arc(0,0, 40 + Math.sin(state.frames*0.5)*10, 0, 6.28); ctx.stroke();
             }
-            if(this.type === 'soldier' || this.type === 'titan' || this.type === 'vanguard') {
-                 ctx.fillStyle = '#eee'; ctx.beginPath(); ctx.arc(0,0,15,0,6.28); ctx.fill();
-                 ctx.fillStyle = '#00f'; ctx.fillRect(-10, 5, 20, 15); 
-                 let swordSize = this.type==='titan' || this.isBerserk ? 30 : 20;
-                 ctx.fillStyle = '#aaa'; ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(10+swordSize, -5); ctx.lineTo(10+swordSize, 5); ctx.fill();
-                 if(this.type === 'vanguard') { ctx.fillStyle = '#448'; ctx.fillRect(-20, -10, 8, 20); }
+
+            // --- IMPROVED VISUALS ---
+            if(this.type === 'soldier') {
+                 // Helmet
+                 ctx.fillStyle = '#aaa'; ctx.beginPath(); ctx.arc(0,0,15,0,6.28); ctx.fill();
+                 // Blue Cape
+                 ctx.fillStyle = '#002395'; ctx.fillRect(-12, 5, 24, 18);
+                 // Sword
+                 ctx.fillStyle = '#ddd'; ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(12+25, -2); ctx.lineTo(12+25, 2); ctx.fill();
+                 ctx.fillStyle = '#555'; ctx.fillRect(12, -5, 4, 10); // Hilt
+            }
+            else if (this.type === 'titan') {
+                 // Massive Armor
+                 ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(0,0,20,0,6.28); ctx.fill();
+                 // Spikes
+                 ctx.fillStyle = '#555'; ctx.beginPath(); ctx.moveTo(0,-20); ctx.lineTo(-5,-30); ctx.lineTo(5,-30); ctx.fill();
+                 // Glowing Eyes
+                 ctx.fillStyle = '#f00'; ctx.beginPath(); ctx.arc(-5, -5, 2, 0, 6.28); ctx.arc(5, -5, 2, 0, 6.28); ctx.fill();
+                 // Giant Sword
+                 ctx.fillStyle = '#888'; ctx.beginPath(); ctx.moveTo(15, -8); ctx.lineTo(60, 0); ctx.lineTo(15, 8); ctx.fill();
+                 ctx.fillStyle = '#222'; ctx.fillRect(15, -12, 5, 24);
+            }
+            else if (this.type === 'vanguard') {
+                 // Heavy Armor
+                 ctx.fillStyle = '#223'; ctx.beginPath(); ctx.arc(0,0,18,0,6.28); ctx.fill();
+                 // Tower Shield
+                 ctx.fillStyle = '#445'; ctx.fillRect(10, -25, 10, 50);
+                 ctx.strokeStyle = '#fff'; ctx.strokeRect(10, -25, 10, 50);
             }
             else if (this.type === 'defender') {
+                 // Knight Helm
                  ctx.fillStyle = '#889'; ctx.beginPath(); ctx.arc(0,0,18,0,6.28); ctx.fill();
-                 ctx.fillStyle = '#224'; ctx.fillRect(-15, -20, 30, 40); 
-                 ctx.strokeStyle = '#fff'; ctx.strokeRect(-15, -20, 30, 40);
+                 // Round Shield
+                 ctx.fillStyle = '#224'; ctx.beginPath(); ctx.arc(15, 0, 15, 0, 6.28); ctx.fill();
+                 ctx.strokeStyle = '#fff'; ctx.lineWidth=2; ctx.stroke();
             }
             else if (this.type === 'mage') {
-                 ctx.fillStyle = '#d000ff'; ctx.beginPath(); ctx.moveTo(0,-20); ctx.lineTo(-15,10); ctx.lineTo(15,10); ctx.fill();
-                 ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0,-25, 5, 0, 6.28); ctx.fill();
+                 // Robes
+                 ctx.fillStyle = '#d000ff'; ctx.beginPath(); ctx.moveTo(0,-20); ctx.lineTo(-15,15); ctx.lineTo(15,15); ctx.fill();
+                 // Hood
+                 ctx.fillStyle = '#a000d0'; ctx.beginPath(); ctx.arc(0, -5, 10, 0, 6.28); ctx.fill();
+                 // Floating Book
+                 ctx.fillStyle = '#ffd700'; ctx.fillRect(15, -15, 10, 12);
             }
+
+            // HP Bar for Unit
             ctx.fillStyle = 'red'; ctx.fillRect(-20, -35, 40, 6);
             ctx.fillStyle = '#0f0'; ctx.fillRect(-20, -35, 40 * (this.durability/this.maxDurability), 6);
             ctx.fillStyle = '#fff'; ctx.font='bold 10px Arial'; ctx.textAlign='center';
@@ -1663,7 +1693,11 @@
                 if(state.frames % 200 === 0) state.enemies.push(new Enemy('snajper'));
                 
                 // MEDICS APPEAR
-                if(state.frames % 300 === 0) state.enemies.push(new Enemy('medic'));
+                if(state.frames % 300 === 0) {
+                    if(state.enemies.filter(e => e.type === 'medic').length < 3) {
+                        state.enemies.push(new Enemy('medic'));
+                    }
+                }
 
                 if(state.frames % 600 === 0) {
                     if(Math.random() < 0.05) state.enemies.push(new Enemy('MINI_BOSS'));
@@ -1911,32 +1945,56 @@
         state.projectiles.forEach(p=>p.draw(cX,cY));
         state.beams.forEach(b=>b.draw(cX,cY));
         
+        // --- PLAYER DRAWING UPGRADE ---
         let pX=player.x-cX, pY=player.y-cY; 
         
         ctx.save(); 
         ctx.translate(pX,pY); 
         ctx.rotate(player.facing+1.57);
         
-        ctx.globalCompositeOperation = 'overlay';
-        let grad = ctx.createLinearGradient(0,0,0,-400);
-        grad.addColorStop(0, 'rgba(255, 255, 200, 0.2)');
-        grad.addColorStop(1, 'rgba(255, 255, 200, 0)');
-        ctx.fillStyle = grad;
-        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-60, -400); ctx.lineTo(60, -400); ctx.fill();
-        ctx.globalCompositeOperation = 'source-over';
+        // Invisibility Effect
+        if(player.invincible > 0) ctx.globalAlpha = 0.4;
 
-        ctx.shadowBlur=15; ctx.shadowColor='rgba(254,203,0,0.5)'; 
-        ctx.fillStyle='#c0392b'; 
-        ctx.beginPath(); ctx.moveTo(-10,0); ctx.lineTo(10,0); ctx.lineTo(15,35); ctx.lineTo(-15,35); ctx.fill();
-        ctx.fillStyle='#fecb00';ctx.beginPath();ctx.ellipse(0,0,12,8,0,0,6.28);ctx.fill();
-        ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(0,-2,10,0,6.28); ctx.fill(); 
-        ctx.fillStyle='#555'; ctx.fillRect(-4,-2,8,3); 
-        ctx.fillStyle='#333'; ctx.fillRect(8, -5, 6, 25);
-        ctx.fillStyle='#111'; ctx.fillRect(10, -15, 4, 30);
+        // Shadow
+        ctx.shadowBlur=15; ctx.shadowColor='rgba(0,0,0,0.5)'; 
+
+        // Robes
+        ctx.fillStyle='#002395'; // Bosnia Blue
+        ctx.beginPath(); 
+        ctx.ellipse(0, 0, 15, 12, 0, 0, 6.28); 
+        ctx.fill();
         
-        if(state.frames%5===0 && state.enemies.length>0) {
-            ctx.fillStyle='#ffaa00'; ctx.beginPath(); ctx.arc(12, -18, 5, 0, 6.28); ctx.fill();
-        }
+        // Gold Trim
+        ctx.strokeStyle='#fecb00'; // Bosnia Yellow
+        ctx.lineWidth=2;
+        ctx.stroke();
+
+        // Head
+        ctx.fillStyle='#ffdbac';
+        ctx.beginPath(); ctx.arc(0, 0, 8, 0, 6.28); ctx.fill();
+
+        // Wizard Hat
+        ctx.fillStyle='#001a75';
+        ctx.beginPath(); ctx.moveTo(0, 15); ctx.lineTo(-12, -2); ctx.lineTo(12, -2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(0, -2, 14, 5, 0, 0, 6.28); ctx.fill();
+        
+        // Star on Hat
+        ctx.fillStyle='#fecb00';
+        ctx.beginPath(); ctx.arc(0, 5, 3, 0, 6.28); ctx.fill();
+
+        // Staff (Right Hand)
+        ctx.save();
+        ctx.translate(15, 5); // Hand position
+        ctx.rotate(-0.5);
+        ctx.fillStyle='#654321'; ctx.fillRect(-2, -20, 4, 40); // Staff wood
+        
+        // Glowing Gem
+        ctx.shadowBlur=20; ctx.shadowColor='rgba(0, 243, 255, 0.8)';
+        ctx.fillStyle='#00f3ff'; 
+        let pulse = Math.sin(state.frames*0.1)*2;
+        ctx.beginPath(); ctx.arc(0, -22, 6+pulse, 0, 6.28); ctx.fill();
+        ctx.restore();
+
         ctx.restore();
 
         const bur=player.weapons.burek;
