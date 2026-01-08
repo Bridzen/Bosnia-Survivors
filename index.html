@@ -77,20 +77,51 @@
     
     .screen-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5, 5, 10, 0.95); z-index:2000; flex-direction:column; align-items:center; justify-content:center; pointer-events:auto; overflow-y:auto;}
     
-    #main-menu { display:flex; background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.9)), url('https://img.freepik.com/free-vector/blue-futuristic-networking-technology-background-vector_53876-114068.jpg'); background-size:cover; background-position: center; }
-    .title-glitch { font-family:'Orbitron'; font-size:70px; color:white; text-shadow:2px 2px var(--bosnia-blue), -2px -2px var(--danger); text-align:center; }
+    /* UPDATED MAIN MENU */
+    #main-menu { 
+        display:flex; 
+        background: radial-gradient(circle at center, rgba(10, 20, 40, 0.9), #000), url('https://img.freepik.com/free-vector/blue-futuristic-networking-technology-background-vector_53876-114068.jpg'); 
+        background-size:cover; background-position: center; 
+    }
+    
+    .title-container {
+        position: relative;
+        text-align: center;
+        animation: floatTitle 3s ease-in-out infinite;
+    }
+
+    .title-glitch { 
+        font-family:'Orbitron'; font-weight: 900; font-size:90px; color:white; 
+        text-shadow: 
+            0 0 10px var(--bosnia-blue), 
+            4px 4px 0px #000, 
+            -2px -2px 0 var(--bosnia-yellow);
+        letter-spacing: 5px;
+        margin: 0;
+        line-height: 0.9;
+    }
+    
+    .subtitle {
+        font-family:'Rajdhani'; font-weight: 700; letter-spacing:15px; 
+        color:var(--fire-orange); margin-top:10px; font-size: 32px;
+        text-shadow: 0 0 20px var(--danger);
+        animation: pulseText 1.5s infinite alternate;
+    }
+
+    @keyframes floatTitle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    @keyframes pulseText { 0% { opacity: 0.8; text-shadow: 0 0 10px var(--danger); } 100% { opacity: 1; text-shadow: 0 0 30px var(--fire-orange), 0 0 50px red; } }
     
     .menu-btn { 
-        background:linear-gradient(90deg, rgba(0,0,0,0.5), rgba(0, 35, 149, 0.4)); 
+        background:linear-gradient(90deg, rgba(0,0,0,0.8), rgba(0, 35, 149, 0.6)); 
         border:1px solid var(--bosnia-blue); 
         border-left: 4px solid var(--bosnia-yellow);
-        color:white; padding:15px 50px; margin:10px; font-size:20px; font-family:'Orbitron'; 
-        cursor:pointer; text-transform:uppercase; letter-spacing:4px; width:320px; 
-        transition:0.2s; 
-        clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        color:white; padding:20px 60px; margin:15px; font-size:24px; font-family:'Orbitron'; 
+        cursor:pointer; text-transform:uppercase; letter-spacing:4px; width:350px; 
+        transition:0.3s; 
+        clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
         position: relative; overflow: hidden;
     }
-    .menu-btn:hover { background:var(--bosnia-yellow); color:black; border-color:white; font-weight: 800; }
+    .menu-btn:hover { background:var(--bosnia-yellow); color:black; border-color:white; font-weight: 900; transform: scale(1.05); box-shadow: 0 0 30px rgba(254, 203, 0, 0.4); }
 
     #admin-panel { display:none; border:2px solid var(--danger); background:rgba(0,0,0,0.95); box-shadow: 0 0 50px rgba(255,0,0,0.2); flex-direction: column; align-items: center;}
     .admin-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; width:600px; padding:20px; }
@@ -189,9 +220,11 @@
 
 <!-- MAIN MENU -->
 <div id="main-menu" class="screen-overlay" style="display:flex;">
-    <h1 class="title-glitch">BOSNIAN<br><span style="color:var(--bosnia-yellow)">SURVIVORS</span></h1>
-    <h3 style="font-family:'Rajdhani'; letter-spacing:5px; color:var(--neon-cyan); margin-top:-20px;">INFERNO UPDATE</h3>
-    <div style="height:40px;"></div>
+    <div class="title-container">
+        <h1 class="title-glitch">BOSNIAN<br><span style="color:var(--bosnia-yellow)">SURVIVORS</span></h1>
+        <div class="subtitle">INFERNO UPDATE</div>
+    </div>
+    <div style="height:60px;"></div>
     <button class="menu-btn" onclick="startGame()">DEPLOY</button>
     <button class="menu-btn" onclick="openInfo('armory')">ARMORY</button>
     <button class="menu-btn" onclick="openInfo('intel')">INTEL</button>
@@ -644,11 +677,14 @@
             const tech = player.weapons.serbian;
             if(tech.path === 2 && type === 'soldier') this.maxDurability = 5;
             
-            if(tech.path === 3 && tech.evolved) { this.maxDurability = 30; this.canTaunt = true; }
-            if(tech.path === 1 && tech.evolved) { this.radius *= 1.5; this.baseDamage *= 1.5; this.attackSpeed = 240; this.isBerserk = true; }
+            // --- LEVEL 3 (EVOLUTION) LOGIC ---
+            this.isBerserk = false; this.canTaunt = false; this.canPush = false; this.hasBeam = false;
+
+            if(tech.path === 3 && tech.evolved) { this.maxDurability = 30; this.canTaunt = true; } // Warlord Tank
+            if(tech.path === 1 && tech.evolved) { this.radius *= 1.5; this.baseDamage *= 1.5; this.attackSpeed = 240; this.isBerserk = true; } // Berserker
             if(tech.path === 2 && tech.evolved) {
-                if(type === 'defender') { this.maxDurability = 10; this.canPush = true; this.pushTimer = 0; }
-                if(type === 'mage') { this.hasBeam = true; }
+                if(type === 'defender') { this.maxDurability = 10; this.canPush = true; this.pushTimer = 0; } // Elite Defender
+                if(type === 'mage') { this.hasBeam = true; } // Elite Mage
             }
             this.durability = this.maxDurability;
         }
@@ -747,6 +783,7 @@
             this.x += moveX * this.moveSpeed;
             this.y += moveY * this.moveSpeed;
 
+            // --- LEVEL 3: WARLORD TANK TAUNT ---
             if(this.canTaunt) {
                 if(this.tauntCooldown > 0) this.tauntCooldown--;
                 if(this.taunting) {
@@ -758,11 +795,12 @@
                 } else if(this.tauntCooldown <= 0 && enemiesNearby > 0) {
                     this.taunting = true;
                     this.tauntTimer = 300; 
-                    spawnDamageText(this.x, this.y-60, "TAUNTING!", true);
+                    spawnDamageText(this.x, this.y-60, "AGGRESION", true);
                     state.zones.push(new Zone(this.x, this.y, 'taunt_ring', 300));
                 }
             }
 
+            // --- LEVEL 3: ELITE DEFENDER PUSH ---
             if(this.canPush) {
                  this.pushTimer++;
                  if(this.pushTimer > 900) { 
@@ -777,7 +815,7 @@
                              e.pushY = Math.sin(ang) * 25;
                          }
                      });
-                     spawnDamageText(this.x, this.y-60, "PUSHBACK", true);
+                     spawnDamageText(this.x, this.y-60, "SHIELD BASH", true);
                  }
             }
 
@@ -791,6 +829,7 @@
                         p.overrideDamage = 15 + (pLevel * 10) + (state.level * 1);
                         state.projectiles.push(p);
 
+                        // --- LEVEL 3: ELITE MAGE BEAM ---
                         if(this.hasBeam) {
                              let beamLvl = Math.max(1, player.weapons.pyramid.level);
                              let ang = Math.atan2(target.y - this.y, target.x - this.x);
@@ -809,8 +848,11 @@
                     this.attackTimer = 0;
                     addShake(5);
                     let damageCalc = this.baseDamage + (state.level * 5);
+                    
+                    // --- LEVEL 3: BERSERKER SPIN ---
                     if(this.isBerserk) {
                         state.zones.push(new Zone(this.x, this.y, 'berserk_spin', 45, damageCalc)); 
+                        spawnDamageText(this.x, this.y-60, "SPIN!", true);
                     } else {
                         state.zones.push(new Zone(this.x, this.y, 'valk_swing', 15, damageCalc));
                         state.enemies.forEach(e => {
@@ -854,7 +896,6 @@
             }
             ctx.save(); ctx.translate(this.x - cX, this.y - cY);
             
-            // INVISIBILITY VISUAL FOR MAGE
             if(this.invisibleTimer > 0) ctx.globalAlpha = 0.3;
 
             if(this.immuneTimer > 0) {
@@ -865,60 +906,90 @@
                  ctx.strokeStyle = '#fff'; ctx.lineWidth=2; ctx.stroke();
                  ctx.restore();
             }
-            if(this.taunting) {
-                ctx.strokeStyle = '#ff003c'; ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.arc(0,0, 40 + Math.sin(state.frames*0.5)*10, 0, 6.28); ctx.stroke();
-            }
+            
+            // --- VISUAL UPGRADES FOR LEVEL 3 & PATHS ---
 
-            // --- IMPROVED VISUALS ---
             if(this.type === 'soldier') {
-                 // Helmet
+                 // Level 1: Basic Soldier
                  ctx.fillStyle = '#aaa'; ctx.beginPath(); ctx.arc(0,0,15,0,6.28); ctx.fill();
-                 // Blue Cape
                  ctx.fillStyle = '#002395'; ctx.fillRect(-12, 5, 24, 18);
-                 // Sword
                  ctx.fillStyle = '#ddd'; ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(12+25, -2); ctx.lineTo(12+25, 2); ctx.fill();
-                 ctx.fillStyle = '#555'; ctx.fillRect(12, -5, 4, 10); // Hilt
+                 ctx.fillStyle = '#555'; ctx.fillRect(12, -5, 4, 10); 
             }
             else if (this.type === 'titan') {
-                 // Massive Armor
+                 // Level 2/3: Titan / Berserker
+                 // Armor
                  ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(0,0,20,0,6.28); ctx.fill();
-                 // Spikes
-                 ctx.fillStyle = '#555'; ctx.beginPath(); ctx.moveTo(0,-20); ctx.lineTo(-5,-30); ctx.lineTo(5,-30); ctx.fill();
-                 // Glowing Eyes
-                 ctx.fillStyle = '#f00'; ctx.beginPath(); ctx.arc(-5, -5, 2, 0, 6.28); ctx.arc(5, -5, 2, 0, 6.28); ctx.fill();
-                 // Giant Sword
-                 ctx.fillStyle = '#888'; ctx.beginPath(); ctx.moveTo(15, -8); ctx.lineTo(60, 0); ctx.lineTo(15, 8); ctx.fill();
-                 ctx.fillStyle = '#222'; ctx.fillRect(15, -12, 5, 24);
+                 // Spikes if Berserker
+                 if(this.isBerserk) {
+                     ctx.fillStyle = '#a00'; ctx.beginPath(); ctx.moveTo(0,-25); ctx.lineTo(-10,-35); ctx.lineTo(10,-35); ctx.fill();
+                 } else {
+                     ctx.fillStyle = '#555'; ctx.beginPath(); ctx.moveTo(0,-20); ctx.lineTo(-5,-30); ctx.lineTo(5,-30); ctx.fill();
+                 }
+                 // Eyes
+                 ctx.fillStyle = this.isBerserk ? '#f00' : '#fa0'; 
+                 ctx.beginPath(); ctx.arc(-5, -5, 3, 0, 6.28); ctx.arc(5, -5, 3, 0, 6.28); ctx.fill();
+                 
+                 // Sword
+                 ctx.save();
+                 // If spin attacking, blur it
+                 if(this.isBerserk && this.attackTimer < 20) {
+                     ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                     ctx.beginPath(); ctx.arc(0,0, 60, 0, 6.28); ctx.fill();
+                 } else {
+                     ctx.fillStyle = this.isBerserk ? '#500' : '#888'; 
+                     ctx.beginPath(); ctx.moveTo(15, -8); ctx.lineTo(this.isBerserk?80:60, 0); ctx.lineTo(15, 8); ctx.fill();
+                     ctx.fillStyle = '#222'; ctx.fillRect(15, -12, 5, 24);
+                 }
+                 ctx.restore();
             }
             else if (this.type === 'vanguard') {
-                 // Heavy Armor
-                 ctx.fillStyle = '#223'; ctx.beginPath(); ctx.arc(0,0,18,0,6.28); ctx.fill();
+                 // Level 2/3: Vanguard / Warlord Tank
+                 // Armor
+                 ctx.fillStyle = this.canTaunt ? '#111' : '#223'; 
+                 ctx.beginPath(); ctx.arc(0,0,this.canTaunt?25:18,0,6.28); ctx.fill();
+                 
                  // Tower Shield
-                 ctx.fillStyle = '#445'; ctx.fillRect(10, -25, 10, 50);
-                 ctx.strokeStyle = '#fff'; ctx.strokeRect(10, -25, 10, 50);
+                 ctx.fillStyle = this.canTaunt ? '#300' : '#445'; 
+                 ctx.fillRect(10, -25, 12, 50);
+                 ctx.strokeStyle = '#fff'; ctx.lineWidth=2; ctx.strokeRect(10, -25, 12, 50);
+                 
+                 if(this.taunting) {
+                     // Taunt Ring Visual
+                     ctx.strokeStyle = '#ff003c'; ctx.lineWidth = 3;
+                     ctx.beginPath(); ctx.arc(0,0, 60 + Math.sin(state.frames*0.5)*10, 0, 6.28); ctx.stroke();
+                 }
             }
             else if (this.type === 'defender') {
-                 // Knight Helm
+                 // Level 2/3: Defender / Elite Defender
                  ctx.fillStyle = '#889'; ctx.beginPath(); ctx.arc(0,0,18,0,6.28); ctx.fill();
-                 // Round Shield
-                 ctx.fillStyle = '#224'; ctx.beginPath(); ctx.arc(15, 0, 15, 0, 6.28); ctx.fill();
+                 // Shield
+                 ctx.fillStyle = this.canPush ? '#00f3ff' : '#224'; 
+                 if(this.canPush) ctx.globalAlpha = 0.7; // Holographic shield
+                 ctx.beginPath(); ctx.arc(15, 0, 18, 0, 6.28); ctx.fill();
+                 ctx.globalAlpha = 1;
                  ctx.strokeStyle = '#fff'; ctx.lineWidth=2; ctx.stroke();
             }
             else if (this.type === 'mage') {
-                 // Robes
-                 ctx.fillStyle = '#d000ff'; ctx.beginPath(); ctx.moveTo(0,-20); ctx.lineTo(-15,15); ctx.lineTo(15,15); ctx.fill();
-                 // Hood
-                 ctx.fillStyle = '#a000d0'; ctx.beginPath(); ctx.arc(0, -5, 10, 0, 6.28); ctx.fill();
-                 // Floating Book
-                 ctx.fillStyle = '#ffd700'; ctx.fillRect(15, -15, 10, 12);
+                 // Level 2/3: Mage / Elite Mage
+                 ctx.fillStyle = this.hasBeam ? '#4b0082' : '#d000ff'; 
+                 ctx.beginPath(); ctx.moveTo(0,-20); ctx.lineTo(-15,15); ctx.lineTo(15,15); ctx.fill();
+                 ctx.fillStyle = this.hasBeam ? '#fff' : '#a000d0'; 
+                 ctx.beginPath(); ctx.arc(0, -5, 10, 0, 6.28); ctx.fill();
+                 
+                 // Runic Circles for Elite
+                 if(this.hasBeam) {
+                     ctx.strokeStyle = '#d000ff'; ctx.lineWidth = 1;
+                     ctx.beginPath(); ctx.arc(0,0, 25, state.frames*0.1, state.frames*0.1+4); ctx.stroke();
+                     ctx.beginPath(); ctx.arc(0,0, 30, -state.frames*0.1, -state.frames*0.1+4); ctx.stroke();
+                 } else {
+                     ctx.fillStyle = '#ffd700'; ctx.fillRect(15, -15, 10, 12);
+                 }
             }
 
             // HP Bar for Unit
             ctx.fillStyle = 'red'; ctx.fillRect(-20, -35, 40, 6);
             ctx.fillStyle = '#0f0'; ctx.fillRect(-20, -35, 40 * (this.durability/this.maxDurability), 6);
-            ctx.fillStyle = '#fff'; ctx.font='bold 10px Arial'; ctx.textAlign='center';
-            ctx.fillText(this.durability + "/" + this.maxDurability, 0, -40);
             ctx.restore();
         }
     }
@@ -1692,9 +1763,10 @@
                 // MORE SNIPERS
                 if(state.frames % 200 === 0) state.enemies.push(new Enemy('snajper'));
                 
-                // MEDICS APPEAR
+                // MEDICS APPEAR (MAX 3)
                 if(state.frames % 300 === 0) {
-                    if(state.enemies.filter(e => e.type === 'medic').length < 3) {
+                    let medicCount = state.enemies.filter(e => e.type === 'medic').length;
+                    if(medicCount < 3) {
                         state.enemies.push(new Enemy('medic'));
                     }
                 }
@@ -1961,7 +2033,11 @@
         // Robes
         ctx.fillStyle='#002395'; // Bosnia Blue
         ctx.beginPath(); 
-        ctx.ellipse(0, 0, 15, 12, 0, 0, 6.28); 
+        // Sway effect on robe bottom
+        let sway = Math.sin(state.frames * 0.2) * 2;
+        ctx.moveTo(0,0);
+        ctx.bezierCurveTo(-15, 5, -15, 20+sway, 0, 25);
+        ctx.bezierCurveTo(15, 20-sway, 15, 5, 0, 0);
         ctx.fill();
         
         // Gold Trim
@@ -1985,6 +2061,9 @@
         // Staff (Right Hand)
         ctx.save();
         ctx.translate(15, 5); // Hand position
+        // Bobbing staff
+        let bob = Math.sin(state.frames * 0.1) * 3;
+        ctx.translate(0, bob);
         ctx.rotate(-0.5);
         ctx.fillStyle='#654321'; ctx.fillRect(-2, -20, 4, 40); // Staff wood
         
