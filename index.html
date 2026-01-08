@@ -63,7 +63,7 @@
     }
     #hp-fill { height:100%; width:100%; background:linear-gradient(90deg, #ff003c, #ff5e00); transition:width 0.1s linear; }
 
-    /* BOSS BAR */
+    /* BOSS HUD */
     #boss-hud { display:none; position:fixed; top:80px; left:50%; transform:translateX(-50%); width:600px; z-index:60; flex-direction:column; align-items:center; }
     #boss-name { font-family:'Orbitron'; font-size:28px; color:var(--danger); margin-bottom:5px; letter-spacing:8px; font-weight:900; }
     #boss-bar-bg { width:100%; height:12px; background:rgba(0,0,0,0.8); border:1px solid var(--danger); transform: skewX(-20deg); overflow:hidden; }
@@ -83,68 +83,19 @@
         background: radial-gradient(circle at center, rgba(10, 20, 40, 0.9), #000), url('https://img.freepik.com/free-vector/blue-futuristic-networking-technology-background-vector_53876-114068.jpg'); 
         background-size:cover; background-position: center; 
     }
+    .title-container { position: relative; text-align: center; animation: floatTitle 3s ease-in-out infinite; z-index: 10; }
+    .title-glitch { font-family:'Orbitron'; font-weight: 900; font-size:90px; color:white; text-shadow: 0 0 10px var(--bosnia-blue), 4px 4px 0px #000, -2px -2px 0 var(--bosnia-yellow); letter-spacing: 5px; margin: 0; line-height: 0.9; }
+    .subtitle { font-family:'Rajdhani'; font-weight: 700; letter-spacing:15px; color:var(--neon-cyan); margin-top:10px; font-size: 32px; text-shadow: 0 0 20px var(--bosnia-blue); animation: pulseText 2s infinite alternate; }
+    #balance-scale-bg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 400px; opacity: 0.15; color: var(--bosnia-yellow); animation: balanceRock 5s ease-in-out infinite; pointer-events: none; z-index: 1; filter: drop-shadow(0 0 20px var(--bosnia-yellow)); }
     
-    .title-container {
-        position: relative;
-        text-align: center;
-        animation: floatTitle 3s ease-in-out infinite;
-        z-index: 10;
-    }
-
-    .title-glitch { 
-        font-family:'Orbitron'; font-weight: 900; font-size:90px; color:white; 
-        text-shadow: 
-            0 0 10px var(--bosnia-blue), 
-            4px 4px 0px #000, 
-            -2px -2px 0 var(--bosnia-yellow);
-        letter-spacing: 5px;
-        margin: 0;
-        line-height: 0.9;
-    }
-    
-    .subtitle {
-        font-family:'Rajdhani'; font-weight: 700; letter-spacing:15px; 
-        color:var(--neon-cyan); margin-top:10px; font-size: 32px;
-        text-shadow: 0 0 20px var(--bosnia-blue);
-        animation: pulseText 2s infinite alternate;
-    }
-
-    /* BALANCING ANIMATION BACKGROUND */
-    #balance-scale-bg {
-        position: absolute;
-        top: 50%; left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 400px;
-        opacity: 0.15;
-        color: var(--bosnia-yellow);
-        animation: balanceRock 5s ease-in-out infinite;
-        pointer-events: none;
-        z-index: 1;
-        filter: drop-shadow(0 0 20px var(--bosnia-yellow));
-    }
-
-    @keyframes balanceRock {
-        0% { transform: translate(-50%, -50%) rotate(-10deg); }
-        50% { transform: translate(-50%, -50%) rotate(10deg); }
-        100% { transform: translate(-50%, -50%) rotate(-10deg); }
-    }
-
+    @keyframes balanceRock { 0% { transform: translate(-50%, -50%) rotate(-10deg); } 50% { transform: translate(-50%, -50%) rotate(10deg); } 100% { transform: translate(-50%, -50%) rotate(-10deg); } }
     @keyframes floatTitle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
     @keyframes pulseText { 0% { opacity: 0.7; text-shadow: 0 0 10px var(--neon-cyan); } 100% { opacity: 1; text-shadow: 0 0 30px var(--bosnia-blue); } }
     
-    .menu-btn { 
-        background:linear-gradient(90deg, rgba(0,0,0,0.8), rgba(0, 35, 149, 0.6)); 
-        border:1px solid var(--bosnia-blue); 
-        border-left: 4px solid var(--bosnia-yellow);
-        color:white; padding:20px 60px; margin:15px; font-size:24px; font-family:'Orbitron'; 
-        cursor:pointer; text-transform:uppercase; letter-spacing:4px; width:350px; 
-        transition:0.3s; 
-        z-index: 10;
-        clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
-        position: relative; overflow: hidden;
-    }
+    .menu-btn { background:linear-gradient(90deg, rgba(0,0,0,0.8), rgba(0, 35, 149, 0.6)); border:1px solid var(--bosnia-blue); border-left: 4px solid var(--bosnia-yellow); color:white; padding:20px 60px; margin:15px; font-size:24px; font-family:'Orbitron'; cursor:pointer; text-transform:uppercase; letter-spacing:4px; width:350px; transition:0.3s; z-index: 10; clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px); position: relative; overflow: hidden; }
     .menu-btn:hover { background:var(--bosnia-yellow); color:black; border-color:white; font-weight: 900; transform: scale(1.05); box-shadow: 0 0 30px rgba(254, 203, 0, 0.4); }
 
+    /* ADMIN */
     #admin-panel { display:none; border:2px solid var(--danger); background:rgba(0,0,0,0.95); box-shadow: 0 0 50px rgba(255,0,0,0.2); flex-direction: column; align-items: center;}
     .admin-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; width:600px; padding:20px; }
     .admin-btn { background:#111; border:1px solid #555; color:white; padding:15px; cursor:pointer; font-family:'Orbitron'; text-transform:uppercase; transition:0.2s; font-size: 14px; }
@@ -1172,6 +1123,7 @@
             this.pierceHitList = [];
             this.overrideDamage = 0;
             this.hitCooldowns = []; // For Warsaw logic
+            this.hitTimer = 0; // Simple timer for Warsaw
 
             if(type === 'boss_missile' || type === 'sniper_shot' || type === 'warsaw') {
                 let a = Math.atan2(target.y-y, target.x-x);
@@ -1205,11 +1157,7 @@
             }
             if(this.type === 'warsaw') {
                  createParticle(this.x, this.y, '#fff', 'spark', 0.2);
-                 // Internal Cooldown Tick
-                 if(this.hitCooldowns.length > 0) {
-                     this.hitCooldowns[0]--;
-                     if(this.hitCooldowns[0] <= 0) this.hitCooldowns.shift();
-                 }
+                 if(this.hitTimer > 0) this.hitTimer--;
                  return;
             }
 
@@ -1279,12 +1227,16 @@
                 if(this.life < 60) { 
                     if(this.life % 5 === 0) { // Damage ticks
                         let d = this.overrideDamage; // {aimAngle}
-                        if(lineCircleCollide(player.x, player.y, this.x, this.y, this.x + Math.cos(d.aimAngle)*1000, this.y + Math.sin(d.aimAngle)*1000, 30)) {
-                            if(!godMode && player.invincible <= 0) {
-                                player.hp -= 20; 
-                                spawnDamageText(player.x, player.y-50, "20", 'player');
-                                addShake(5);
-                            }
+                        let len = 3000;
+                        let ex = this.x + Math.cos(d.aimAngle) * len;
+                        let ey = this.y + Math.sin(d.aimAngle) * len;
+                        
+                        if(lineCircleCollide(player.x, player.y, this.x, this.y, ex, ey, 40)) {
+                             if(!godMode) {
+                                 player.hp -= 20; 
+                                 spawnDamageText(player.x, player.y-50, "20", 'player');
+                                 addShake(5);
+                             }
                         }
                     }
                 }
@@ -1341,12 +1293,15 @@
 
                 if(this.life > 60) {
                     ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)'; ctx.lineWidth = 2; ctx.setLineDash([10, 10]);
-                    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(1000, 0); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(3000, 0); ctx.stroke();
                 } else {
-                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 40 + Math.random()*10;
-                    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(1000, 0); ctx.stroke();
-                    ctx.strokeStyle = '#2ecc71'; ctx.lineWidth = 20;
-                    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(1000, 0); ctx.stroke();
+                    let beamWidth = 60 * Math.sin((60-this.life)/60 * Math.PI); // Pulse
+                    ctx.strokeStyle = '#fff'; ctx.lineWidth = beamWidth;
+                    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(3000, 0); ctx.stroke();
+                    ctx.strokeStyle = '#2ecc71'; ctx.lineWidth = beamWidth * 1.5;
+                    ctx.globalAlpha = 0.5;
+                    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(3000, 0); ctx.stroke();
+                    ctx.globalAlpha = 1;
                 }
                 ctx.restore();
                 return;
@@ -2081,11 +2036,12 @@
                         if(p.type !== 'warsaw') {
                             if(player.invincible <= 0) player.hp -= hitDmg;
                         } else {
-                             // Warsaw multi hit cooldown
+                             // WARSAW INTERNAL CD
                              if(p.hitCooldowns.length === 0) { 
-                                 if(p.life % 20 === 0) { 
+                                 if(p.life % 20 === 0) { // Hit trigger
                                      player.hp -= hitDmg;
                                      spawnDamageText(player.x, player.y-40, "20", 'player');
+                                     p.hitCooldowns.push(20); // Dummy push to delay next tick check if we used array
                                  }
                                  return true; 
                              }
@@ -2095,7 +2051,7 @@
                     
                     addShake(20);
                     updateHud();
-                    return p.type === 'warsaw'; 
+                    return p.type === 'warsaw'; // Only warsaw survives hit
                 }
                 for(let u of state.friendlyUnits) {
                     if(!u.dead && Math.hypot(p.x - u.x, p.y - u.y) < u.radius + 10) {
