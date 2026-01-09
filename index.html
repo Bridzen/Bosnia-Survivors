@@ -149,6 +149,13 @@
     .restart-btn { background: var(--danger); color:white; border:none; padding:20px 60px; font-size:24px; font-weight:900; cursor:pointer; font-family:'Orbitron'; clip-path:polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); transition:0.2s; box-shadow:0 0 15px var(--danger); margin-top:30px; text-transform:uppercase; letter-spacing: 2px; }
     .restart-btn:hover { transform:scale(1.05); background: white; color: var(--danger); }
     
+    /* CRATE SCREEN */
+    #crate-screen { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5, 5, 10, 0.98); z-index:3000; flex-direction:column; align-items:center; justify-content:center; }
+    #crate-anim { font-size: 150px; animation: shakeCrate 1s infinite; margin-bottom: 20px; }
+    @keyframes shakeCrate { 0% { transform: rotate(0deg); } 25% { transform: rotate(5deg); } 50% { transform: rotate(0deg); } 75% { transform: rotate(-5deg); } 100% { transform: rotate(0deg); } }
+    .claim-btn { background: var(--bosnia-yellow); color:black; border:none; padding:15px 40px; font-family:'Orbitron'; font-weight:900; font-size:24px; cursor:pointer; margin-top:30px; box-shadow: 0 0 20px var(--bosnia-yellow); animation: pulseBtn 1s infinite alternate; }
+    @keyframes pulseBtn { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
+
     canvas { display:block; position:absolute; top:0; left:0; z-index:1; }
 </style>
 </head>
@@ -167,6 +174,14 @@
 <div id="braxton-cutscene">
     <div id="taco-anim">🌮</div>
     <div class="dialogue-box" id="braxton-dialogue"></div>
+</div>
+
+<!-- CRATE LOOT SCREEN -->
+<div id="crate-screen">
+    <div id="crate-anim">📦</div>
+    <h1 style="font-family:'Orbitron'; color:var(--bosnia-yellow); text-shadow:0 0 20px var(--bosnia-yellow);">SUPPLY DROP</h1>
+    <div class="cards-container" id="crate-cards"></div>
+    <button class="claim-btn" onclick="claimCrateRewards()">CLAIM ALL</button>
 </div>
 
 <!-- MAIN MENU -->
@@ -352,12 +367,13 @@
     let gameActive = false;
     let isPaused = false;
     let isCutscene = false;
+    let crateRewards = []; // Store potential crate rewards
     
     let state = { 
         frames:0, gameTime:0, score:0, level:1, xp:0, nextLevelXp:20, xpMult:1, shake:0, 
         enemies:[], particles:[], projectiles:[], beams:[], zones:[], texts:[], gems:[], perks:[], backgroundStars:[], 
         bossActive:false, bossSpawnedOnce:false, braxtonSpawned:false, braxtonActive:false, flashAlpha:0,
-        friendlyUnits: [] 
+        friendlyUnits: [], crates: []
     };
     let player = { 
         x:0, y:0, hp:100, maxHp:100, speed:6, radius:20, magnetRadius:140, armor:0, regen:0, critChance:0.05, cdr:1.0, facing:0, 
@@ -506,6 +522,7 @@
         document.getElementById('admin-panel').style.display='none';
         document.getElementById('evolution-overlay').style.display='none';
         document.getElementById('braxton-cutscene').style.display='none';
+        document.getElementById('crate-screen').style.display='none';
         document.getElementById('main-menu').style.display='flex';
     }
 
@@ -514,6 +531,7 @@
         if(isCutscene) return;
         if(document.getElementById('levelup-screen').style.display === 'flex') return;
         if(document.getElementById('evolution-overlay').style.display === 'flex') return;
+        if(document.getElementById('crate-screen').style.display === 'flex') return;
         isPaused = !isPaused;
         document.getElementById('pause-screen').style.display = isPaused ? 'flex' : 'none';
         
@@ -572,7 +590,7 @@
             frames:0, gameTime:0, score:0, level:1, xp:0, nextLevelXp:20, xpMult:1, shake:0, 
             enemies:[], particles:[], projectiles:[], beams:[], zones:[], texts:[], gems:[], perks:[], backgroundStars:[],
             bossActive:false, bossSpawnedOnce:false, braxtonSpawned:false, braxtonActive:false, flashAlpha:0,
-            friendlyUnits: []
+            friendlyUnits: [], crates: []
         };
         initBackground();
         
@@ -603,6 +621,7 @@
         document.getElementById('admin-panel').style.display='none';
         document.getElementById('evolution-overlay').style.display='none';
         document.getElementById('braxton-cutscene').style.display='none';
+        document.getElementById('crate-screen').style.display='none';
         document.getElementById('ui-layer').style.display='flex';
         updateHud();
     }
@@ -1039,6 +1058,32 @@
             ctx.fillStyle = 'red'; ctx.fillRect(-20, -45, 40, 4);
             ctx.fillStyle = '#0f0'; ctx.fillRect(-20, -45, 40 * (this.durability/this.maxDurability), 4);
             ctx.restore();
+        }
+    }
+    
+    class Crate {
+        constructor(x, y) {
+            this.x = x; this.y = y;
+            this.bob = 0;
+            this.radius = 30;
+        }
+        update() {
+            this.bob += 0.1;
+            const dx = player.x - this.x, dy = player.y - this.y;
+            if(Math.hypot(dx, dy) < player.radius + this.radius) {
+                triggerCrateOpening();
+                return true; // Collected
+            }
+            return false;
+        }
+        draw(cX, cY) {
+            let yOff = Math.sin(this.bob) * 5;
+            ctx.font = "40px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle";
+            ctx.fillText("📦", this.x - cX, this.y - cY + yOff);
+            // Glow
+            ctx.beginPath(); ctx.arc(this.x - cX, this.y - cY + yOff + 5, 25, 0, 6.28);
+            ctx.strokeStyle = `rgba(254, 203, 0, ${0.5 + Math.sin(this.bob)*0.3})`;
+            ctx.lineWidth = 3; ctx.stroke();
         }
     }
 
@@ -1539,6 +1584,10 @@
                 return;
             } 
 
+            // GLOBAL UPDATES (Fixes Sniper Bug)
+            if(this.hitFlash > 0) this.hitFlash--;
+            this.pushX*=0.9; this.pushY*=0.9;
+
             if(this.type === 'BOSS') {
                 document.getElementById('boss-hud').style.display = 'flex';
                 document.getElementById('boss-name').innerText = "TURBO FOLK WARLORD";
@@ -1654,7 +1703,6 @@
                     this.x -= Math.cos(ang) * 1.0; this.y -= Math.sin(ang) * 1.0;
                     if(this.snajperTimer <= 0) this.state = 'move';
                 }
-                this.pushX*=0.9; this.pushY*=0.9;
                 return; 
             }
 
@@ -1687,7 +1735,7 @@
                 state.enemies.forEach(o=>{if(o!==this){let ox=this.x-o.x,oy=this.y-o.y,od=Math.sqrt(ox*ox+oy*oy);if(od<this.radius+o.radius){px+=ox/od;py+=oy/od;}}});
             }
             this.x+=(Math.cos(this.angle)*this.speed+px*0.5)+this.pushX; this.y+=(Math.sin(this.angle)*this.speed+py*0.5)+this.pushY; 
-            this.pushX*=0.9; this.pushY*=0.9; if(this.hitFlash>0)this.hitFlash--;
+            
             if(this.type==='yugo'&&state.frames%5===0)createParticle(this.x-Math.cos(this.angle)*35,this.y-Math.sin(this.angle)*35,'#333','smoke', 0.5);
         }
         
@@ -1714,8 +1762,14 @@
                      document.getElementById('boss-hud').style.display='none';
                      addShake(50); state.flashAlpha=1;
                      spawnDamageText(this.x, this.y-100, "BOSS DEFEATED", 'crit');
-                     for(let i=0; i<50; i++) state.gems.push(new Gem(this.x + (Math.random()-0.5)*200, this.y + (Math.random()-0.5)*200, 150));
-                     if(this.type === 'BRAXTON') { state.braxtonActive = false; }
+                     
+                     if(this.type === 'BRAXTON') { 
+                         state.braxtonActive = false;
+                         // SPAWN CRATE INSTEAD OF GEMS
+                         state.crates.push(new Crate(this.x, this.y));
+                     } else {
+                         for(let i=0; i<50; i++) state.gems.push(new Gem(this.x + (Math.random()-0.5)*200, this.y + (Math.random()-0.5)*200, 150));
+                     }
                 } 
                 else if(this.type==='MINI_BOSS') {
                      spawnDamageText(this.x, this.y-80, "MINI BOSS DOWN", 'crit');
@@ -1870,6 +1924,61 @@
                 }
             }, 1000);
         }, 2000);
+    }
+    
+    function triggerCrateOpening() {
+        if(document.getElementById('crate-screen').style.display === 'flex') return;
+        isPaused = true;
+        
+        // Generate 3 purely random rewards
+        crateRewards = [];
+        let available = [];
+        // Basic upgrades logic only to see what exists, ignoring tier
+        UPGRADES.forEach(u => {
+            let currentLvl = 0;
+            if(player.weapons[u.id]) currentLvl = player.weapons[u.id].level;
+            else if(player.items[u.id] !== undefined) currentLvl = player.items[u.id];
+            
+            // Allow duplicates in pool for randomness, just filter max level
+            if(currentLvl < (u.max || 10)) {
+                available.push(u);
+            }
+        });
+        
+        // Pick 3 random
+        for(let i=0; i<3; i++) {
+            if(available.length > 0) {
+                let r = Math.floor(Math.random() * available.length);
+                crateRewards.push(available[r]);
+            }
+        }
+        
+        const container = document.getElementById('crate-cards');
+        container.innerHTML = '';
+        crateRewards.forEach(o => {
+            const el=document.createElement('div'); el.className='card'; 
+            // Styling only, doesn't affect logic
+            if(o.tier === 'legendary') el.classList.add('legendary');
+            if(o.tier === 'rare') el.classList.add('rare');
+            
+            let lvlText = '';
+            if(player.weapons[o.id]) lvlText = 'Lvl ' + (player.weapons[o.id].level + 1);
+            else if(player.items[o.id] !== undefined) lvlText = 'Lvl ' + (player.items[o.id] + 1);
+            
+            el.innerHTML=`<div class="card-level">${lvlText}</div><div class="card-icon">${o.icon}</div><div class="card-name">${o.name}</div><div class="card-desc">${o.desc}</div>`;
+            container.appendChild(el);
+        });
+        
+        document.getElementById('crate-screen').style.display = 'flex';
+    }
+
+    function claimCrateRewards() {
+        crateRewards.forEach(r => {
+            applyUpgrade(r.id);
+        });
+        document.getElementById('crate-screen').style.display = 'none';
+        state.crates = []; // Remove crate
+        isPaused = false;
     }
 
     function updateHud(){ 
@@ -2116,6 +2225,7 @@
 
         state.gems=state.gems.filter(g=>!g.update()); state.zones=state.zones.filter(z=>!z.update()); state.perks=state.perks.filter(p=>p.update());
         state.beams=state.beams.filter(b=>b.update());
+        state.crates = state.crates.filter(c => !c.update());
         
         state.projectiles.forEach(p=>p.update()); 
         state.projectiles=state.projectiles.filter(p=>{
@@ -2140,7 +2250,16 @@
                         if(p.type === 'warsaw') hitDmg = 20;
                         
                         if(p.type !== 'warsaw') {
-                            if(player.invincible <= 0) player.hp -= hitDmg;
+                            // FIXED RANGED DAMAGE: Reduced invincible checks here
+                            // We deal damage regardless of standard collision invincibility to fix "no damage" bug
+                            // Or rather, we assume projectiles are dangerous.
+                            // To prevent instant-kill from shotguns, we apply a small cooldown, 
+                            // but simpler: just hit and set invincible.
+                            if(player.invincible <= 10) { // Small buffer
+                                player.hp -= hitDmg;
+                                spawnDamageText(player.x, player.y-60, hitDmg, 'player');
+                                player.invincible = 30; // Short invincible after projectile hit
+                            }
                         } else {
                              // WARSAW INTERNAL CD
                              if(p.hitCooldowns.length === 0) { 
@@ -2226,7 +2345,7 @@
                     if(!godMode) {
                         if(player.invincible <= 0) {
                             player.hp-=dmgAmt; 
-                            player.invincible = 180;
+                            player.invincible = 30; // REDUCED I-FRAMES (0.5s) to allow projectile damage to feel real
                             // Only spawn text if significant
                             if(dmgAmt > 1) spawnDamageText(player.x, player.y-60, "HIT!", 'normal');
                         }
@@ -2299,6 +2418,7 @@
         state.zones.forEach(z=>z.draw(cX,cY)); 
         state.gems.forEach(g=>g.draw(cX,cY)); 
         state.perks.forEach(p=>p.draw(cX,cY));
+        state.crates.forEach(c => c.draw(cX, cY));
         
         state.friendlyUnits.forEach(u => u.draw(cX, cY));
 
