@@ -621,9 +621,11 @@
     function spawnDamageText(x,y,dmg,type='normal'){ 
         let color = '#fff';
         let scale = 1.0;
+        let displayVal = (typeof dmg === 'number') ? Math.floor(dmg) : dmg;
+
         if(type === 'crit') { color = '#00f3ff'; scale = 2.0; }
-        if(type === 'player') { color = '#ff003c'; scale = 1.5; dmg = "-" + dmg; } 
-        state.texts.push({x:x+(Math.random()-0.5)*30,y:y,val:dmg,life:1,color:color,scale:scale,vy:-2}); 
+        if(type === 'player') { color = '#ff003c'; scale = 1.5; displayVal = "-" + displayVal; } 
+        state.texts.push({x:x+(Math.random()-0.5)*30,y:y,val:displayVal,life:1,color:color,scale:scale,vy:-2}); 
     }
     
     function addShake(amt){ state.shake=Math.min(state.shake+amt,30); }
@@ -1411,6 +1413,8 @@
                  this.type = overrideType || 'promaja';
             }
             
+            // --- INFERNO UPDATE SCALING ---
+            // BOSS HP FIXED AT 5000 NO MATTER WHAT
             if (this.type === 'BOSS') {
                 this.maxHp = 5000;
                 this.hp = 5000;
@@ -1419,12 +1423,14 @@
                 this.hp = 15000;
             } else {
                 let baseHp = 40;
+                // --- NERFED EARLY GAME HP ---
+                // Promaja starts much weaker (25 instead of 40)
                 if(this.type==='promaja') baseHp = 25 + state.level*1; 
                 else if(this.type==='yugo') baseHp = 180 + state.level*8;
                 else if(this.type==='hornet') baseHp = 20 + state.level*1;
-                else if(this.type==='snajper') baseHp = 10 + state.level*1; 
-                else if(this.type==='medic') baseHp = 300 + state.level*5; 
-                else if(this.type==='NOLAN') baseHp = 600; 
+                else if(this.type==='snajper') baseHp = 10 + state.level*1; // Low HP
+                else if(this.type==='medic') baseHp = 300 + state.level*5; // Tanky healer
+                else if(this.type==='NOLAN') baseHp = 600; // Fixed 600
                 else if(this.type==='MINI_BOSS') baseHp = 800 + state.level*100;
 
                 const minutes = state.gameTime / 60;
@@ -1448,14 +1454,15 @@
             this.burnTimer = 0; 
             this.burekHitTimer = 0;
 
+            // --- TYPE SPECIFIC STATS ---
             if(this.type==='BOSS') {
                 this.baseSpeed=2.5; this.radius=60; 
                 this.attackTimer = 150; this.damageCooldown = 0;
             } 
             else if(this.type==='BRAXTON') {
                 this.baseSpeed=1.8; this.radius=80;
-                this.attackTimer = 300; 
-                this.summonTimer = 600; 
+                this.attackTimer = 300; // Laser timer (5s)
+                this.summonTimer = 600; // Summon timer (10s)
                 this.damageCooldown = 0;
             }
             else if(this.type==='MINI_BOSS') {
@@ -1469,13 +1476,16 @@
             else if(this.type==='NOLAN'){this.baseSpeed=5.0; this.radius=20; this.attackTimer = 120;}
             else if(this.type==='snajper'){
                 this.baseSpeed=1.5; this.radius=15; 
-                this.state = 'move'; this.snajperTimer = 0;
+                this.state = 'move'; // move, charge, fire
+                this.snajperTimer = 0;
                 this.targetX = 0; this.targetY = 0;
             }
 
             this.speed = this.baseSpeed;
         }
         update(){
+            if(this.dead) return; 
+
             if(this.type === 'BOSS') {
                 document.getElementById('boss-hud').style.display = 'flex';
                 document.getElementById('boss-name').innerText = "TURBO FOLK WARLORD";
@@ -1497,6 +1507,7 @@
                 }
             }
 
+            // --- BOSS BEHAVIORS ---
             if((this.type === 'BOSS' || this.type === 'MINI_BOSS')) {
                 if(this.damageCooldown > 0) this.damageCooldown--;
                 this.attackTimer--;
@@ -1511,6 +1522,7 @@
             }
 
             if(this.type === 'BRAXTON') {
+                // Anti-Cheese Teleport
                 let dist = Math.hypot(player.x - this.x, player.y - this.y);
                 if(dist > 900) {
                     let angle = Math.random() * 6.28;
@@ -1519,28 +1531,35 @@
                     spawnDamageText(this.x, this.y-80, "TOO FAR!", 'normal');
                 }
 
+                // Summon Logic (Nolan)
                 this.summonTimer--;
                 if(this.summonTimer <= 0) {
-                    this.summonTimer = 600; 
+                    this.summonTimer = 600; // 10s
                     state.enemies.push(new Enemy('NOLAN', this.x + 50, this.y));
                     spawnDamageText(this.x, this.y-100, "SUMMON!", 'normal');
                 }
 
+                // TACO BLASTER LOGIC
                 this.attackTimer--;
                 if(this.attackTimer <= 0) {
-                    this.attackTimer = 300; 
+                    this.attackTimer = 300; // 5s
+                    // Spawn Taco Blaster near player
                     let randAng = Math.random() * 6.28;
                     let tx = player.x + Math.cos(randAng) * 250;
                     let ty = player.y + Math.sin(randAng) * 250;
+                    // Aim at player
                     let aimAng = Math.atan2(player.y - ty, player.x - tx);
+                    
                     state.zones.push(new Zone(tx, ty, 'taco_blaster', 120, {aimAngle: aimAng}));
                 }
 
+                // Contact Damage Cooldown
                 if(this.damageCooldown > 0) this.damageCooldown--;
             }
 
+            // --- MEDIC HEALING LOGIC ---
             if(this.type === 'medic') {
-                if(state.frames % 60 === 0) { 
+                if(state.frames % 60 === 0) { // Heal every second
                     let healCount = 0;
                     state.enemies.forEach(e => {
                         if(e !== this && e.type !== 'medic' && e.hp < e.maxHp && Math.hypot(e.x - this.x, e.y - this.y) < 200) {
@@ -1559,14 +1578,17 @@
                 return;
             }
             
+            // --- NOLAN LOGIC ---
             if(this.type === 'NOLAN') {
                 this.attackTimer--;
                 if(this.attackTimer <= 0) {
-                    this.attackTimer = 120; 
+                    this.attackTimer = 120; // 2s
+                    // WARSAW BLAST
                     state.projectiles.push(new Projectile(this.x, this.y, player, 'warsaw'));
                 }
             }
 
+            // --- SNAJPER LOGIC ---
             if(this.type === 'snajper') {
                 let dist = Math.hypot(player.x - this.x, player.y - this.y);
                 if(this.state === 'move') {
@@ -1592,21 +1614,30 @@
                 return; 
             }
 
+            // TARGETING LOGIC (Standard Enemies)
             let targetX = player.x, targetY = player.y;
+
             let taunter = state.friendlyUnits.find(u => u.taunting && !u.dead);
-            if(taunter) { targetX = taunter.x; targetY = taunter.y; } 
-            else {
-                let closestFriendly = null; let minFD = 999;
+            if(taunter) {
+                targetX = taunter.x; targetY = taunter.y;
+            } else {
+                let closestFriendly = null;
+                let minFD = 999;
                 state.friendlyUnits.forEach(u => {
                     if(!u.dead) {
+                        // Mage is less visible when invisible
                         if(u.type === 'mage' && u.invisibleTimer > 0) return;
+
                         let d = Math.hypot(u.x - this.x, u.y - this.y);
                         if(d < minFD) { minFD = d; closestFriendly = u; }
                     }
                 });
+
                 if(closestFriendly) {
                     let dPlayer = Math.hypot(player.x - this.x, player.y - this.y);
-                    if(minFD < dPlayer && dPlayer > 120) { targetX = closestFriendly.x; targetY = closestFriendly.y; }
+                    if(minFD < dPlayer && dPlayer > 120) {
+                        targetX = closestFriendly.x; targetY = closestFriendly.y;
+                    }
                     if(minFD < closestFriendly.radius + this.radius) {
                         let ang = Math.atan2(this.y - closestFriendly.y, this.x - closestFriendly.x);
                         this.x = closestFriendly.x + Math.cos(ang) * (closestFriendly.radius + this.radius);
@@ -1616,10 +1647,12 @@
             }
 
             let dx=targetX-this.x, dy=targetY-this.y, dist=Math.sqrt(dx*dx+dy*dy); this.angle=Math.atan2(dy,dx);
+            
             let px=0,py=0; 
             if(this.type !== 'BOSS' && this.type !== 'MINI_BOSS' && this.type !== 'BRAXTON') {
                 state.enemies.forEach(o=>{if(o!==this){let ox=this.x-o.x,oy=this.y-o.y,od=Math.sqrt(ox*ox+oy*oy);if(od<this.radius+o.radius){px+=ox/od;py+=oy/od;}}});
             }
+
             this.x+=(Math.cos(this.angle)*this.speed+px*0.5)+this.pushX; this.y+=(Math.sin(this.angle)*this.speed+py*0.5)+this.pushY; 
             this.pushX*=0.9; this.pushY*=0.9; if(this.hitFlash>0)this.hitFlash--;
             if(this.type==='yugo'&&state.frames%5===0)createParticle(this.x-Math.cos(this.angle)*35,this.y-Math.sin(this.angle)*35,'#333','smoke', 0.5);
@@ -1630,6 +1663,7 @@
                 if(this.damageCooldown > 0) return; 
                 this.damageCooldown = 5; 
             }
+
             this.hp-=a; this.hitFlash=5; spawnDamageText(this.x,this.y-30,a,crit); 
             let c='#880000';
             if(this.type==='yugo') c='#000';
@@ -1639,6 +1673,7 @@
             if(this.type==='snajper') c='#ff0000';
             if(this.type==='medic') c='#fff';
             if(this.type==='NOLAN') c='#fff';
+
             for(let i=0;i<3;i++)createParticle(this.x,this.y,c,'spark');
             
             if(this.hp<=0){ 
@@ -1649,25 +1684,32 @@
                      addShake(50); state.flashAlpha=1;
                      spawnDamageText(this.x, this.y-100, "BOSS DEFEATED", 'crit');
                      for(let i=0; i<50; i++) state.gems.push(new Gem(this.x + (Math.random()-0.5)*200, this.y + (Math.random()-0.5)*200, 150));
-                     if(this.type === 'BRAXTON') { state.braxtonActive = false; }
+                     
+                     if(this.type === 'BRAXTON') {
+                         state.braxtonActive = false;
+                     }
                 } 
                 else if(this.type==='MINI_BOSS') {
                      spawnDamageText(this.x, this.y-80, "MINI BOSS DOWN", 'crit');
                      for(let i=0; i<10; i++) state.gems.push(new Gem(this.x + (Math.random()-0.5)*100, this.y + (Math.random()-0.5)*100, 100));
                 }
-                else { state.gems.push(new Gem(this.x,this.y)); }
+                else {
+                     state.gems.push(new Gem(this.x,this.y)); 
+                }
                 for(let i=0;i<8;i++)createParticle(this.x,this.y,c,'blood',1.5); 
                 if(this.type==='yugo' || this.type==='BOSS'){addShake(5);for(let i=0;i<15;i++)createParticle(this.x,this.y,'#f39c12','fire',2);} 
             }
         }
         draw(cX,cY){
             ctx.save(); ctx.translate(this.x-cX,this.y-cY);
+            
             if(this.hitFlash>0){ 
                 ctx.globalCompositeOperation='lighter'; ctx.fillStyle='#fff';
                 ctx.beginPath();ctx.arc(0,0,this.radius,0,6.28);ctx.fill();
             } else {
                 if(this.type==='BOSS' || this.type==='MINI_BOSS'){
-                    ctx.rotate(state.frames*0.02); let scale = this.type==='BOSS' ? 1 : 0.6;
+                    ctx.rotate(state.frames*0.02);
+                    let scale = this.type==='BOSS' ? 1 : 0.6;
                     ctx.scale(scale, scale);
                     ctx.strokeStyle='#ff003c'; ctx.lineWidth=4;
                     ctx.beginPath(); ctx.moveTo(-30,-30); ctx.lineTo(30,-30); ctx.lineTo(0,30); ctx.closePath(); ctx.stroke();
@@ -1675,40 +1717,70 @@
                     ctx.fillStyle='#f00'; ctx.beginPath(); ctx.arc(0,0,10,0,6.28); ctx.fill();
                 }
                 else if(this.type==='BRAXTON'){
-                    ctx.fillStyle = '#ff5e00'; ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(40, 40); ctx.lineTo(-40, 40); ctx.fill();
+                    // Mexican Character
+                    // Poncho
+                    ctx.fillStyle = '#ff5e00';
+                    ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(40, 40); ctx.lineTo(-40, 40); ctx.fill();
+                    // Stripes
                     ctx.fillStyle = '#2ecc71'; ctx.fillRect(-20, 0, 40, 5);
                     ctx.fillStyle = '#fff'; ctx.fillRect(-30, 20, 60, 5);
-                    ctx.fillStyle = '#e67e22'; ctx.beginPath(); ctx.ellipse(0, -20, 60, 15, 0, 0, 6.28); ctx.fill(); 
-                    ctx.beginPath(); ctx.ellipse(0, -35, 20, 20, 0, 0, 6.28); ctx.fill(); 
+                    // Sombrero
+                    ctx.fillStyle = '#e67e22';
+                    ctx.beginPath(); ctx.ellipse(0, -20, 60, 15, 0, 0, 6.28); ctx.fill(); // Brim
+                    ctx.beginPath(); ctx.ellipse(0, -35, 20, 20, 0, 0, 6.28); ctx.fill(); // Top
                     ctx.strokeStyle = '#f1c40f'; ctx.lineWidth=3; ctx.stroke();
                 }
                 else if(this.type==='NOLAN'){
+                    // Poland Ball Style
                     ctx.beginPath(); ctx.arc(0, 0, 20, 0, 6.28); ctx.clip();
                     ctx.fillStyle = '#fff'; ctx.fillRect(-20, -20, 40, 20);
                     ctx.fillStyle = '#f00'; ctx.fillRect(-20, 0, 40, 20);
+                    // Eyes
                     ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-8, -5, 3, 0, 6.28); ctx.arc(8, -5, 3, 0, 6.28); ctx.fill();
                 }
                 else if(this.type==='snajper'){
-                    ctx.fillStyle = '#900'; ctx.fillRect(-15, -15, 30, 30);
-                    ctx.strokeStyle = '#f00'; ctx.lineWidth = 2; ctx.strokeRect(-15, -15, 30, 30);
+                    // Draw Square with Crosshair
+                    ctx.fillStyle = '#900';
+                    ctx.fillRect(-15, -15, 30, 30);
+                    ctx.strokeStyle = '#f00'; ctx.lineWidth = 2;
+                    ctx.strokeRect(-15, -15, 30, 30);
+                    
+                    // Draw Crosshair icon
                     ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(0, 10); ctx.moveTo(-10, 0); ctx.lineTo(10, 0); ctx.stroke();
+                    
                     if(this.state === 'charge') {
-                        ctx.save(); ctx.globalCompositeOperation = 'lighter';
-                        ctx.strokeStyle = `rgba(255, 0, 0, ${0.3 + Math.random()*0.4})`; ctx.lineWidth = 1;
-                        ctx.beginPath(); ctx.moveTo(0,0);
+                        // Draw Laser Line to Player
+                        ctx.save();
+                        ctx.globalCompositeOperation = 'lighter';
+                        ctx.strokeStyle = `rgba(255, 0, 0, ${0.3 + Math.random()*0.4})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(0,0);
                         let dx = player.x - this.x; let dy = player.y - this.y;
-                        ctx.lineTo(dx, dy); ctx.stroke(); ctx.restore();
-                        ctx.fillStyle = '#fff'; ctx.fillRect(-15, -25, 30 * (1 - this.snajperTimer/60), 5);
+                        ctx.lineTo(dx, dy);
+                        ctx.stroke();
+                        ctx.restore();
+                        
+                        // Charge Indicator
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(-15, -25, 30 * (1 - this.snajperTimer/60), 5);
                     }
                 }
                 else if(this.type==='medic'){
-                    ctx.fillStyle = '#fff'; ctx.fillRect(-20, -15, 40, 30);
-                    ctx.fillStyle = '#00ff41'; ctx.fillRect(-5, -10, 10, 20); ctx.fillRect(-15, -5, 30, 10);
-                    if(state.frames % 10 < 5) ctx.fillStyle = '#f00'; else ctx.fillStyle = '#00f'; ctx.fillRect(-15, -20, 10, 5);
-                    if(state.frames % 10 < 5) ctx.fillStyle = '#00f'; else ctx.fillStyle = '#f00'; ctx.fillRect(5, -20, 10, 5);
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(-20, -15, 40, 30);
+                    ctx.fillStyle = '#00ff41'; // Green Cross
+                    ctx.fillRect(-5, -10, 10, 20);
+                    ctx.fillRect(-15, -5, 30, 10);
+                    // Lightbar
+                    if(state.frames % 10 < 5) ctx.fillStyle = '#f00'; else ctx.fillStyle = '#00f';
+                    ctx.fillRect(-15, -20, 10, 5);
+                    if(state.frames % 10 < 5) ctx.fillStyle = '#00f'; else ctx.fillStyle = '#f00';
+                    ctx.fillRect(5, -20, 10, 5);
                 }
                 else if(this.type==='promaja'){ 
-                    ctx.rotate(state.frames*0.2); ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(200, 255, 255, 0.5)';
+                    ctx.rotate(state.frames*0.2); 
+                    ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(200, 255, 255, 0.5)';
                     ctx.strokeStyle = 'rgba(220, 240, 255, 0.8)'; ctx.lineWidth = 2;
                     ctx.beginPath(); ctx.arc(0, 0, 8, 0, 5); ctx.stroke();
                     ctx.rotate(2); ctx.beginPath(); ctx.arc(0, 0, 16, 0, 4.5); ctx.stroke();
@@ -1716,17 +1788,20 @@
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; ctx.beginPath(); ctx.arc(0,0,4,0,6.28); ctx.fill();
                 }
                 else if(this.type==='yugo'){ 
-                    ctx.rotate(this.angle); ctx.fillStyle='#800000'; ctx.fillRect(-20,-15,40,30);
+                    ctx.rotate(this.angle);
+                    ctx.fillStyle='#800000'; ctx.fillRect(-20,-15,40,30);
                     ctx.fillStyle='#300000'; ctx.fillRect(-5,-13,20,26);
                     ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle='rgba(255, 255, 200, 0.4)';
                     ctx.beginPath(); ctx.moveTo(20,-10); ctx.lineTo(120,-30); ctx.lineTo(120,30); ctx.lineTo(20,10); ctx.fill();
                     ctx.fillStyle='#ff0'; ctx.fillRect(18,-12,4,6); ctx.fillRect(18,6,4,6);
                 }
                 else{ 
-                    ctx.rotate(this.angle+1.57); ctx.fillStyle='rgba(255,255,255,0.6)'; 
+                    ctx.rotate(this.angle+1.57);
+                    ctx.fillStyle='rgba(255,255,255,0.6)'; 
                     let flap = Math.sin(state.frames*0.8)*5;
                     ctx.beginPath(); ctx.ellipse(8+flap, -5, 5, 12, 0.5, 0, 6.28); ctx.beginPath(); ctx.ellipse(-8-flap, -5, 5, 12, -0.5, 0, 6.28); ctx.fill();
-                    ctx.fillStyle='#f1c40f'; ctx.beginPath(); ctx.ellipse(0, 0, 8, 14, 0, 0, 6.28); ctx.fill();
+                    ctx.fillStyle='#f1c40f';
+                    ctx.beginPath(); ctx.ellipse(0, 0, 8, 14, 0, 0, 6.28); ctx.fill();
                     ctx.fillStyle='#000'; ctx.fillRect(-6, -2, 12, 2); ctx.fillRect(-6, 4, 12, 2);
                     ctx.fillStyle='#f00'; ctx.beginPath(); ctx.moveTo(0,14); ctx.lineTo(2,20); ctx.lineTo(-2,20); ctx.fill();
                 }
