@@ -121,7 +121,9 @@
     .pause-item span { font-family: 'Rajdhani'; font-size: 18px; color: var(--bosnia-yellow); }
 
     .cards-container { display:flex; gap:25px; margin-top:30px; flex-wrap:wrap; justify-content:center; max-width:1200px;perspective: 1000px; }
-    .card { background:linear-gradient(170deg, #0a0a15 0%, #101025 100%); border:1px solid #333; width:220px; height:380px; border-radius:2px; padding:20px; cursor:pointer; transition:0.3s; display:flex; flex-direction:column; align-items:center; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.8); position:relative; overflow:hidden; clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px); }
+    .card { background:linear-gradient(170deg, #0a0a15 0%, #101025 100%); border:1px solid #333; width:220px; height:380px; border-radius:2px; padding:20px; cursor:pointer; transition:0.3s; display:flex; flex-direction:column; align-items:center; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.8); position:relative; overflow:hidden; clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px); opacity: 0; animation: cardFadeIn 0.5s forwards;}
+    @keyframes cardFadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
     .card:hover { transform:translateY(-10px); border-color:var(--bosnia-yellow); z-index: 10; }
     .card:hover .card-icon { transform: scale(1.1); }
     .card::after { content:''; position: absolute; top:0; left:0; width:100%; height:4px; background: var(--bosnia-yellow); }
@@ -151,9 +153,18 @@
     
     /* CRATE SCREEN */
     #crate-screen { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5, 5, 10, 0.98); z-index:3000; flex-direction:column; align-items:center; justify-content:center; }
-    #crate-anim { font-size: 150px; animation: shakeCrate 1s infinite; margin-bottom: 20px; }
-    @keyframes shakeCrate { 0% { transform: rotate(0deg); } 25% { transform: rotate(5deg); } 50% { transform: rotate(0deg); } 75% { transform: rotate(-5deg); } 100% { transform: rotate(0deg); } }
-    .claim-btn { background: var(--bosnia-yellow); color:black; border:none; padding:15px 40px; font-family:'Orbitron'; font-weight:900; font-size:24px; cursor:pointer; margin-top:30px; box-shadow: 0 0 20px var(--bosnia-yellow); animation: pulseBtn 1s infinite alternate; }
+    #crate-anim { font-size: 150px; margin-bottom: 20px; transition: transform 0.1s; }
+    
+    /* Crate Animation Classes */
+    .crate-drop { animation: crateDropIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    @keyframes crateDropIn { 0% { transform: translateY(-500px) scale(0.1); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+    
+    .crate-shake { animation: crateShakeViolent 0.5s linear infinite; }
+    @keyframes crateShakeViolent { 0% { transform: translate(0, 0) rotate(0deg); } 25% { transform: translate(-10px, 10px) rotate(-10deg); } 50% { transform: translate(10px, -10px) rotate(10deg); } 75% { transform: translate(-10px, -10px) rotate(-10deg); } 100% { transform: translate(0, 0) rotate(0deg); } }
+
+    #white-flash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; opacity: 0; pointer-events: none; z-index: 3001; transition: opacity 0.5s; }
+
+    .claim-btn { background: var(--bosnia-yellow); color:black; border:none; padding:15px 40px; font-family:'Orbitron'; font-weight:900; font-size:24px; cursor:pointer; margin-top:30px; box-shadow: 0 0 20px var(--bosnia-yellow); animation: pulseBtn 1s infinite alternate; opacity: 0; transition: opacity 0.5s; }
     @keyframes pulseBtn { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
 
     canvas { display:block; position:absolute; top:0; left:0; z-index:1; }
@@ -178,10 +189,11 @@
 
 <!-- CRATE LOOT SCREEN -->
 <div id="crate-screen">
+    <div id="white-flash"></div>
     <div id="crate-anim">📦</div>
-    <h1 style="font-family:'Orbitron'; color:var(--bosnia-yellow); text-shadow:0 0 20px var(--bosnia-yellow);">SUPPLY DROP</h1>
+    <h1 id="crate-title" style="font-family:'Orbitron'; color:var(--bosnia-yellow); text-shadow:0 0 20px var(--bosnia-yellow); opacity:0; transition:opacity 0.5s;">SUPPLY DROP</h1>
     <div class="cards-container" id="crate-cards"></div>
-    <button class="claim-btn" onclick="claimCrateRewards()">CLAIM ALL</button>
+    <button class="claim-btn" id="crate-claim-btn" onclick="claimCrateRewards()">CLAIM ALL</button>
 </div>
 
 <!-- MAIN MENU -->
@@ -400,6 +412,12 @@
     }); 
     window.addEventListener('keyup', e=>keys[e.key.toLowerCase()]=false);
 
+    function triggerDeath() {
+        document.getElementById('final-score').innerText=state.score;
+        document.getElementById('game-over').style.display='flex';
+        gameActive=false;
+    }
+
     function openAdmin(){
         if(!gameActive) return;
         populateAdminSelect();
@@ -604,7 +622,7 @@
                 rakija: { level:0, cooldown:190, baseCool:190, timer:0, damage:4, duration:300 }, 
                 pyramid: { level:0, cooldown:110, baseCool:110, timer:0, damage:50, evolved:false },
                 spike: { level:0, cooldown:180, baseCool:180, timer:0, damage:60 }, 
-                flag: { level:0, cooldown:60, baseCool:60, count:1, timer:0 },
+                flag: { level:0, cooldown:240, baseCool:240, count:1, timer:0 },
                 harmonika: { level:0, range:240, slow:0.30 },
                 serbian: { level:0, path: 0, evolved: false }
             },
@@ -1336,6 +1354,7 @@
                                  player.hp -= 20; 
                                  spawnDamageText(player.x, player.y-50, "20", 'player');
                                  addShake(5);
+                                 if(player.hp <= 0) triggerDeath();
                              }
                         }
                     }
@@ -1930,7 +1949,48 @@
         if(document.getElementById('crate-screen').style.display === 'flex') return;
         isPaused = true;
         
-        // Generate 3 purely random rewards
+        // Reset UI Elements
+        const screen = document.getElementById('crate-screen');
+        const anim = document.getElementById('crate-anim');
+        const cardsDiv = document.getElementById('crate-cards');
+        const btn = document.getElementById('crate-claim-btn');
+        const title = document.getElementById('crate-title');
+        const flash = document.getElementById('white-flash');
+        
+        cardsDiv.innerHTML = '';
+        btn.style.opacity = '0';
+        title.style.opacity = '0';
+        anim.style.display = 'block';
+        anim.style.transform = 'scale(1)';
+        
+        screen.style.display = 'flex';
+        
+        // Animation Sequence
+        // 1. Drop In
+        anim.className = 'crate-drop';
+        
+        setTimeout(() => {
+            // 2. Shake
+            anim.className = 'crate-shake';
+            
+            setTimeout(() => {
+                // 3. Flash & Explode
+                flash.style.opacity = '1';
+                setTimeout(() => { flash.style.opacity = '0'; }, 500);
+                anim.style.display = 'none';
+                
+                // 4. Reveal
+                title.style.opacity = '1';
+                btn.style.opacity = '1';
+                
+                // Generate Loot
+                generateCrateLoot();
+                
+            }, 1000); // Shake duration
+        }, 500); // Drop duration
+    }
+
+    function generateCrateLoot() {
         crateRewards = [];
         let available = [];
         // Basic upgrades logic only to see what exists, ignoring tier
@@ -1954,7 +2014,6 @@
         }
         
         const container = document.getElementById('crate-cards');
-        container.innerHTML = '';
         crateRewards.forEach(o => {
             const el=document.createElement('div'); el.className='card'; 
             // Styling only, doesn't affect logic
@@ -1968,8 +2027,6 @@
             el.innerHTML=`<div class="card-level">${lvlText}</div><div class="card-icon">${o.icon}</div><div class="card-name">${o.name}</div><div class="card-desc">${o.desc}</div>`;
             container.appendChild(el);
         });
-        
-        document.getElementById('crate-screen').style.display = 'flex';
     }
 
     function claimCrateRewards() {
@@ -2250,15 +2307,13 @@
                         if(p.type === 'warsaw') hitDmg = 20;
                         
                         if(p.type !== 'warsaw') {
-                            // FIXED RANGED DAMAGE: Reduced invincible checks here
-                            // We deal damage regardless of standard collision invincibility to fix "no damage" bug
-                            // Or rather, we assume projectiles are dangerous.
-                            // To prevent instant-kill from shotguns, we apply a small cooldown, 
-                            // but simpler: just hit and set invincible.
-                            if(player.invincible <= 10) { // Small buffer
+                            // FIXED RANGED DAMAGE LOGIC
+                            // Apply damage immediately and check for death
+                            if(player.invincible <= 10) { 
                                 player.hp -= hitDmg;
                                 spawnDamageText(player.x, player.y-60, hitDmg, 'player');
-                                player.invincible = 30; // Short invincible after projectile hit
+                                player.invincible = 30; 
+                                if(player.hp <= 0) triggerDeath();
                             }
                         } else {
                              // WARSAW INTERNAL CD
@@ -2267,6 +2322,7 @@
                                      player.hp -= hitDmg;
                                      spawnDamageText(player.x, player.y-40, "20", 'player');
                                      p.hitCooldowns.push(20); 
+                                     if(player.hp <= 0) triggerDeath();
                                  }
                                  return true; 
                              }
@@ -2341,24 +2397,28 @@
                         spawnDamageText(player.x, player.y-60, "60", 'player');
                     }
                 } else {
-                    let dmgAmt = (e.type==='BOSS' || e.type==='MINI_BOSS') ? 2 : (Math.max(0.1,((e.type==='yugo'?1:0.4)-(player.armor*0.05))));
+                    // FIXED MELEE DAMAGE LOGIC
+                    let baseDmg = 5;
+                    if(e.type === 'yugo') baseDmg = 15;
+                    if(e.type === 'hornet') baseDmg = 3;
+                    if(e.type === 'medic') baseDmg = 4;
+                    if(e.type === 'BOSS' || e.type === 'MINI_BOSS') baseDmg = 20;
+                    
+                    // Simple armor formula: Flat reduction, min 1
+                    let dmgAmt = Math.max(1, baseDmg - player.armor);
+
                     if(!godMode) {
                         if(player.invincible <= 0) {
-                            player.hp-=dmgAmt; 
-                            player.invincible = 30; // REDUCED I-FRAMES (0.5s) to allow projectile damage to feel real
-                            // Only spawn text if significant
-                            if(dmgAmt > 1) spawnDamageText(player.x, player.y-60, "HIT!", 'normal');
+                            player.hp -= dmgAmt; 
+                            player.invincible = 30; // 0.5s I-frames
+                            spawnDamageText(player.x, player.y-60, dmgAmt, 'normal');
                         }
                     }
                     addShake(2); 
                 }
                 
                 updateHud(); 
-                if(player.hp<=0){
-                    document.getElementById('final-score').innerText=state.score;
-                    document.getElementById('game-over').style.display='flex';
-                    gameActive=false;
-                } 
+                if(player.hp<=0) triggerDeath();
             }
 
             state.friendlyUnits.forEach(u => {
