@@ -361,7 +361,7 @@
     };
     let player = { 
         x:0, y:0, hp:100, maxHp:100, speed:6, radius:20, magnetRadius:140, armor:0, regen:0, critChance:0.05, cdr:1.0, facing:0, 
-        luck: 1.0, visible: true,
+        luck: 1.0, visible: true, invincible: 0,
         weapons:{},
         items:{} 
     };
@@ -578,7 +578,7 @@
         
         player = { 
             x:W/2, y:H/2, hp:100, maxHp:100, speed:6, radius:20, magnetRadius:140, armor:0, regen:0, critChance:0.05, cdr:1.0, facing:0, 
-            luck: 1.0, visible: true,
+            luck: 1.0, visible: true, invincible: 0,
             weapons:{
                 burek: { level:1, count:1, damage:10, dist:100, speed:0.02, evolved:false, orbs:[], trailTimer:0 },
                 cevapi: { level:1, cooldown:30, baseCool:30, timer:0, damage:15 }, 
@@ -725,11 +725,12 @@
             let distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
             
             // --- SQUAD SOLDIER LOGIC FIX (LEASH) ---
-            if(distToPlayer > 300 && this.type === 'soldier' && player.weapons.serbian.path === 2) {
-                 // Force move to player if too far (Squad Member)
+            if(distToPlayer > 250 && this.type === 'soldier' && player.weapons.serbian.path === 2) {
+                 // Force move to player if too far (Squad Member), reduced leash to 250
                  let ang = Math.atan2(player.y - this.y, player.x - this.x);
-                 moveX = Math.cos(ang) * 2;
-                 moveY = Math.sin(ang) * 2;
+                 // Faster return speed (multiplier 2.0 -> 7px/frame)
+                 moveX = Math.cos(ang) * 2.0;
+                 moveY = Math.sin(ang) * 2.0;
             } 
             else if(distToPlayer > 800) {
                  let ang = Math.atan2(player.y - this.y, player.x - this.x);
@@ -1106,15 +1107,29 @@
     }
 
     class Beam {
-        constructor(x, y, angle) {
-            this.x = x; this.y = y; this.angle = angle;
+        constructor(x, y, angle, type='default') {
+            this.x = x; this.y = y; this.angle = angle; this.type=type;
             this.life = 15; this.maxLife = 15; this.length = 1200;
+            if(type === 'heal') { this.length = 200; this.life = 5; this.maxLife = 5; } // Shorter beam for medic
         }
         update() { this.life--; return this.life > 0; }
         draw(cX, cY) {
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
             const opacity = this.life / this.maxLife;
+            
+            if(this.type === 'heal') {
+                ctx.strokeStyle = `rgba(0, 255, 65, ${opacity})`;
+                ctx.lineWidth = 5 * opacity;
+                ctx.beginPath();
+                ctx.moveTo(this.x - cX, this.y - cY);
+                // Draw to length or target if we had one, assume length for now
+                ctx.lineTo((this.x - cX) + Math.cos(this.angle) * this.length, (this.y - cY) + Math.sin(this.angle) * this.length);
+                ctx.stroke();
+                ctx.restore();
+                return;
+            }
+
             ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
             ctx.lineWidth = 40 * opacity;
             ctx.beginPath();
@@ -1595,6 +1610,8 @@
                         if(e !== this && e.type !== 'medic' && e.hp < e.maxHp && Math.hypot(e.x - this.x, e.y - this.y) < 200) {
                             e.hp = Math.min(e.maxHp, e.hp + 50);
                             createParticle(e.x, e.y, '#00ff41', 'heal', 2);
+                            let ang = Math.atan2(e.y - this.y, e.x - this.x);
+                            state.beams.push(new Beam(this.x, this.y, ang, 'heal')); // VISUAL BEAM
                             healCount++;
                         }
                     });
@@ -1710,7 +1727,7 @@
             }
         }
         draw(cX,cY){
-            if(this.dead) return; // FIX: Don't draw if dead (fixes lingering boss bar issue potentially)
+            if(this.dead) return; 
             ctx.save(); ctx.translate(this.x-cX,this.y-cY);
             if(this.hitFlash>0){ 
                 ctx.globalCompositeOperation='lighter'; ctx.fillStyle='#fff';
@@ -1739,23 +1756,32 @@
                     ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(-8, -5, 3, 0, 6.28); ctx.arc(8, -5, 3, 0, 6.28); ctx.fill();
                 }
                 else if(this.type==='snajper'){
-                    ctx.fillStyle = '#900'; ctx.fillRect(-15, -15, 30, 30);
-                    ctx.strokeStyle = '#f00'; ctx.lineWidth = 2; ctx.strokeRect(-15, -15, 30, 30);
-                    ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(0, 10); ctx.moveTo(-10, 0); ctx.lineTo(10, 0); ctx.stroke();
+                    // NEW SNIPER MODEL
+                    let aim = Math.atan2(player.y - this.y, player.x - this.x);
+                    ctx.rotate(aim);
+                    ctx.fillStyle = '#343'; ctx.beginPath(); ctx.arc(0, 0, 12, 0, 6.28); ctx.fill(); // Body
+                    ctx.fillStyle = '#111'; ctx.fillRect(0, -3, 22, 6); // Gun barrel
+                    ctx.strokeStyle = '#555'; ctx.lineWidth = 2; ctx.strokeRect(-5, -3, 10, 6); // Gun body
                     if(this.state === 'charge') {
+                        ctx.fillStyle = '#f00'; ctx.beginPath(); ctx.arc(0, 0, 2, 0, 6.28); ctx.fill(); // Laser eye
+                        // Laser sight
                         ctx.save(); ctx.globalCompositeOperation = 'lighter';
                         ctx.strokeStyle = `rgba(255, 0, 0, ${0.3 + Math.random()*0.4})`; ctx.lineWidth = 1;
                         ctx.beginPath(); ctx.moveTo(0,0);
                         let dx = player.x - this.x; let dy = player.y - this.y;
-                        ctx.lineTo(dx, dy); ctx.stroke(); ctx.restore();
-                        ctx.fillStyle = '#fff'; ctx.fillRect(-15, -25, 30 * (1 - this.snajperTimer/60), 5);
+                        let dist = Math.sqrt(dx*dx+dy*dy);
+                        ctx.lineTo(dist, 0); ctx.stroke(); ctx.restore();
+                        ctx.fillStyle = '#fff'; ctx.fillRect(-15, -20, 30 * (1 - this.snajperTimer/60), 3); // Charge bar
                     }
                 }
                 else if(this.type==='medic'){
-                    ctx.fillStyle = '#fff'; ctx.fillRect(-20, -15, 40, 30);
-                    ctx.fillStyle = '#00ff41'; ctx.fillRect(-5, -10, 10, 20); ctx.fillRect(-15, -5, 30, 10);
-                    if(state.frames % 10 < 5) ctx.fillStyle = '#f00'; else ctx.fillStyle = '#00f'; ctx.fillRect(-15, -20, 10, 5);
-                    if(state.frames % 10 < 5) ctx.fillStyle = '#00f'; else ctx.fillStyle = '#f00'; ctx.fillRect(5, -20, 10, 5);
+                    // NEW MEDIC MODEL
+                    ctx.rotate(this.angle + 1.57);
+                    ctx.fillStyle = '#eee'; ctx.beginPath(); ctx.arc(0, 0, 14, 0, 6.28); ctx.fill(); // Body
+                    ctx.fillStyle = '#0f0'; ctx.font="bold 16px Arial"; ctx.fillText('+', -5, 5); // Cross
+                    ctx.fillStyle = '#ccc'; ctx.fillRect(8, -5, 8, 10); // Healing Gun
+                    ctx.fillStyle = '#0f0'; ctx.fillRect(16, -2, 4, 4); // Gun Tip
+                    // Healing beam is drawn in update loop
                 }
                 else if(this.type==='promaja'){ 
                     ctx.rotate(state.frames*0.2); ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(200, 255, 255, 0.5)';
@@ -1773,9 +1799,11 @@
                     ctx.fillStyle='#ff0'; ctx.fillRect(18,-12,4,6); ctx.fillRect(18,6,4,6);
                 }
                 else{ 
+                    // HORNET - FIX WINGS
                     ctx.rotate(this.angle+1.57); ctx.fillStyle='rgba(255,255,255,0.6)'; 
                     let flap = Math.sin(state.frames*0.8)*5;
-                    ctx.beginPath(); ctx.ellipse(8+flap, -5, 5, 12, 0.5, 0, 6.28); ctx.beginPath(); ctx.ellipse(-8-flap, -5, 5, 12, -0.5, 0, 6.28); ctx.fill();
+                    ctx.beginPath(); ctx.ellipse(8+flap, -5, 5, 12, 0.5, 0, 6.28); ctx.fill(); // Wing 1
+                    ctx.beginPath(); ctx.ellipse(-8-flap, -5, 5, 12, -0.5, 0, 6.28); ctx.fill(); // Wing 2
                     ctx.fillStyle='#f1c40f'; ctx.beginPath(); ctx.ellipse(0, 0, 8, 14, 0, 0, 6.28); ctx.fill();
                     ctx.fillStyle='#000'; ctx.fillRect(-6, -2, 12, 2); ctx.fillRect(-6, 4, 12, 2);
                     ctx.fillStyle='#f00'; ctx.beginPath(); ctx.moveTo(0,14); ctx.lineTo(2,20); ctx.lineTo(-2,20); ctx.fill();
@@ -1991,6 +2019,9 @@
             player.y+=(my/l)*player.speed; 
             player.facing = Math.atan2(my, mx); 
         }
+        
+        // INVINCIBILITY DECAY
+        if(player.invincible > 0) player.invincible--;
 
         if(player.regen>0 && state.frames%60===0 && player.hp<player.maxHp){ player.hp=Math.min(player.maxHp, player.hp+player.regen); updateHud(); spawnDamageText(player.x,player.y-50,player.regen,true); }
 
@@ -2193,10 +2224,11 @@
                 } else {
                     let dmgAmt = (e.type==='BOSS' || e.type==='MINI_BOSS') ? 2 : (Math.max(0.1,((e.type==='yugo'?1:0.4)-(player.armor*0.05))));
                     if(!godMode) {
-                        player.hp-=dmgAmt; 
                         if(player.invincible <= 0) {
+                            player.hp-=dmgAmt; 
                             player.invincible = 180;
-                            spawnDamageText(player.x, player.y-60, "INVISIBLE!", 'normal');
+                            // Only spawn text if significant
+                            if(dmgAmt > 1) spawnDamageText(player.x, player.y-60, "HIT!", 'normal');
                         }
                     }
                     addShake(2); 
