@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bosnian Survivors: FLAG UPDATE + LOVAC</title>
+<title>Bosnian Survivors: ROSTILJ UPDATE</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
     :root { 
@@ -202,7 +202,7 @@
     <div id="balance-scale-bg">⚖️</div>
     <div class="title-container">
         <h1 class="title-glitch">BOSNIAN<br><span style="color:var(--bosnia-yellow)">SURVIVORS</span></h1>
-        <div class="subtitle">FLAG UPDATE</div>
+        <div class="subtitle">ROSTILJ UPDATE</div>
     </div>
     <div style="height:60px;"></div>
     <button class="menu-btn" onclick="startGame()">DEPLOY</button>
@@ -354,6 +354,7 @@
     const EVOLUTIONS = [
         {id:'burek_evo',base:'burek',name:'RING OF FIRE',icon:'🔥',desc:'EVOLUTION: Massive permanent fire zone. 2x Radius. Burns ALL enemies constantly.', tier:'rare'},
         {id:'pyramid_evo',base:'pyramid',name:'SOLAR FLARE',icon:'☀️',desc:'EVOLUTION: Instantly blasts enemies with a massive laser beam.', tier:'rare'},
+        {id:'cevapi_evo',base:'cevapi',name:'ROSTILJ MASTER',icon:'🍖',desc:'EVO: Summons an orbiting grill. Shoots 3 Cevapi/sec. Every 100 kills: OVERHEAT BURST (Percent Burn).', tier:'rare'},
         {id:'serbian_p1', base:'serbian', name:'PATH 1: TITAN SWORD', icon:'🗡️', desc:'LVL 2: Bigger Sword. Higher Damage. Same AI.', tier:'legendary', req:'serbian'},
         {id:'serbian_p2', base:'serbian', name:'PATH 2: TACTICAL SQUAD', icon:'👥', desc:'LVL 2: Splits into 3 Units: Soldier, Defender, Mage.', tier:'legendary', req:'serbian'},
         {id:'serbian_p3', base:'serbian', name:'PATH 3: VANGUARD', icon:'🛡️', desc:'LVL 2: Sword & Shield Unit. 20 Durability. Tanky.', tier:'legendary', req:'serbian'},
@@ -364,7 +365,8 @@
     
     const SUPERCHARGES = [
         {id:'supercharge_burek', name:'SUPERCHARGE: MAGMA', icon:'🌋', desc:'Increases Burn Damage.', tier:'legendary'},
-        {id:'supercharge_pyramid', name:'SUPERCHARGE: SOLAR', icon:'🔥', desc:'+20% Damage for Solar Flare.', tier:'legendary'}
+        {id:'supercharge_pyramid', name:'SUPERCHARGE: SOLAR', icon:'🔥', desc:'+20% Damage for Solar Flare.', tier:'legendary'},
+        {id:'supercharge_cevapi', name:'SUPERCHARGE: COAL', icon:'🥩', desc:'+1 Burn Tick Duration for Overheat Cevapis.', tier:'legendary'}
     ];
 
     const ENEMY_INFO = [
@@ -620,7 +622,7 @@
             luck: 1.0, visible: true, invincible: 0,
             weapons:{
                 burek: { level:1, count:1, damage:10, dist:100, speed:0.02, evolved:false, orbs:[], trailTimer:0 },
-                cevapi: { level:1, cooldown:30, baseCool:30, timer:0, damage:15 }, 
+                cevapi: { level:1, cooldown:30, baseCool:30, timer:0, damage:15, evolved:false, grillAngle:0, lastBurstScore:0, burnCount:25 }, 
                 ajvar: { level:0, cooldown:140, baseCool:140, timer:0, damage:80 },
                 rakija: { level:0, cooldown:190, baseCool:190, timer:0, damage:4, duration:300 }, 
                 pyramid: { level:0, cooldown:110, baseCool:110, timer:0, damage:50, evolved:false },
@@ -704,7 +706,7 @@
             this.taunting = false;
             this.tauntTimer = 0;
             this.tauntCooldown = 0;
-            this.invisibleTimer = 0; // NEW for Mage
+            this.invisibleTimer = 0; 
 
             if(type === 'soldier') { this.maxDurability = 10; }
             if(type === 'titan') { this.baseDamage = 75; }
@@ -764,20 +766,22 @@
             let moveX = 0, moveY = 0;
             let distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
             
-            // --- SQUAD SOLDIER LOGIC FIX (RUN BACK IF FAR) ---
-            // If the soldier is part of the elite squad (path 2) and gets > 3000px away
-            if(this.type === 'soldier' && player.weapons.serbian.path === 2 && distToPlayer > 3000) {
-                 // Force Run Back Mode
+            // --- SQUAD SOLDIER LOGIC: 12000px LEASH ---
+            if(this.type === 'soldier' && player.weapons.serbian.path === 2 && distToPlayer > 12000) {
+                 // Return to player if absurdly far
                  let ang = Math.atan2(player.y - this.y, player.x - this.x);
-                 // Huge speed boost to catch up
                  moveX = Math.cos(ang) * 5.0; 
                  moveY = Math.sin(ang) * 5.0;
             } 
-            // Standard Leash
             else if(distToPlayer > 250 && this.type === 'soldier' && player.weapons.serbian.path === 2) {
-                 let ang = Math.atan2(player.y - this.y, player.x - this.x);
-                 moveX = Math.cos(ang) * 2.0;
-                 moveY = Math.sin(ang) * 2.0;
+                 // No leash logic, free roam until 12000
+                 if(target) {
+                     let ang = Math.atan2(target.y - this.y, target.x - this.x);
+                     moveX = Math.cos(ang); moveY = Math.sin(ang);
+                 } else {
+                     // Wander
+                     moveX = (Math.random()-0.5); moveY = (Math.random()-0.5);
+                 }
             } 
             else if(distToPlayer > 800) {
                  let ang = Math.atan2(player.y - this.y, player.x - this.x);
@@ -1249,7 +1253,8 @@
             }
 
             let a=target?Math.atan2(target.y-y,target.x-x):Math.random()*6.28;
-            if(type==='cevapi'){this.speed=14;this.radius=8;} 
+            if(type==='cevapi'){this.speed=14;this.radius=8;}
+            else if(type==='cevapi_hot'){this.speed=14;this.radius=10;} 
             else if(type==='ajvar'){this.speed=8;this.radius=10;}
             else if(type==='rakija'){this.speed=10;this.radius=8;} 
             else if(type==='pyramid'){this.speed=7;this.radius=25;this.life=300;this.pierce=true;}
@@ -1284,6 +1289,7 @@
             if(state.frames%2===0){ 
                 if(this.type==='pyramid')createParticle(this.x,this.y,'#2ecc71','spark',0.1); 
                 if(this.type==='cevapi')createParticle(this.x,this.y,'#8b4513','smoke',0.2); 
+                if(this.type==='cevapi_hot')createParticle(this.x,this.y,'#ff4500','smoke',0.4); 
             }
             if(this.type==='ajvar'||this.type==='rakija'){ this.vx*=0.96;this.vy*=0.96;this.rotation=this.vx*0.2; if(this.life<100 && Math.abs(this.vx)<1)this.explode(); }
         }
@@ -1324,6 +1330,13 @@
                     ctx.fillStyle='#6d4c41'; ctx.beginPath(); ctx.roundRect(-8, i*5-2, 16, 4, 2); ctx.fill();
                     ctx.fillStyle='#3e2723'; ctx.fillRect(-4, i*5-2, 2, 4); ctx.fillRect(2, i*5-2, 2, 4);
                 }
+            }
+            else if(this.type==='cevapi_hot'){ 
+                for(let i=-1;i<=1;i++) {
+                    ctx.fillStyle='#800000'; ctx.beginPath(); ctx.roundRect(-8, i*5-2, 16, 4, 2); ctx.fill();
+                    ctx.fillStyle='#ff4500'; ctx.fillRect(-4, i*5-2, 2, 4); ctx.fillRect(2, i*5-2, 2, 4);
+                }
+                ctx.shadowColor = '#f00'; ctx.shadowBlur = 10;
             }
             else if(this.type==='ajvar'){ 
                 ctx.fillStyle='#c0392b';ctx.beginPath();ctx.arc(0,0,10,0,6.28);ctx.fill();
@@ -1577,6 +1590,7 @@
             this.pushX = 0; this.pushY = 0;
             this.burnTimer = 0; 
             this.burekHitTimer = 0;
+            this.percentBurnLeft = 0; 
 
             if(this.type==='BOSS') {
                 this.baseSpeed=2.5; this.radius=60; 
@@ -1643,6 +1657,16 @@
                     this.takeDamage(5, false, 'burn'); 
                     createParticle(this.x, this.y, '#ff5e00', 'fire', 0.5);
                 }
+            }
+
+            if(this.percentBurnLeft > 0) {
+                 if(state.frames % 10 === 0) {
+                     this.percentBurnLeft--;
+                     let p = (this.type==='BOSS'||this.type==='BRAXTON') ? 0.001 : 0.01;
+                     let dmg = Math.max(1, this.maxHp * p);
+                     this.takeDamage(dmg, false, 'burn_percent');
+                     createParticle(this.x, this.y, '#ff0000', 'smoke', 0.5);
+                 }
             }
 
             // --- BOSS BEHAVIORS ---
@@ -1802,10 +1826,12 @@
             if(this.isPhased) return; // IMMUNE WHEN PHASED
 
             if(this.type === 'BOSS' || this.type === 'MINI_BOSS' || this.type === 'BRAXTON') {
-                if(this.damageCooldown > 0) return; 
-                this.damageCooldown = 5; 
+                if(this.damageCooldown > 0 && source !== 'burn_percent') return; 
+                if(source !== 'burn_percent') this.damageCooldown = 5; 
             }
-            this.hp-=a; this.hitFlash=5; spawnDamageText(this.x,this.y-30,a,crit); 
+            this.hp-=a; 
+            if(source !== 'burn_percent') this.hitFlash=5; 
+            spawnDamageText(this.x,this.y-30,a,crit); 
             let c='#880000';
             if(this.type==='yugo') c='#000';
             if(this.type==='hornet') c='#bfff00';
@@ -1815,7 +1841,7 @@
             if(this.type==='medic') c='#fff';
             if(this.type==='lovac') c='#000';
             if(this.type==='NOLAN') c='#fff';
-            for(let i=0;i<3;i++)createParticle(this.x,this.y,c,'spark');
+            if(source !== 'burn_percent') for(let i=0;i<3;i++)createParticle(this.x,this.y,c,'spark');
             
             if(this.hp<=0){ 
                 this.dead=true; state.score++; 
@@ -1962,6 +1988,10 @@
             } 
             if(this.frozen>0){ ctx.fillStyle='rgba(0,255,255,0.4)';ctx.beginPath();ctx.arc(0,0,this.radius+5,0,6.28);ctx.fill();}
             if(this.burnTimer>0) { ctx.fillStyle='rgba(255, 100, 0, 0.5)'; ctx.beginPath(); ctx.arc(0,0,this.radius+5,0,6.28); ctx.fill(); }
+            if(this.percentBurnLeft>0) {
+                 ctx.strokeStyle = '#ff4500'; ctx.lineWidth = 2;
+                 ctx.beginPath(); ctx.arc(0,0, this.radius+2, 0, 6.28); ctx.stroke();
+            }
             ctx.restore();
         }
     }
@@ -2192,24 +2222,20 @@
             else if(t < 120) {
                 if(state.frames % 60 === 0) state.enemies.push(new Enemy('promaja'));
                 if(state.frames % 120 === 0) state.enemies.push(new Enemy('hornet')); 
-                if(state.frames % 400 === 0) state.enemies.push(new Enemy('snajper')); 
             }
             else if(t < 180) {
                 if(state.frames % 40 === 0) state.enemies.push(new Enemy('promaja'));
                 if(state.frames % 80 === 0) state.enemies.push(new Enemy('hornet'));
                 if(state.frames % 300 === 0) state.enemies.push(new Enemy('yugo'));
-                if(state.frames % 300 === 0) state.enemies.push(new Enemy('snajper'));
             }
             else if(t < 240) {
                 if(state.frames % 30 === 0) state.enemies.push(new Enemy('promaja'));
                 if(state.frames % 60 === 0) state.enemies.push(new Enemy('hornet'));
                 if(state.frames % 120 === 0) state.enemies.push(new Enemy('yugo'));
-                if(state.frames % 300 === 0) state.enemies.push(new Enemy('snajper'));
             }
             else if(t < 300) {
                 if(state.frames % 20 === 0) state.enemies.push(new Enemy(Math.random()<0.5?'promaja':'hornet'));
                 if(state.frames % 80 === 0) state.enemies.push(new Enemy('yugo'));
-                if(state.frames % 200 === 0) state.enemies.push(new Enemy('snajper'));
             }
         } 
         else if (t >= 300) {
@@ -2224,7 +2250,9 @@
             else {
                 if(state.frames % 15 === 0) state.enemies.push(new Enemy(Math.random()<0.5?'promaja':'hornet'));
                 if(state.frames % 50 === 0) state.enemies.push(new Enemy('yugo'));
-                if(state.frames % 200 === 0) state.enemies.push(new Enemy('snajper'));
+                
+                // SNIPER STARTS AT 6 MINUTES (360s)
+                if(t >= 360 && state.frames % 200 === 0) state.enemies.push(new Enemy('snajper'));
                 
                 if(state.frames % 300 === 0) {
                     let medicCount = state.enemies.filter(e => e.type === 'medic').length;
@@ -2265,7 +2293,40 @@
 
         state.friendlyUnits.forEach(u => u.update());
 
-        const wc=player.weapons.cevapi; if(wc.level>0){ wc.timer++; if(wc.timer>wc.cooldown){let t=getClosestEnemy();if(t){state.projectiles.push(new Projectile(player.x,player.y,t,'cevapi'));wc.timer=0;}} }
+        const wc=player.weapons.cevapi; 
+        if(wc.level>0 && !wc.evolved){ 
+            wc.timer++; 
+            if(wc.timer>wc.cooldown){
+                let t=getClosestEnemy();
+                if(t){
+                    state.projectiles.push(new Projectile(player.x,player.y,t,'cevapi'));
+                    wc.timer=0;
+                }
+            } 
+        } else if(wc.evolved) {
+            wc.grillAngle += 0.05;
+            if(state.frames % 60 === 0 && state.enemies.length > 0) {
+                 for(let i=0; i<3; i++) {
+                     let t = state.enemies[Math.floor(Math.random() * state.enemies.length)];
+                     let gX = player.x + Math.cos(wc.grillAngle)*60;
+                     let gY = player.y + Math.sin(wc.grillAngle)*60;
+                     state.projectiles.push(new Projectile(gX, gY, t, 'cevapi'));
+                 }
+            }
+            if(state.score >= wc.lastBurstScore + 100 && state.score > 0) {
+                wc.lastBurstScore = state.score;
+                spawnDamageText(player.x, player.y-60, "OVERHEAT!", 'crit');
+                addShake(20);
+                for(let i=0; i<25; i++) {
+                    let ang = (i/25)*6.28;
+                    let p = new Projectile(player.x, player.y, null, 'cevapi_hot');
+                    p.vx = Math.cos(ang) * 10;
+                    p.vy = Math.sin(ang) * 10;
+                    state.projectiles.push(p);
+                }
+            }
+        }
+
         const wa=player.weapons.ajvar; if(wa.level>0){ wa.timer++; if(wa.timer>wa.cooldown&&state.enemies.length>0){let ts=state.enemies.filter(e=>Math.hypot(e.x-player.x,e.y-player.y)<700);if(ts.length){state.projectiles.push(new Projectile(player.x,player.y,ts[Math.floor(Math.random()*ts.length)],'ajvar'));wa.timer=0;}} }
         const wr=player.weapons.rakija; if(wr.level>0){ wr.timer++; if(wr.timer>wr.cooldown){let t=getClosestEnemy();if(t){state.projectiles.push(new Projectile(player.x,player.y,t,'rakija'));wr.timer=0;}} }
         
@@ -2365,7 +2426,6 @@
             if(p.type === 'boss_missile' || p.type === 'sniper_shot' || p.type === 'warsaw') {
                 if(Math.hypot(p.x-player.x, p.y-player.y) < player.radius + 10) {
                     if(!godMode) {
-                        // FIXED: Sniper damage lowered to 15
                         let hitDmg = p.type === 'sniper_shot' ? 15 : 40; 
                         if(p.type === 'warsaw') hitDmg = 20;
                         
@@ -2422,6 +2482,18 @@
                         let dmg = p.overrideDamage > 0 ? {d:p.overrideDamage, c:false} : calcDamage(player.weapons.cevapi.damage);
                         e.takeDamage(dmg.d, dmg.c, 'projectile');
                         p.life = 0;
+                        return false;
+                    }
+                }
+            }
+            if(p.type==='cevapi_hot') {
+                for(let e of state.enemies) {
+                    if(Math.hypot(e.x-p.x,e.y-p.y) < e.radius+20) {
+                        // Apply burn
+                        e.percentBurnLeft += player.weapons.cevapi.burnCount;
+                        e.takeDamage(10, false, 'projectile');
+                        p.life = 0;
+                        createParticle(e.x, e.y, '#ff4500', 'fire', 1.0);
                         return false;
                     }
                 }
@@ -2553,6 +2625,21 @@
         
         ctx.save(); 
         ctx.translate(pX,pY); 
+        
+        // ORBITING GRILL
+        if(player.weapons.cevapi.evolved) {
+             let gx = Math.cos(player.weapons.cevapi.grillAngle) * 60;
+             let gy = Math.sin(player.weapons.cevapi.grillAngle) * 60;
+             ctx.fillStyle = '#333';
+             ctx.fillRect(gx-10, gy-10, 20, 20); // Grill Body
+             ctx.fillStyle = '#ff4500';
+             ctx.fillRect(gx-8, gy-8, 16, 16); // Coals
+             ctx.fillStyle = '#000'; // Grate lines
+             ctx.fillRect(gx-8, gy-2, 16, 2);
+             ctx.fillRect(gx-8, gy+2, 16, 2);
+             ctx.fillRect(gx-2, gy-8, 2, 16);
+        }
+
         ctx.rotate(player.facing+1.57);
         
         if(player.invincible > 0) ctx.globalAlpha = 0.4;
@@ -2698,6 +2785,7 @@
 
             if(u.id === 'burek' && player.weapons.burek.evolved) return;
             if(u.id === 'pyramid' && player.weapons.pyramid.evolved) return;
+            if(u.id === 'cevapi' && player.weapons.cevapi.evolved) return; // Evo condition
             if(u.id === 'serbian' && player.weapons.serbian.level >= 1) return; 
 
             available.push(u);
@@ -2705,9 +2793,11 @@
 
         if(player.weapons.burek.level >= 8 && !player.weapons.burek.evolved) available.push(EVOLUTIONS.find(e=>e.id==='burek_evo'));
         if(player.weapons.pyramid.level >= 6 && !player.weapons.pyramid.evolved) available.push(EVOLUTIONS.find(e=>e.id==='pyramid_evo'));
+        if(player.weapons.cevapi.level >= 10 && !player.weapons.cevapi.evolved) available.push(EVOLUTIONS.find(e=>e.id==='cevapi_evo'));
 
         if(player.weapons.burek.evolved) available.push(SUPERCHARGES.find(s=>s.id==='supercharge_burek'));
         if(player.weapons.pyramid.evolved) available.push(SUPERCHARGES.find(s=>s.id==='supercharge_pyramid'));
+        if(player.weapons.cevapi.evolved) available.push(SUPERCHARGES.find(s=>s.id==='supercharge_cevapi'));
 
         if(player.weapons.serbian.level > 0 && !player.weapons.serbian.evolved) {
              if(player.weapons.serbian.path === 0) {
@@ -2819,12 +2909,14 @@
             player.weapons.burek.damage+=5;
         }
         if(id==='pyramid_evo'){player.weapons.pyramid.evolved=true;player.weapons.pyramid.damage=400;player.weapons.pyramid.baseCool=180;player.weapons.pyramid.timer=0;}
-        
-        if(id==='supercharge_burek'){ 
-            player.weapons.burek.damage *= 1.2; 
-            spawnDamageText(player.x, player.y-50, "MAGMA INTENSIFIES", true); 
+        if(id==='cevapi_evo'){
+            player.weapons.cevapi.evolved=true;
+            player.weapons.cevapi.lastBurstScore = state.score;
         }
+        
+        if(id==='supercharge_burek'){ player.weapons.burek.damage *= 1.2; spawnDamageText(player.x, player.y-50, "MAGMA INTENSIFIES", true); }
         if(id==='supercharge_pyramid'){ player.weapons.pyramid.damage *= 1.2; spawnDamageText(player.x, player.y-50, "POWER UP!", true); }
+        if(id==='supercharge_cevapi'){ player.weapons.cevapi.burnCount += 1; spawnDamageText(player.x, player.y-50, "MORE COAL!", true); }
 
         if(id==='burek'){
             player.weapons.burek.count++;
