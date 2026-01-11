@@ -1415,6 +1415,13 @@
             this.life--; 
             if(this.type==='blast' || this.type==='valk_swing' || this.type==='shield_push' || this.type==='taunt_ring' || this.type==='spike_burst' || this.type==='musical_blast' || this.type==='piano_impact') return this.life<=0;
 
+            // Damage Scaling for Zone Attacks
+            let timeMinutes = state.gameTime / 60;
+            let damageMultiplier = 1.0;
+            if(timeMinutes > 10) {
+                damageMultiplier = 1 + (timeMinutes - 10) * 0.05;
+            }
+
             if(this.type==='tempo_wave') {
                 this.radius += 5; // Expand
                 if(Math.hypot(player.x - this.x, player.y - this.y) < this.radius + player.radius && 
@@ -1422,8 +1429,9 @@
                      // Inside ring
                      let moving = keys['w']||keys['a']||keys['s']||keys['d']||keys['arrowup']||keys['arrowleft']||keys['arrowdown']||keys['arrowright'];
                      if(moving && player.invincible <= 0 && !godMode) {
-                         player.hp -= 30;
-                         spawnDamageText(player.x, player.y-60, "30", 'player');
+                         let scaledDmg = 30 * damageMultiplier;
+                         player.hp -= scaledDmg;
+                         spawnDamageText(player.x, player.y-60, Math.floor(scaledDmg), 'player');
                          player.invincible = 20;
                      }
                 }
@@ -1435,7 +1443,7 @@
                     state.zones.push(new Zone(this.x, this.y, 'piano_impact', 20));
                     // Deal damage
                     if(Math.hypot(player.x - this.x, player.y - this.y) < this.radius && !godMode && player.invincible <= 0) {
-                         player.hp -= 60;
+                         player.hp -= 60; // Piano is heavy flat damage, arguably shouldn't scale OR scale heavily. Scaling it:
                          spawnDamageText(player.x, player.y-60, "CRUSHED", 'player');
                          addShake(30);
                          player.invincible = 30;
@@ -1465,8 +1473,9 @@
             if(this.type==='musical_blast') {
                  // Damage to player if spawned by Wraith
                  if(Math.hypot(player.x - this.x, player.y - this.y) < this.radius && !godMode && player.invincible <= 0) {
-                     player.hp -= 10;
-                     spawnDamageText(player.x, player.y-40, "10", 'player');
+                     let scaledDmg = 10 * damageMultiplier;
+                     player.hp -= scaledDmg;
+                     spawnDamageText(player.x, player.y-40, Math.floor(scaledDmg), 'player');
                      player.invincible = 30;
                  }
                  return this.life <= 0;
@@ -1482,8 +1491,9 @@
                         
                         if(lineCircleCollide(player.x, player.y, this.x, this.y, ex, ey, 40)) {
                              if(!godMode && player.invincible <= 0) {
-                                 player.hp -= 20; 
-                                 spawnDamageText(player.x, player.y-50, "20", 'player');
+                                 let scaledDmg = 20 * damageMultiplier;
+                                 player.hp -= scaledDmg; 
+                                 spawnDamageText(player.x, player.y-50, Math.floor(scaledDmg), 'player');
                                  addShake(5);
                                  if(player.hp <= 0) triggerDeath();
                              }
@@ -1702,8 +1712,8 @@
                 this.maxHp = 15000;
                 this.hp = 15000;
             } else if (this.type === 'POLYRHYTHM') {
-                this.maxHp = 5000;
-                this.hp = 5000;
+                this.maxHp = 12000; // Increased to 12000
+                this.hp = 12000;
             } else {
                 let baseHp = 40;
                 if(this.type==='promaja') baseHp = 25 + state.level*1; 
@@ -1880,6 +1890,8 @@
                 // Phase 2 Logic
                 if(this.hp < (this.maxHp * 0.5) && !this.phase2) {
                     this.phase2 = true;
+                    this.shieldTimer = 2700; // Gain shield again for 45s
+                    spawnDamageText(this.x, this.y - 100, "SHIELD RESTORED", 'crit');
                     const cap = document.getElementById('boss-caption');
                     cap.innerText = "I FEEL THE MUSIC BEATING IN MY HEART!";
                     cap.style.opacity = '1';
@@ -2740,6 +2752,15 @@
         
         state.projectiles.forEach(p=>p.update()); 
         state.projectiles=state.projectiles.filter(p=>{
+            // DAMAGE SCALING CALCULATION (PROJECTILES)
+            let timeMinutes = state.gameTime / 60;
+            let damageMultiplier = 1.0;
+            let bossDamageMultiplier = 1.0;
+            if(timeMinutes > 10) {
+                damageMultiplier = 1 + (timeMinutes - 10) * 0.05;
+                bossDamageMultiplier = 1 + (timeMinutes - 10) * 0.025;
+            }
+
             if(p.type === 'bosnian_flag') {
                 if(p.life <= 0) return false;
                 state.enemies.forEach(e => {
@@ -2759,10 +2780,14 @@
                         let hitDmg = p.type === 'sniper_shot' ? 15 : 40; 
                         if(p.type === 'warsaw') hitDmg = 20;
                         
+                        // Apply Scaling
+                        if(p.type === 'sniper_shot' || p.type === 'warsaw') hitDmg *= damageMultiplier;
+                        if(p.type === 'boss_missile') hitDmg *= bossDamageMultiplier;
+
                         if(p.type !== 'warsaw') {
                             if(player.invincible <= 10) { 
                                 player.hp -= hitDmg;
-                                spawnDamageText(player.x, player.y-60, hitDmg, 'player');
+                                spawnDamageText(player.x, player.y-60, Math.floor(hitDmg), 'player');
                                 player.invincible = 30; 
                                 if(player.hp <= 0) triggerDeath();
                             }
@@ -2770,7 +2795,7 @@
                              if(p.hitCooldowns.length === 0) { 
                                  if(p.life % 20 === 0) {
                                      player.hp -= hitDmg;
-                                     spawnDamageText(player.x, player.y-40, "20", 'player');
+                                     spawnDamageText(player.x, player.y-40, Math.floor(hitDmg), 'player');
                                      p.hitCooldowns.push(20); 
                                      if(player.hp <= 0) triggerDeath();
                                  }
@@ -2854,21 +2879,33 @@
             // COLLISION
             if(!e.frozen && Math.hypot(e.x-player.x,e.y-player.y)<safeDist){ 
                 
+                // DAMAGE SCALING CALCULATION
+                let timeMinutes = state.gameTime / 60;
+                let damageMultiplier = 1.0;
+                let bossMultiplier = 1.0;
+                
+                if(timeMinutes > 10) {
+                    damageMultiplier = 1 + (timeMinutes - 10) * 0.05;
+                    bossMultiplier = 1 + (timeMinutes - 10) * 0.025;
+                }
+
                 if(e.type === 'BRAXTON') {
                     if(e.damageCooldown <= 0) {
-                        if(!godMode) player.hp -= 60;
+                        let dmg = 60 * bossMultiplier;
+                        if(!godMode) player.hp -= dmg;
                         e.damageCooldown = 30; 
                         addShake(10);
                         if(player.invincible <= 0) player.invincible = 30;
-                        spawnDamageText(player.x, player.y-60, "60", 'player');
+                        spawnDamageText(player.x, player.y-60, Math.floor(dmg), 'player');
                     }
                 } else if(e.type === 'POLYRHYTHM') {
                     if(e.damageCooldown <= 0) {
-                         if(!godMode) player.hp -= 40;
+                         let dmg = 40 * bossMultiplier;
+                         if(!godMode) player.hp -= dmg;
                          e.damageCooldown = 20;
                          addShake(5);
                          if(player.invincible <= 0) player.invincible = 20;
-                         spawnDamageText(player.x, player.y-60, "40", 'player');
+                         spawnDamageText(player.x, player.y-60, Math.floor(dmg), 'player');
                     }
                 } else {
                     let baseDmg = 5;
@@ -2882,13 +2919,17 @@
                     if(e.type === 'BOSS' || e.type === 'MINI_BOSS') baseDmg = 20;
                     if(e.type === 'RHYTHM_WRAITH') baseDmg = 30;
                     
+                    // Apply Scaling
+                    if(e.type === 'BOSS' || e.type === 'MINI_BOSS') baseDmg *= bossMultiplier;
+                    else baseDmg *= damageMultiplier;
+
                     let dmgAmt = Math.max(1, baseDmg - player.armor);
 
                     if(!godMode) {
                         if(player.invincible <= 0) {
                             player.hp -= dmgAmt; 
                             player.invincible = 30; // 0.5s I-frames
-                            spawnDamageText(player.x, player.y-60, dmgAmt, 'normal');
+                            spawnDamageText(player.x, player.y-60, Math.floor(dmgAmt), 'normal');
                         }
                     }
                     addShake(2); 
