@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bosnian Survivors: FLAG UPDATE</title>
+<title>Bosnian Survivors: FLAG UPDATE + LOVAC</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
     :root { 
@@ -16,6 +16,7 @@
         --dark:#050510; 
         --fire-orange:#ff5e00;
         --medic-green:#00ff41;
+        --blood-red: #8a0303;
     }
     body { margin:0; overflow:hidden; background-color:var(--dark); font-family:'Rajdhani', sans-serif; color:white; user-select:none; }
     
@@ -241,6 +242,7 @@
                 <option value="hornet">Hornet</option>
                 <option value="snajper">Snajper</option>
                 <option value="medic">Medic</option>
+                <option value="lovac">Krvavi Lovac</option>
                 <option value="NOLAN">Nolan-ite</option>
                 <option value="MINI_BOSS">Mini Boss</option>
                 <option value="BOSS">Warlord</option>
@@ -371,6 +373,7 @@
         {name:'Hornet', icon:'🐝', desc:'Swarm unit. Fast, aggressive, attacks in groups.'},
         {name:'Snajper', icon:'🟥', desc:'Long-range sniper. Punishment for standing still.'},
         {name:'Medic', icon:'🚑', desc:'Healer unit. Sustains the horde. Priority target.'},
+        {name:'Krvavi Lovac', icon:'🔪', desc:'Phase Shifter. Turns invisible and immune. Spawns after 7 mins.'},
         {name:'Nolan-ite', icon:'🇵🇱', desc:'Summoned by Braxton. Fast, shoots Warsaw blasts.'},
         {name:'WARLORD', icon:'👹', desc:'The Final Boss. Immune to Nuke/Freeze. 5000 HP.'},
         {name:'BRAXTON-inite', icon:'🌮', desc:'15,000 HP. Kills everything. Summons Nolans. Lasers.'}
@@ -379,7 +382,7 @@
     let gameActive = false;
     let isPaused = false;
     let isCutscene = false;
-    let crateRewards = []; // Store potential crate rewards
+    let crateRewards = []; 
     
     let state = { 
         frames:0, gameTime:0, score:0, level:1, xp:0, nextLevelXp:20, xpMult:1, shake:0, 
@@ -761,11 +764,18 @@
             let moveX = 0, moveY = 0;
             let distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
             
-            // --- SQUAD SOLDIER LOGIC FIX (LEASH) ---
-            if(distToPlayer > 250 && this.type === 'soldier' && player.weapons.serbian.path === 2) {
-                 // Force move to player if too far (Squad Member), reduced leash to 250
+            // --- SQUAD SOLDIER LOGIC FIX (RUN BACK IF FAR) ---
+            // If the soldier is part of the elite squad (path 2) and gets > 3000px away
+            if(this.type === 'soldier' && player.weapons.serbian.path === 2 && distToPlayer > 3000) {
+                 // Force Run Back Mode
                  let ang = Math.atan2(player.y - this.y, player.x - this.x);
-                 // Faster return speed (multiplier 2.0 -> 7px/frame)
+                 // Huge speed boost to catch up
+                 moveX = Math.cos(ang) * 5.0; 
+                 moveY = Math.sin(ang) * 5.0;
+            } 
+            // Standard Leash
+            else if(distToPlayer > 250 && this.type === 'soldier' && player.weapons.serbian.path === 2) {
+                 let ang = Math.atan2(player.y - this.y, player.x - this.x);
                  moveX = Math.cos(ang) * 2.0;
                  moveY = Math.sin(ang) * 2.0;
             } 
@@ -1543,6 +1553,7 @@
                 else if(this.type==='hornet') baseHp = 20 + state.level*1;
                 else if(this.type==='snajper') baseHp = 10 + state.level*1; 
                 else if(this.type==='medic') baseHp = 300 + state.level*5; 
+                else if(this.type==='lovac') baseHp = 500 + state.level*10; 
                 else if(this.type==='NOLAN') baseHp = 600; 
                 else if(this.type==='MINI_BOSS') baseHp = 800 + state.level*100;
 
@@ -1585,6 +1596,13 @@
             else if(this.type==='yugo'){this.baseSpeed=1.4;this.radius=35;this.angle=0;} 
             else if(this.type==='hornet'){this.baseSpeed=4.2;this.radius=15;}
             else if(this.type==='medic'){this.baseSpeed=1.5;this.radius=25;}
+            else if(this.type==='lovac'){
+                this.baseSpeed=3.8; this.radius=25; 
+                this.isPhased = false; 
+                this.phaseCD = 0; 
+                this.phaseTimer = 0;
+                this.attackAnim = 0;
+            }
             else if(this.type==='NOLAN'){this.baseSpeed=5.0; this.radius=20; this.attackTimer = 120;}
             else if(this.type==='snajper'){
                 this.baseSpeed=1.5; this.radius=15; 
@@ -1596,14 +1614,13 @@
         }
         update(){
             if(this.dead) { 
-                // Fix: Remove HUD if boss dies
                 if(this.type === 'BOSS' || this.type === 'BRAXTON') {
                     document.getElementById('boss-hud').style.display = 'none';
                 }
                 return;
             } 
 
-            // GLOBAL UPDATES (Fixes Sniper Bug)
+            // GLOBAL UPDATES
             if(this.hitFlash > 0) this.hitFlash--;
             this.pushX*=0.9; this.pushY*=0.9;
 
@@ -1687,6 +1704,29 @@
                 }
             }
 
+            if(this.type === 'lovac') {
+                if(this.attackAnim > 0) this.attackAnim--;
+
+                // Phase Logic
+                if(this.phaseCD > 0) this.phaseCD--;
+                if(this.isPhased) {
+                    this.phaseTimer--;
+                    if(this.phaseTimer <= 0) {
+                        this.isPhased = false;
+                        spawnDamageText(this.x, this.y-40, "VISIBLE", 'normal');
+                    }
+                } else {
+                    let d = Math.hypot(player.x - this.x, player.y - this.y);
+                    if(d < 250 && this.phaseCD <= 0) {
+                        this.isPhased = true;
+                        this.phaseTimer = 120; // 2 seconds
+                        this.phaseCD = 420; // 7 seconds
+                        spawnDamageText(this.x, this.y-40, "PHASED", 'normal');
+                        createParticle(this.x, this.y, '#fff', 'smoke', 5);
+                    }
+                }
+            }
+
             if(this.frozen > 0) { 
                 this.frozen--; 
                 if(state.frames%20===0) createParticle(this.x,this.y,'#0ff','spark');
@@ -1759,6 +1799,8 @@
         }
         
         takeDamage(a, crit, source){
+            if(this.isPhased) return; // IMMUNE WHEN PHASED
+
             if(this.type === 'BOSS' || this.type === 'MINI_BOSS' || this.type === 'BRAXTON') {
                 if(this.damageCooldown > 0) return; 
                 this.damageCooldown = 5; 
@@ -1771,6 +1813,7 @@
             if(this.type==='BRAXTON') c='#2ecc71';
             if(this.type==='snajper') c='#ff0000';
             if(this.type==='medic') c='#fff';
+            if(this.type==='lovac') c='#000';
             if(this.type==='NOLAN') c='#fff';
             for(let i=0;i<3;i++)createParticle(this.x,this.y,c,'spark');
             
@@ -1784,7 +1827,6 @@
                      
                      if(this.type === 'BRAXTON') { 
                          state.braxtonActive = false;
-                         // SPAWN CRATE INSTEAD OF GEMS
                          state.crates.push(new Crate(this.x, this.y));
                      } else {
                          for(let i=0; i<50; i++) state.gems.push(new Gem(this.x + (Math.random()-0.5)*200, this.y + (Math.random()-0.5)*200, 150));
@@ -1847,14 +1889,50 @@
                         ctx.fillStyle = '#fff'; ctx.fillRect(-15, -20, 30 * (1 - this.snajperTimer/60), 3); // Charge bar
                     }
                 }
+                else if(this.type==='lovac'){
+                    ctx.rotate(this.angle + 1.57);
+                    if(this.isPhased) ctx.globalAlpha = 0.3;
+                    
+                    // Cloak
+                    ctx.fillStyle = '#800000';
+                    ctx.beginPath();
+                    ctx.moveTo(0, -25);
+                    ctx.quadraticCurveTo(20, 0, 15, 25);
+                    ctx.quadraticCurveTo(0, 20, -15, 25);
+                    ctx.quadraticCurveTo(-20, 0, 0, -25);
+                    ctx.fill();
+                    
+                    // Hood
+                    ctx.fillStyle = '#500';
+                    ctx.beginPath(); ctx.arc(0, -10, 12, 0, Math.PI, true); ctx.fill();
+                    
+                    // Eyes (Only visible when not phased or very faint)
+                    ctx.fillStyle = '#f00';
+                    ctx.shadowColor = '#f00'; ctx.shadowBlur = 10;
+                    ctx.beginPath(); ctx.arc(-5, -12, 2, 0, 6.28); ctx.arc(5, -12, 2, 0, 6.28); ctx.fill();
+                    ctx.shadowBlur = 0;
+
+                    // Knife Hand
+                    ctx.save();
+                    ctx.translate(15, 0);
+                    if(this.attackAnim > 0) {
+                        // Swing animation
+                        let swing = (this.attackAnim / 20) * Math.PI;
+                        ctx.rotate(-swing);
+                    }
+                    ctx.fillStyle = '#ccc';
+                    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(5, -20); ctx.lineTo(-5, -20); ctx.fill(); // Blade
+                    ctx.fillStyle = '#333'; ctx.fillRect(-3, 0, 6, 5); // Handle
+                    ctx.restore();
+                    
+                    ctx.globalAlpha = 1;
+                }
                 else if(this.type==='medic'){
-                    // NEW MEDIC MODEL
                     ctx.rotate(this.angle + 1.57);
                     ctx.fillStyle = '#eee'; ctx.beginPath(); ctx.arc(0, 0, 14, 0, 6.28); ctx.fill(); // Body
                     ctx.fillStyle = '#0f0'; ctx.font="bold 16px Arial"; ctx.fillText('+', -5, 5); // Cross
                     ctx.fillStyle = '#ccc'; ctx.fillRect(8, -5, 8, 10); // Healing Gun
                     ctx.fillStyle = '#0f0'; ctx.fillRect(16, -2, 4, 4); // Gun Tip
-                    // Healing beam is drawn in update loop
                 }
                 else if(this.type==='promaja'){ 
                     ctx.rotate(state.frames*0.2); ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(200, 255, 255, 0.5)';
@@ -1872,7 +1950,7 @@
                     ctx.fillStyle='#ff0'; ctx.fillRect(18,-12,4,6); ctx.fillRect(18,6,4,6);
                 }
                 else{ 
-                    // HORNET - FIX WINGS
+                    // HORNET
                     ctx.rotate(this.angle+1.57); ctx.fillStyle='rgba(255,255,255,0.6)'; 
                     let flap = Math.sin(state.frames*0.8)*5;
                     ctx.beginPath(); ctx.ellipse(8+flap, -5, 5, 12, 0.5, 0, 6.28); ctx.fill(); // Wing 1
@@ -1949,7 +2027,6 @@
         if(document.getElementById('crate-screen').style.display === 'flex') return;
         isPaused = true;
         
-        // Reset UI Elements
         const screen = document.getElementById('crate-screen');
         const anim = document.getElementById('crate-anim');
         const cardsDiv = document.getElementById('crate-cards');
@@ -1966,46 +2043,34 @@
         screen.style.display = 'flex';
         
         // Animation Sequence
-        // 1. Drop In
         anim.className = 'crate-drop';
         
         setTimeout(() => {
-            // 2. Shake
             anim.className = 'crate-shake';
-            
             setTimeout(() => {
-                // 3. Flash & Explode
                 flash.style.opacity = '1';
                 setTimeout(() => { flash.style.opacity = '0'; }, 500);
                 anim.style.display = 'none';
-                
-                // 4. Reveal
                 title.style.opacity = '1';
                 btn.style.opacity = '1';
-                
-                // Generate Loot
                 generateCrateLoot();
-                
-            }, 1000); // Shake duration
-        }, 500); // Drop duration
+            }, 1000); 
+        }, 500); 
     }
 
     function generateCrateLoot() {
         crateRewards = [];
         let available = [];
-        // Basic upgrades logic only to see what exists, ignoring tier
         UPGRADES.forEach(u => {
             let currentLvl = 0;
             if(player.weapons[u.id]) currentLvl = player.weapons[u.id].level;
             else if(player.items[u.id] !== undefined) currentLvl = player.items[u.id];
             
-            // Allow duplicates in pool for randomness, just filter max level
             if(currentLvl < (u.max || 10)) {
                 available.push(u);
             }
         });
         
-        // Pick 3 random
         for(let i=0; i<3; i++) {
             if(available.length > 0) {
                 let r = Math.floor(Math.random() * available.length);
@@ -2016,7 +2081,6 @@
         const container = document.getElementById('crate-cards');
         crateRewards.forEach(o => {
             const el=document.createElement('div'); el.className='card'; 
-            // Styling only, doesn't affect logic
             if(o.tier === 'legendary') el.classList.add('legendary');
             if(o.tier === 'rare') el.classList.add('rare');
             
@@ -2034,7 +2098,7 @@
             applyUpgrade(r.id);
         });
         document.getElementById('crate-screen').style.display = 'none';
-        state.crates = []; // Remove crate
+        state.crates = []; 
         isPaused = false;
     }
 
@@ -2093,7 +2157,7 @@
     }
 
     function handleWaves() {
-        if(state.braxtonActive) return; // Stop spawning if Braxton is fighting
+        if(state.braxtonActive) return; 
         if(!spawningEnabled) return;
 
         let t = state.gameTime;
@@ -2104,8 +2168,7 @@
             return;
         }
 
-        // --- RANDOM CHANCE FOR SWARMS INSTEAD OF TIMED ---
-        // ONLY AFTER 5 MINUTES AND NOT IF BOSS IS ACTIVE
+        // SWARMS
         if(t >= 300 && !state.bossActive && state.frames % 60 === 0) { 
             if(Math.random() < 0.01) {
                 let types = ['promaja', 'hornet', 'yugo'];
@@ -2115,8 +2178,14 @@
             }
         }
 
+        // KRVAVI LOVAC SPAWN LOGIC (7 minutes / 420 seconds)
+        if(t >= 420 && !state.bossActive) {
+            if(state.frames % 500 === 0) {
+                 state.enemies.push(new Enemy('lovac'));
+            }
+        }
+
         if(t < 300) {
-            // NERFED SPAWN RATES FOR EARLY GAME
             if(t < 60) {
                 if(state.frames % 90 === 0) state.enemies.push(new Enemy('promaja'));
             } 
@@ -2153,14 +2222,10 @@
                 if(state.frames % 200 === 0) state.enemies.push(new Enemy('hornet'));
             } 
             else {
-                // MID GAME INTENSITY
                 if(state.frames % 15 === 0) state.enemies.push(new Enemy(Math.random()<0.5?'promaja':'hornet'));
                 if(state.frames % 50 === 0) state.enemies.push(new Enemy('yugo'));
-                
-                // MORE SNIPERS
                 if(state.frames % 200 === 0) state.enemies.push(new Enemy('snajper'));
                 
-                // MEDICS APPEAR (MAX 3)
                 if(state.frames % 300 === 0) {
                     let medicCount = state.enemies.filter(e => e.type === 'medic').length;
                     if(medicCount < 3) {
@@ -2186,7 +2251,6 @@
             player.facing = Math.atan2(my, mx); 
         }
         
-        // INVINCIBILITY DECAY
         if(player.invincible > 0) player.invincible--;
 
         if(player.regen>0 && state.frames%60===0 && player.hp<player.maxHp){ player.hp=Math.min(player.maxHp, player.hp+player.regen); updateHud(); spawnDamageText(player.x,player.y-50,player.regen,true); }
@@ -2205,7 +2269,6 @@
         const wa=player.weapons.ajvar; if(wa.level>0){ wa.timer++; if(wa.timer>wa.cooldown&&state.enemies.length>0){let ts=state.enemies.filter(e=>Math.hypot(e.x-player.x,e.y-player.y)<700);if(ts.length){state.projectiles.push(new Projectile(player.x,player.y,ts[Math.floor(Math.random()*ts.length)],'ajvar'));wa.timer=0;}} }
         const wr=player.weapons.rakija; if(wr.level>0){ wr.timer++; if(wr.timer>wr.cooldown){let t=getClosestEnemy();if(t){state.projectiles.push(new Projectile(player.x,player.y,t,'rakija'));wr.timer=0;}} }
         
-        // --- IMPALER SPIKES ---
         const ws = player.weapons.spike;
         if(ws.level > 0) {
             ws.timer++;
@@ -2220,7 +2283,7 @@
                 ws.timer = 0;
             }
         }
-        // --- BOSNIAN FLAG ---
+        
         const wf = player.weapons.flag;
         if(wf.level > 0) {
             wf.timer++;
@@ -2288,7 +2351,6 @@
         state.projectiles=state.projectiles.filter(p=>{
             if(p.type === 'bosnian_flag') {
                 if(p.life <= 0) return false;
-                // Collision
                 state.enemies.forEach(e => {
                     if(!p.pierceHitList.includes(e) && Math.hypot(e.x - p.x, e.y - p.y) < e.radius + 15) {
                         let baseDmg = 12 + state.level;
@@ -2303,12 +2365,11 @@
             if(p.type === 'boss_missile' || p.type === 'sniper_shot' || p.type === 'warsaw') {
                 if(Math.hypot(p.x-player.x, p.y-player.y) < player.radius + 10) {
                     if(!godMode) {
-                        let hitDmg = p.type === 'sniper_shot' ? 60 : 40; 
+                        // FIXED: Sniper damage lowered to 15
+                        let hitDmg = p.type === 'sniper_shot' ? 15 : 40; 
                         if(p.type === 'warsaw') hitDmg = 20;
                         
                         if(p.type !== 'warsaw') {
-                            // FIXED RANGED DAMAGE LOGIC
-                            // Apply damage immediately and check for death
                             if(player.invincible <= 10) { 
                                 player.hp -= hitDmg;
                                 spawnDamageText(player.x, player.y-60, hitDmg, 'player');
@@ -2316,9 +2377,8 @@
                                 if(player.hp <= 0) triggerDeath();
                             }
                         } else {
-                             // WARSAW INTERNAL CD
                              if(p.hitCooldowns.length === 0) { 
-                                 if(p.life % 20 === 0) { // Hit trigger
+                                 if(p.life % 20 === 0) {
                                      player.hp -= hitDmg;
                                      spawnDamageText(player.x, player.y-40, "20", 'player');
                                      p.hitCooldowns.push(20); 
@@ -2374,7 +2434,8 @@
 
         state.enemies.forEach(e=>{
             e.speed = e.baseSpeed;
-            if(harm.level > 0) {
+            // Harmonika Slow (Ignored by Phased Lovac)
+            if(harm.level > 0 && !e.isPhased) {
                 if(Math.hypot(e.x - player.x, e.y - player.y) < harm.range) {
                     let effectiveSlow = Math.min(harm.slow, 0.8);
                     e.speed = e.baseSpeed * (1 - effectiveSlow);
@@ -2397,14 +2458,16 @@
                         spawnDamageText(player.x, player.y-60, "60", 'player');
                     }
                 } else {
-                    // FIXED MELEE DAMAGE LOGIC
                     let baseDmg = 5;
                     if(e.type === 'yugo') baseDmg = 15;
                     if(e.type === 'hornet') baseDmg = 3;
                     if(e.type === 'medic') baseDmg = 4;
+                    if(e.type === 'lovac') {
+                        baseDmg = 20;
+                        e.attackAnim = 20; // Trigger knife anim
+                    }
                     if(e.type === 'BOSS' || e.type === 'MINI_BOSS') baseDmg = 20;
                     
-                    // Simple armor formula: Flat reduction, min 1
                     let dmgAmt = Math.max(1, baseDmg - player.armor);
 
                     if(!godMode) {
@@ -2486,23 +2549,19 @@
         state.projectiles.forEach(p=>p.draw(cX,cY));
         state.beams.forEach(b=>b.draw(cX,cY));
         
-        // --- PLAYER DRAWING UPGRADE ---
         let pX=player.x-cX, pY=player.y-cY; 
         
         ctx.save(); 
         ctx.translate(pX,pY); 
         ctx.rotate(player.facing+1.57);
         
-        // Invisibility Effect
         if(player.invincible > 0) ctx.globalAlpha = 0.4;
 
-        // Shadow
         ctx.shadowBlur=15; ctx.shadowColor='rgba(0,0,0,0.5)'; 
 
         // Robes
-        ctx.fillStyle='#002395'; // Bosnia Blue
+        ctx.fillStyle='#002395'; 
         ctx.beginPath(); 
-        // Sway effect on robe bottom
         let sway = Math.sin(state.frames * 0.2) * 2;
         ctx.moveTo(0,0);
         ctx.bezierCurveTo(-15, 5, -15, 20+sway, 0, 25);
@@ -2510,7 +2569,7 @@
         ctx.fill();
         
         // Gold Trim
-        ctx.strokeStyle='#fecb00'; // Bosnia Yellow
+        ctx.strokeStyle='#fecb00'; 
         ctx.lineWidth=2;
         ctx.stroke();
 
@@ -2523,20 +2582,17 @@
         ctx.beginPath(); ctx.moveTo(0, 15); ctx.lineTo(-12, -2); ctx.lineTo(12, -2); ctx.fill();
         ctx.beginPath(); ctx.ellipse(0, -2, 14, 5, 0, 0, 6.28); ctx.fill();
         
-        // Star on Hat
         ctx.fillStyle='#fecb00';
         ctx.beginPath(); ctx.arc(0, 5, 3, 0, 6.28); ctx.fill();
 
-        // Staff (Right Hand)
+        // Staff
         ctx.save();
-        ctx.translate(15, 5); // Hand position
-        // Bobbing staff
+        ctx.translate(15, 5); 
         let bob = Math.sin(state.frames * 0.1) * 3;
         ctx.translate(0, bob);
         ctx.rotate(-0.5);
-        ctx.fillStyle='#654321'; ctx.fillRect(-2, -20, 4, 40); // Staff wood
+        ctx.fillStyle='#654321'; ctx.fillRect(-2, -20, 4, 40); 
         
-        // Glowing Gem
         ctx.shadowBlur=20; ctx.shadowColor='rgba(0, 243, 255, 0.8)';
         ctx.fillStyle='#00f3ff'; 
         let pulse = Math.sin(state.frames*0.1)*2;
@@ -2640,7 +2696,6 @@
 
             if(currentLvl >= (u.max || 10)) return;
 
-            // Evolution conditions
             if(u.id === 'burek' && player.weapons.burek.evolved) return;
             if(u.id === 'pyramid' && player.weapons.pyramid.evolved) return;
             if(u.id === 'serbian' && player.weapons.serbian.level >= 1) return; 
@@ -2648,15 +2703,12 @@
             available.push(u);
         });
 
-        // Add Evolutions
         if(player.weapons.burek.level >= 8 && !player.weapons.burek.evolved) available.push(EVOLUTIONS.find(e=>e.id==='burek_evo'));
         if(player.weapons.pyramid.level >= 6 && !player.weapons.pyramid.evolved) available.push(EVOLUTIONS.find(e=>e.id==='pyramid_evo'));
 
-        // Supercharges
         if(player.weapons.burek.evolved) available.push(SUPERCHARGES.find(s=>s.id==='supercharge_burek'));
         if(player.weapons.pyramid.evolved) available.push(SUPERCHARGES.find(s=>s.id==='supercharge_pyramid'));
 
-        // SERBIAN PATH LOGIC
         if(player.weapons.serbian.level > 0 && !player.weapons.serbian.evolved) {
              if(player.weapons.serbian.path === 0) {
                  available.push({id:'serbian_selector', name:'UNIT EVOLUTION', icon:'⚡', tier:'legendary', desc:'Choose a specialization path for your unit.'});
@@ -2684,7 +2736,7 @@
                 let chosenTier = 'common';
 
                 if (rng < (1 * player.luck)) chosenTier = 'legendary';
-                else if (rng < (16 * player.luck)) chosenTier = 'rare'; // 1% + 15%
+                else if (rng < (16 * player.luck)) chosenTier = 'rare'; 
                 else chosenTier = 'common';
 
                 if(chosenTier === 'legendary' && pools.legendary.length === 0) chosenTier = 'rare';
@@ -2730,7 +2782,6 @@
         const overlay = document.getElementById('evolution-overlay');
         overlay.style.display = 'flex';
         
-        // Step 1: Animation
         overlay.innerHTML = '<h1 class="evo-text">EVOLUTION<br>IMMINENT</h1>';
         
         setTimeout(() => {
@@ -2803,7 +2854,7 @@
         }
         if(id==='flag'){
             player.weapons.flag.level++;
-            player.weapons.flag.count++; // +1 Flag count
+            player.weapons.flag.count++; 
         }
         if(id==='harmonika'){
             player.weapons.harmonika.level++;
@@ -2812,10 +2863,9 @@
             }
         }
 
-        // --- SERBIAN UPGRADE LOGIC ---
         if(id==='serbian'){
             player.weapons.serbian.level = 1;
-            player.weapons.serbian.path = 0; // Basic
+            player.weapons.serbian.path = 0; 
             state.friendlyUnits = [new FriendlyUnit('soldier', player.x, player.y)];
             spawnDamageText(player.x, player.y-80, "UNIT DEPLOYED", true);
         }
@@ -2827,7 +2877,7 @@
         }
         if(id==='serbian_p1_evo') {
              player.weapons.serbian.evolved = true;
-             state.friendlyUnits = [new FriendlyUnit('titan', player.x, player.y)]; // Re-spawn to apply evo logic
+             state.friendlyUnits = [new FriendlyUnit('titan', player.x, player.y)]; 
              spawnDamageText(player.x, player.y-80, "BERSERKER MODE", true);
         }
 
