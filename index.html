@@ -388,9 +388,9 @@
     
     let state = { 
         frames:0, gameTime:0, score:0, level:1, xp:0, nextLevelXp:20, xpMult:1, shake:0, 
-        enemies:[], particles:[], projectiles:[], beams:[], zones:[], texts:[], gems:[], perks:[], backgroundStars:[], 
+        enemies:[], particles:[], projectiles:[], beams:[], zones:[], gems:[], perks:[], backgroundStars:[], 
         bossActive:false, bossSpawnedOnce:false, braxtonSpawned:false, braxtonActive:false, flashAlpha:0,
-        friendlyUnits: [], crates: []
+        friendlyUnits: [], crates: [], texts: []
     };
     let player = { 
         x:0, y:0, hp:100, maxHp:100, speed:6, radius:20, magnetRadius:140, armor:0, regen:0, critChance:0.05, cdr:1.0, facing:0, 
@@ -611,9 +611,9 @@
         document.getElementById('god-mode-indicator').style.display='none';
         state = { 
             frames:0, gameTime:0, score:0, level:1, xp:0, nextLevelXp:20, xpMult:1, shake:0, 
-            enemies:[], particles:[], projectiles:[], beams:[], zones:[], texts:[], gems:[], perks:[], backgroundStars:[],
+            enemies:[], particles:[], projectiles:[], beams:[], zones:[], gems:[], perks:[], backgroundStars:[],
             bossActive:false, bossSpawnedOnce:false, braxtonSpawned:false, braxtonActive:false, flashAlpha:0,
-            friendlyUnits: [], crates: []
+            friendlyUnits: [], crates: [], texts: []
         };
         initBackground();
         
@@ -2489,14 +2489,17 @@
             if(p.type==='cevapi_hot') {
                 for(let e of state.enemies) {
                     if(Math.hypot(e.x-p.x,e.y-p.y) < e.radius+20) {
-                        // Apply burn
-                        e.percentBurnLeft += player.weapons.cevapi.burnCount;
-                        e.takeDamage(10, false, 'projectile');
-                        p.life = 0;
-                        createParticle(e.x, e.y, '#ff4500', 'fire', 1.0);
-                        return false;
+                        if(!p.pierceHitList.includes(e)) {
+                            // Apply burn
+                            e.percentBurnLeft += player.weapons.cevapi.burnCount;
+                            e.takeDamage(10, false, 'projectile');
+                            // p.life = 0; // Removed self-destruction for piercing
+                            createParticle(e.x, e.y, '#ff4500', 'fire', 1.0);
+                            p.pierceHitList.push(e); // Add to hit list
+                        }
                     }
                 }
+                return p.life > 0; // Projectile stays alive until time runs out
             }
 
             return p.life>0;
@@ -2585,7 +2588,11 @@
                 }
             }
         });
-        state.enemies=state.enemies.filter(e=>!e.dead && Math.hypot(e.x-player.x,e.y-player.y)<2000);
+        
+        // --- FIXED BOSS DESPAWN GLITCH ---
+        // Bosses are now exempt from distance based cleanup
+        state.enemies=state.enemies.filter(e=>!e.dead && (Math.hypot(e.x-player.x,e.y-player.y)<2000 || e.type === 'BOSS' || e.type === 'MINI_BOSS' || e.type === 'BRAXTON'));
+
         state.particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=p.decay;p.vx*=0.95;p.vy*=0.95;}); state.particles=state.particles.filter(p=>p.life>0);
         state.texts.forEach(t=>{t.y+=t.vy; t.vy*=0.9; t.life-=0.02;}); state.texts=state.texts.filter(t=>t.life>0);
         if(state.shake>0)state.shake*=0.9; state.frames++;
