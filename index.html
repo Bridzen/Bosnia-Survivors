@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bosnian Survivors: JUDGMENT UPDATE</title>
+<title>Bosnian Survivors: ROSTILJ UPDATE</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
     :root { 
@@ -17,7 +17,7 @@
         --fire-orange:#ff5e00;
         --medic-green:#00ff41;
         --blood-red: #8a0303;
-        --platinum: #e5e4e2;
+        --holy-white: #ffffff;
     }
     body { margin:0; overflow:hidden; background-color:var(--dark); font-family:'Rajdhani', sans-serif; color:white; user-select:none; }
     
@@ -1171,7 +1171,7 @@
             this.x = x; this.y = y;
             this.bob = 0;
             this.radius = 30;
-            this.type = type; // 'standard', 'musical', 'tezina_reward'
+            this.type = type; // 'standard', 'musical', 'rare'
         }
         update() {
             this.bob += 0.1;
@@ -1185,18 +1185,17 @@
         draw(cX, cY) {
             let yOff = Math.sin(this.bob) * 5;
             let icon = '📦';
-            if(this.type === 'musical') icon = '🎵';
-            if(this.type === 'tezina_reward') icon = '👑';
-            
             let color = '#fecb00';
-            if(this.type === 'musical') color = '#00f3ff';
-            if(this.type === 'tezina_reward') color = '#e5e4e2';
+            
+            if(this.type === 'musical') { icon = '🎵'; color = '#00f3ff'; }
+            if(this.type === 'rare') { icon = '🎁'; color = '#ffd700'; }
 
             ctx.font = "40px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle";
             ctx.fillText(icon, this.x - cX, this.y - cY + yOff);
+            
             // Glow
             ctx.beginPath(); ctx.arc(this.x - cX, this.y - cY + yOff + 5, 25, 0, 6.28);
-            ctx.strokeStyle = `rgba(${this.type==='musical'?'0,243,255':(this.type==='tezina_reward'?'229,228,226':'254,203,0')}, ${0.5 + Math.sin(this.bob)*0.3})`;
+            ctx.strokeStyle = `rgba(${this.type==='musical'?'0,243,255':(this.type==='rare'?'255,215,0':'254,203,0')}, ${0.5 + Math.sin(this.bob)*0.3})`;
             ctx.lineWidth = 3; ctx.stroke();
         }
     }
@@ -1218,14 +1217,14 @@
                 if(this.type==='nuke'){ 
                     addShake(30); state.flashAlpha=0.8;
                     state.enemies.forEach(e=>{ 
-                        if(!e.dead && !e.type.includes('BOSS') && e.type !== 'BRAXTON' && e.type !== 'POLYRHYTHM' && e.type !== 'TEZINA'){ e.takeDamage(9999, true); } 
-                        else if(e.type.includes('BOSS') || e.type === 'BRAXTON' || e.type === 'POLYRHYTHM' || e.type === 'TEZINA') { spawnDamageText(e.x, e.y-50, "IMMUNE", 'normal'); }
+                        if(!e.dead && e.type !== 'BOSS' && e.type !== 'MINI_BOSS' && e.type !== 'BRAXTON' && e.type !== 'POLYRHYTHM' && e.type !== 'TEZINA'){ e.takeDamage(9999, true); } 
+                        else if(e.type === 'BOSS' || e.type === 'BRAXTON' || e.type === 'POLYRHYTHM' || e.type === 'TEZINA') { spawnDamageText(e.x, e.y-50, "IMMUNE", 'normal'); }
                     }); 
                     spawnDamageText(player.x,player.y-50,"NUKE",'normal'); for(let i=0;i<50;i++)createParticle(player.x,player.y,'#ffaa00','fire',5); 
                 }
                 if(this.type==='freeze'){ 
                     state.enemies.forEach(e=>{ 
-                        if(!e.type.includes('BOSS') && e.type !== 'BRAXTON' && e.type !== 'POLYRHYTHM' && e.type !== 'TEZINA') e.frozen=300; 
+                        if(e.type !== 'BOSS' && e.type !== 'BRAXTON' && e.type !== 'POLYRHYTHM' && e.type !== 'TEZINA') e.frozen=300; 
                         else spawnDamageText(e.x, e.y-50, "IMMUNE", 'normal');
                     }); 
                     spawnDamageText(player.x,player.y-50,"FROZEN",'normal'); for(let i=0;i<20;i++)createParticle(player.x,player.y,'#00ffff','spark',2); 
@@ -1505,7 +1504,7 @@
                          player.hp -= scaledDmg;
                          spawnDamageText(player.x, player.y-60, Math.floor(scaledDmg), 'player');
                          player.invincible = 20;
-                         if(player.hp <= 0) triggerDeath(); // FIX: KILL PLAYER
+                         if(player.hp <= 0) triggerDeath(); // GLITCH FIX: Explicit kill check
                      }
                 }
                 return this.life <= 0;
@@ -1550,7 +1549,7 @@
                          spawnDamageText(player.x, player.y-60, "CRUSHED", 'player');
                          addShake(30);
                          player.invincible = 30;
-                         if(player.hp <= 0) triggerDeath(); // FIX: KILL PLAYER
+                         if(player.hp <= 0) triggerDeath(); // GLITCH FIX: Explicit kill check
                     }
                     state.friendlyUnits.forEach(u => {
                         if(!u.dead && Math.hypot(u.x - this.x, u.y - this.y) < this.radius) {
@@ -1581,7 +1580,6 @@
                      player.hp -= scaledDmg;
                      spawnDamageText(player.x, player.y-40, Math.floor(scaledDmg), 'player');
                      player.invincible = 30;
-                     if(player.hp <= 0) triggerDeath(); // FIX
                  }
                  return this.life <= 0;
             }
@@ -1653,10 +1651,14 @@
                 return;
             }
             if(this.type === 'judgment_beam') {
-                let d = this.overrideDamage; 
+                // Handled in Beam class logic mostly, but if using Zone for hit detection, the beam draw is triggered there.
+                // Reusing Logic: Actually, Zone logic draws its own if specific.
+                // Let's draw it here for the Zone:
+                let d = this.overrideDamage; // {aimAngle}
                 ctx.save(); ctx.translate(this.x - cX, this.y - cY); ctx.rotate(d.aimAngle);
                 
                 let width = this.radius * 2;
+                // Gradient for beam
                 let grad = ctx.createLinearGradient(0, -width/2, 0, width/2);
                 grad.addColorStop(0, 'rgba(255,215,0,0)');
                 grad.addColorStop(0.2, 'rgba(255,215,0,0.5)');
@@ -1842,7 +1844,7 @@
                 this.maxHp = 12000; 
                 this.hp = 12000;
             } else if (this.type === 'TEZINA') {
-                this.maxHp = 25000; // Fixed 25k HP
+                this.maxHp = 25000; // Fixed HP as requested
                 this.hp = this.maxHp;
             } else {
                 let baseHp = 40;
@@ -1854,7 +1856,7 @@
                 else if(this.type==='lovac') baseHp = 500 + state.level*10; 
                 else if(this.type==='NOLAN') baseHp = 600; 
                 else if(this.type==='MINI_BOSS') baseHp = 800 + state.level*100;
-                else if(this.type==='RHYTHM_WRAITH') baseHp = 50; // Increased to ensure they survive spawn
+                else if(this.type==='RHYTHM_WRAITH') baseHp = 10; // Weak
 
                 const minutes = state.gameTime / 60;
                 
@@ -1877,9 +1879,7 @@
             this.burnTimer = 0; 
             this.burekHitTimer = 0;
             this.percentBurnLeft = 0; 
-            
-            // Death Animation State
-            this.dying = false;
+            this.dying = false; // For death animations
             this.deathTimer = 0;
 
             if(this.type==='BOSS' || this.type==='WARLORD_CLONE') {
@@ -1915,6 +1915,7 @@
                 this.chargeTimer = 0;
                 this.isDashing = false;
                 this.dashTimer = 0;
+                this.summonTimer = 0;
             }
             else if(this.type==='MINI_BOSS') {
                 this.baseSpeed=2.2; this.radius=45;
@@ -1942,20 +1943,23 @@
             this.speed = this.baseSpeed;
         }
         update(){
-            if(this.dying) {
-                this.deathTimer--;
-                if(this.deathTimer % 5 === 0) createParticle(this.x, this.y, '#fff', 'spark', 2);
-                if(this.deathTimer <= 0) {
-                    this.dead = true; // Actually remove from game
-                    // Drop loot
-                    state.tezinaActive = false;
-                    state.crates.push(new Crate(this.x, this.y, 'tezina_reward')); 
-                }
-                return; // Stop logic
-            }
-            if(this.dead) { 
+            if(this.dead) {
+                 if(this.dying) {
+                     this.deathTimer--;
+                     if(this.deathTimer <= 0) {
+                         // Finish dying
+                         this.dying = false; // Actually remove
+                         if(this.type === 'TEZINA') {
+                             state.tezinaActive = false;
+                             state.crates.push(new Crate(this.x, this.y, 'rare'));
+                             spawnDamageText(this.x, this.y-100, "JUDGMENT ENDED", 'crit');
+                             document.getElementById('boss-hud').style.display = 'none';
+                         }
+                     }
+                     return;
+                 }
                 if(this.type === 'BOSS' || this.type === 'BRAXTON' || this.type === 'POLYRHYTHM' || this.type === 'TEZINA') {
-                    document.getElementById('boss-hud').style.display = 'none';
+                    if(this.type !== 'TEZINA') document.getElementById('boss-hud').style.display = 'none';
                 }
                 return;
             } 
@@ -2060,11 +2064,12 @@
                     setTimeout(() => cap.style.opacity = '0', 4000);
                 }
 
-                // Spawn Wraiths in Phase 2 - FIX: Increased spawn distance, ensured it runs
-                if(this.phase2 && state.frames % 180 === 0) {
-                    let randAng = Math.random() * 6.28;
-                    let dist = 300; // Keep them away from boss collision
-                    state.enemies.push(new Enemy('RHYTHM_WRAITH', this.x + Math.cos(randAng)*dist, this.y + Math.sin(randAng)*dist));
+                // GLITCH FIX: Spawn Wraiths in Phase 2 consistently
+                if(this.phase2 && state.frames % 120 === 0) {
+                     // Spawn slightly further out to ensure they don't spawn inside boss
+                    let spawnAngle = Math.random() * 6.28;
+                    let spawnDist = 150 + Math.random() * 50;
+                    state.enemies.push(new Enemy('RHYTHM_WRAITH', this.x + Math.cos(spawnAngle)*spawnDist, this.y + Math.sin(spawnAngle)*spawnDist));
                 }
 
                 // Abilities
@@ -2291,13 +2296,10 @@
         takeDamage(a, crit, source){
             if(this.isPhased) return; // IMMUNE WHEN PHASED
 
-            if(this.type === 'TEZINA') {
-                if(this.isAbsorbing) {
-                    this.storedDamage += a;
-                    spawnDamageText(this.x, this.y-50, "ABSORBED", false);
-                    return;
-                }
-                if(this.dying) return; // Already dying
+            if(this.type === 'TEZINA' && this.isAbsorbing) {
+                this.storedDamage += a;
+                spawnDamageText(this.x, this.y-50, "ABSORBED", false);
+                return;
             }
 
             if(this.type === 'BOSS' || this.type === 'MINI_BOSS' || this.type === 'BRAXTON' || this.type === 'POLYRHYTHM' || this.type === 'TEZINA' || this.type === 'WARLORD_CLONE') {
@@ -2327,16 +2329,16 @@
             if(source !== 'burn_percent') for(let i=0;i<3;i++)createParticle(this.x,this.y,c,'spark');
             
             if(this.hp<=0){ 
+                this.dead=true; if(this.type !== 'WARLORD_CLONE') state.score++; 
                 if(this.type === 'TEZINA') {
-                    // Trigger Dying Animation
+                    // Start death animation
                     this.dying = true;
-                    this.deathTimer = 120; // 2 seconds of animation
-                    document.getElementById('boss-hud').style.display='none';
-                    spawnDamageText(this.x, this.y-100, "JUDGMENT... PASSED?", 'crit');
-                    return; // Wait for animation
+                    this.deathTimer = 120; // 2 seconds animation
+                    state.flashAlpha = 1.0;
+                    addShake(100);
+                    return; // Don't process normal loot drop yet
                 }
 
-                this.dead=true; if(this.type !== 'WARLORD_CLONE') state.score++; 
                 if(this.type==='BOSS' || this.type==='BRAXTON' || this.type==='POLYRHYTHM'){
                      state.bossActive = false;
                      document.getElementById('boss-hud').style.display='none';
@@ -2370,20 +2372,16 @@
             }
         }
         draw(cX,cY){
-            if(this.dead) return; 
+            if(this.dead && !this.dying) return; 
             ctx.save(); ctx.translate(this.x-cX,this.y-cY);
-            
-            if(this.dying) {
-                // Death Animation
-                let shake = Math.random() * 10;
-                ctx.translate(shake - 5, shake - 5);
-                let scale = this.deathTimer / 120; // shrink
-                ctx.scale(scale, scale);
-                ctx.globalCompositeOperation = 'lighter';
-                ctx.fillStyle = '#fff';
-                ctx.beginPath(); ctx.arc(0,0, 50, 0, 6.28); ctx.fill();
-                ctx.restore();
-                return;
+
+            // DEATH ANIMATION FOR TEZINA
+            if(this.dying && this.type === 'TEZINA') {
+                 let shake = (Math.random() - 0.5) * 10;
+                 ctx.translate(shake, shake);
+                 let scale = 1 - (120 - this.deathTimer)/120; // Shrink
+                 ctx.scale(scale, scale);
+                 ctx.globalCompositeOperation = 'lighter';
             }
 
             if(this.hitFlash>0){ 
@@ -2585,6 +2583,136 @@
         }
     }
 
+    function checkLevelUp(){ 
+        if(state.xp>=state.nextLevelXp){
+            state.xp-=state.nextLevelXp;
+            state.level++;
+            player.maxHp += 10; player.hp += 10;
+            spawnDamageText(player.x, player.y-60, "+10 HP", 'normal');
+            state.nextLevelXp = Math.floor(state.nextLevelXp + 50 + (state.level * 25));
+            isPaused = true;
+            generateCards();
+        } 
+    }
+    
+    function spawnBoss(){
+        if(state.bossActive) return;
+        state.bossActive = true;
+        state.enemies = state.enemies.filter(e => e.type === 'MINI_BOSS'); 
+        state.flashAlpha = 1.0;
+        addShake(50);
+        document.getElementById('boss-hud').style.display = 'flex';
+        state.enemies.push(new Enemy('BOSS'));
+    }
+
+    function triggerBraxtonCutscene() {
+        if(state.braxtonSpawned) return;
+        state.braxtonSpawned = true;
+        state.enemies = [];
+        isCutscene = true;
+        const cutscene = document.getElementById('braxton-cutscene');
+        const dialogue = document.getElementById('braxton-dialogue');
+        const taco = document.getElementById('taco-anim');
+        cutscene.style.display = 'flex';
+        taco.style.display = 'block';
+        dialogue.style.display = 'none';
+        
+        setTimeout(() => {
+            taco.style.display = 'none';
+            dialogue.style.display = 'block';
+            const lines = ["THIS SUCKS!", "YOU SUCK!", "GAME BAD!"];
+            let lineIdx = 0;
+            const lineInterval = setInterval(() => {
+                if(lineIdx < lines.length) { dialogue.innerText = lines[lineIdx]; lineIdx++; } 
+                else {
+                    clearInterval(lineInterval);
+                    setTimeout(() => {
+                        cutscene.style.display = 'none';
+                        isCutscene = false;
+                        state.braxtonActive = true;
+                        let a=Math.random()*6.28, d=600; 
+                        let bx=player.x+Math.cos(a)*d, by=player.y+Math.sin(a)*d;
+                        state.enemies.push(new Enemy('BRAXTON', bx, by));
+                        spawnDamageText(bx, by-100, "BRAXTON HAS ARRIVED", 'normal');
+                    }, 1000);
+                }
+            }, 1000);
+        }, 2000);
+    }
+    
+    function triggerMusicalIntro() {
+        if(state.polyrhythmSpawned) return;
+        state.polyrhythmSpawned = true;
+        isCutscene = true;
+        state.enemies = []; // Despawn standard enemies
+        const overlay = document.getElementById('musical-overlay');
+        overlay.style.display = 'block';
+        
+        const notes = ['🎵', '🎶', '🎼', '🎹', '🎻'];
+        for(let i=0; i<30; i++) {
+            let el = document.createElement('div');
+            el.className = 'note-anim';
+            el.innerText = notes[Math.floor(Math.random()*notes.length)];
+            el.style.left = (Math.random()*100) + '%';
+            el.style.top = (Math.random()*100) + '%';
+            el.style.setProperty('--tx', (Math.random()*200 - 100) + 'px');
+            el.style.setProperty('--ty', (Math.random()*200 - 100) + 'px');
+            el.style.setProperty('--rot', (Math.random()*360) + 'deg');
+            el.style.animationDelay = (Math.random()*2) + 's';
+            overlay.appendChild(el);
+        }
+        
+        document.getElementById('boss-caption').style.opacity = '0';
+
+        setTimeout(() => {
+            overlay.innerHTML = '';
+            overlay.style.display = 'none';
+            isCutscene = false;
+            state.polyrhythmActive = true;
+            let a=Math.random()*6.28, d=600; 
+            let bx=player.x+Math.cos(a)*d, by=player.y+Math.sin(a)*d;
+            state.enemies.push(new Enemy('POLYRHYTHM', bx, by));
+            spawnDamageText(bx, by-100, "THE POLYRHYTHM", 'crit');
+        }, 2500);
+    }
+
+    function triggerClockIntro() {
+        if(state.tezinaSpawned) return;
+        state.tezinaSpawned = true;
+        isCutscene = true;
+        state.enemies = []; // Clear field
+        const overlay = document.getElementById('clock-overlay');
+        const hHand = document.getElementById('hand-hour');
+        const mHand = document.getElementById('hand-minute');
+        const text = document.getElementById('clock-text');
+        
+        overlay.style.display = 'flex';
+        
+        // Initial state
+        hHand.style.transform = 'rotate(0deg)';
+        mHand.style.transform = 'rotate(0deg)';
+        text.style.opacity = '0';
+        
+        setTimeout(() => {
+            // Animate to 12:20
+            // Hour hand moves slightly (20/60 of 30deg) = 10deg
+            // Minute hand moves to 4 (120deg)
+            hHand.style.transform = 'rotate(10deg)';
+            mHand.style.transform = 'rotate(120deg)';
+            text.style.opacity = '1';
+        }, 100);
+
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            isCutscene = false;
+            state.tezinaActive = true;
+            let a=Math.random()*6.28, d=600; 
+            let bx=player.x+Math.cos(a)*d, by=player.y+Math.sin(a)*d;
+            state.enemies.push(new Enemy('TEZINA', bx, by));
+            spawnDamageText(bx, by-100, "JUDGMENT COMETH", 'crit');
+        }, 3500);
+    }
+
     function triggerCrateOpening(type='standard') {
         if(document.getElementById('crate-screen').style.display === 'flex') return;
         isPaused = true;
@@ -2606,7 +2734,11 @@
         
         // Animation Sequence
         anim.className = 'crate-drop';
-        anim.innerText = type === 'musical' ? '🎵' : (type === 'tezina_reward' ? '👑' : '📦');
+        let icon = '📦';
+        if(type === 'musical') icon = '🎵';
+        if(type === 'rare') icon = '🎁';
+        
+        anim.innerText = icon;
         
         setTimeout(() => {
             anim.className = 'crate-shake';
@@ -2617,7 +2749,7 @@
                 title.style.opacity = '1';
                 btn.style.opacity = '1';
                 if(type === 'musical') generateMusicalLoot();
-                else if(type === 'tezina_reward') generateTezinaLoot();
+                else if(type === 'rare') generateRareCrateLoot();
                 else generateCrateLoot();
             }, 1000); 
         }, 500); 
@@ -2650,27 +2782,22 @@
         renderCrateCards(crateRewards);
     }
 
-    function generateTezinaLoot() {
+    function generateRareCrateLoot() {
         crateRewards = [];
-        // 3 Guaranteed Rares (Upgrades or Evolutions)
-        let rares = [...UPGRADES, ...EVOLUTIONS].filter(u => u.tier === 'rare');
-        
-        // Shuffle to get unique
-        for (let i = rares.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [rares[i], rares[j]] = [rares[j], rares[i]];
-        }
-        
-        for(let i=0; i<3; i++) {
-            if(i < rares.length) crateRewards.push(rares[i]);
-        }
-
-        // 2 Random Cards (Common/Rare/Legendary)
+        // Pool of Rare items
+        let rares = [...UPGRADES.filter(u => u.tier === 'rare'), ...EVOLUTIONS];
         let all = [...UPGRADES, ...EVOLUTIONS];
-        for(let i=0; i<2; i++) {
-             crateRewards.push(all[Math.floor(Math.random() * all.length)]);
-        }
 
+        // 3 Guaranteed Rares
+        for(let i=0; i<3; i++) {
+             let r = rares[Math.floor(Math.random()*rares.length)];
+             crateRewards.push(r);
+        }
+        // 2 Random
+        for(let i=0; i<2; i++) {
+             let r = all[Math.floor(Math.random()*all.length)];
+             crateRewards.push(r);
+        }
         renderCrateCards(crateRewards);
     }
 
@@ -2701,6 +2828,1025 @@
         state.crates = []; 
         isPaused = false;
     }
+
+    function updateHud(){ 
+        document.getElementById('lvl-display').innerText=state.level; 
+        document.getElementById('score-display').innerText=state.score; 
+        document.getElementById('xp-fill').style.width=Math.min(100,(state.xp/state.nextLevelXp*100))+'%'; 
+        document.getElementById('hp-fill').style.width=Math.max(0,(player.hp/player.maxHp*100))+'%'; 
+        
+        let m = Math.floor(state.gameTime / 60);
+        let s = Math.floor(state.gameTime % 60);
+        document.getElementById('timer-display').innerText = 
+            (m < 10 ? "0"+m : m) + ":" + (s < 10 ? "0"+s : s);
+    }
+    
+    function gameLoop(){ 
+        if(gameActive && !isPaused && !isCutscene){ update(); draw(); } 
+        else if(!gameActive) {
+            ctx.fillStyle='#050510'; ctx.fillRect(0,0,W,H);
+            state.backgroundStars.forEach(s => {
+                s.x -= 0.2; if(s.x < 0) s.x = W;
+                ctx.fillStyle = `rgba(255,255,255,${s.alpha})`; ctx.fillRect(s.x, s.y, s.size, s.size);
+            });
+        }
+        requestAnimationFrame(gameLoop); 
+    }
+    
+    function getClosestEnemy(){ let c=null,m=800; state.enemies.forEach(e=>{let d=Math.hypot(e.x-player.x,e.y-player.y);if(d<m){m=d;c=e;}}); return c; }
+
+    function spawnPerk() {
+        let chance = 0.0008 * player.luck;
+        if(Math.random() > chance) return;
+        const types = ['health', 'magnet', 'nuke', 'freeze'];
+        let dist = 300 + Math.random() * 400; 
+        let ang = Math.random() * 6.28;
+        state.perks.push(new Perk(player.x+Math.cos(ang)*dist, player.y+Math.sin(ang)*dist, types[Math.floor(Math.random() * types.length)]));
+    }
+
+    function lineCircleCollide(px,py, ax,ay, bx,by, r) {
+        const vX = bx-ax, vY = by-ay; const wX = px-ax, wY = py-ay;
+        const c1 = wX*vX + wY*vY;
+        if(c1 <= 0) return Math.hypot(px-ax, py-ay) < r;
+        const c2 = vX*vX + vY*vY;
+        if(c2 <= c1) return Math.hypot(px-bx, py-by) < r;
+        const b = c1/c2; const projX = ax + b*vX, projY = ay + b*vY;
+        return Math.hypot(px-projX, py-projY) < r;
+    }
+
+    function spawnCircle(type, count) {
+        spawnDamageText(player.x, player.y-100, "⚠️ SWARM DETECTED ⚠️", 'normal');
+        for(let i=0; i<count; i++){
+            let angle = (i / count) * 6.28;
+            let dist = 800;
+            state.enemies.push(new Enemy(type, player.x + Math.cos(angle) * dist, player.y + Math.sin(angle) * dist));
+        }
+    }
+
+    function handleWaves() {
+        if(state.braxtonActive || state.polyrhythmActive || state.tezinaActive) return; 
+        if(!spawningEnabled) return;
+
+        let t = state.gameTime;
+        
+        // 14:00 - Polyrhythm Tease
+        if(t === 840 && state.frames % 60 === 0) {
+            const cap = document.getElementById('boss-caption');
+            cap.innerText = "THE MUSIC, CAN YOU HEAR IT?";
+            cap.style.opacity = '1';
+            setTimeout(() => cap.style.opacity = '0', 4000);
+        }
+
+        // 15:00 - Polyrhythm Intro
+        if(t >= 900 && t < 1200 && !state.polyrhythmSpawned) {
+             triggerMusicalIntro();
+             return;
+        }
+
+        // 20:00 - Težina Presude Intro
+        if(t >= 1200 && !state.tezinaSpawned) {
+            triggerClockIntro();
+            return;
+        }
+        
+        // 10 MINUTE MARK - BRAXTON
+        if(t >= 600 && t < 900 && !state.braxtonSpawned) {
+            triggerBraxtonCutscene();
+            return;
+        }
+
+        // SWARMS
+        if(t >= 300 && !state.bossActive && state.frames % 60 === 0) { 
+            if(Math.random() < 0.01) {
+                let types = ['promaja', 'hornet', 'yugo'];
+                let chosen = types[Math.floor(Math.random() * types.length)];
+                let amount = 15 + Math.floor(t / 10); 
+                spawnCircle(chosen, amount);
+            }
+        }
+
+        // KRVAVI LOVAC SPAWN LOGIC (7 minutes / 420 seconds)
+        if(t >= 420 && !state.bossActive) {
+            if(state.frames % 500 === 0) {
+                 state.enemies.push(new Enemy('lovac'));
+            }
+        }
+
+        if(t < 300) {
+            if(t < 60) {
+                if(state.frames % 90 === 0) state.enemies.push(new Enemy('promaja'));
+            } 
+            else if(t < 120) {
+                if(state.frames % 60 === 0) state.enemies.push(new Enemy('promaja'));
+                if(state.frames % 120 === 0) state.enemies.push(new Enemy('hornet')); 
+            }
+            else if(t < 180) {
+                if(state.frames % 40 === 0) state.enemies.push(new Enemy('promaja'));
+                if(state.frames % 80 === 0) state.enemies.push(new Enemy('hornet'));
+                if(state.frames % 300 === 0) state.enemies.push(new Enemy('yugo'));
+            }
+            else if(t < 240) {
+                if(state.frames % 30 === 0) state.enemies.push(new Enemy('promaja'));
+                if(state.frames % 60 === 0) state.enemies.push(new Enemy('hornet'));
+                if(state.frames % 120 === 0) state.enemies.push(new Enemy('yugo'));
+            }
+            else if(t < 300) {
+                if(state.frames % 20 === 0) state.enemies.push(new Enemy(Math.random()<0.5?'promaja':'hornet'));
+                if(state.frames % 80 === 0) state.enemies.push(new Enemy('yugo'));
+            }
+        } 
+        else if (t >= 300) {
+            if(!state.bossSpawnedOnce) {
+                spawnBoss();
+                state.bossSpawnedOnce = true;
+            }
+            if(state.bossActive) {
+                if(state.frames % 100 === 0) state.enemies.push(new Enemy('promaja'));
+                if(state.frames % 200 === 0) state.enemies.push(new Enemy('hornet'));
+            } 
+            else {
+                if(state.frames % 15 === 0) state.enemies.push(new Enemy(Math.random()<0.5?'promaja':'hornet'));
+                if(state.frames % 50 === 0) state.enemies.push(new Enemy('yugo'));
+                
+                // SNIPER STARTS AT 6 MINUTES (360s)
+                if(t >= 360 && state.frames % 200 === 0) state.enemies.push(new Enemy('snajper'));
+                
+                if(state.frames % 300 === 0) {
+                    let medicCount = state.enemies.filter(e => e.type === 'medic').length;
+                    if(medicCount < 3) {
+                        state.enemies.push(new Enemy('medic'));
+                    }
+                }
+
+                if(state.frames % 600 === 0) {
+                    if(Math.random() < 0.05) state.enemies.push(new Enemy('MINI_BOSS'));
+                }
+            }
+        }
+    }
+
+    function update(){
+        if(state.flashAlpha > 0) state.flashAlpha -= 0.02;
+
+        let mx=0,my=0; if(keys['w']||keys['arrowup'])my=-1; if(keys['s']||keys['arrowdown'])my=1; if(keys['a']||keys['arrowleft'])mx=-1; if(keys['d']||keys['arrowright'])mx=1;
+        if(mx!==0||my!==0){ 
+            let l=Math.sqrt(mx*mx+my*my); 
+            player.x+=(mx/l)*player.speed; 
+            player.y+=(my/l)*player.speed; 
+            player.facing = Math.atan2(my, mx); 
+        }
+        
+        if(player.invincible > 0) player.invincible--;
+
+        if(player.regen>0 && state.frames%60===0 && player.hp<player.maxHp){ player.hp=Math.min(player.maxHp, player.hp+player.regen); updateHud(); spawnDamageText(player.x,player.y-50,player.regen,true); }
+
+        if(state.frames % 60 === 0) {
+            state.gameTime++;
+            updateHud();
+        }
+        
+        // Rhythmic Buff Timer
+        if(player.items.rhythmic_buff > 0) {
+            state.rhythmicBuffTimer++;
+            if(state.rhythmicBuffTimer > 1200) state.rhythmicBuffTimer = 0; // 20s cycle
+            if(state.rhythmicBuffTimer === 1080) spawnDamageText(player.x, player.y-60, "RHYTHMIC POWER", 'crit');
+        }
+
+        handleWaves();
+        spawnPerk();
+
+        state.friendlyUnits.forEach(u => u.update());
+
+        const wc=player.weapons.cevapi; 
+        if(wc.level>0 && !wc.evolved){ 
+            wc.timer++; 
+            if(wc.timer>wc.cooldown){
+                let t=getClosestEnemy();
+                if(t){
+                    state.projectiles.push(new Projectile(player.x,player.y,t,'cevapi'));
+                    wc.timer=0;
+                }
+            } 
+        } else if(wc.evolved) {
+            wc.grillAngle += 0.05;
+            if(state.frames % 60 === 0 && state.enemies.length > 0) {
+                 // Calculate shot count based on overheat progress
+                 let heatProgress = state.score - wc.lastBurstScore;
+                 if(heatProgress > 100) heatProgress = 100;
+                 if(heatProgress < 0) heatProgress = 0;
+                 let extraShots = Math.floor((heatProgress/100) * 4); // 0 to 4
+                 if(heatProgress >= 90) extraShots = 4;
+                 let totalShots = 3 + extraShots;
+
+                 for(let i=0; i<totalShots; i++) {
+                     let t = state.enemies[Math.floor(Math.random() * state.enemies.length)];
+                     let gX = player.x + Math.cos(wc.grillAngle)*60;
+                     let gY = player.y + Math.sin(wc.grillAngle)*60;
+                     state.projectiles.push(new Projectile(gX, gY, t, 'cevapi'));
+                 }
+            }
+            if(state.score >= wc.lastBurstScore + 100 && state.score > 0) {
+                wc.lastBurstScore = state.score;
+                spawnDamageText(player.x, player.y-60, "OVERHEAT!", 'crit');
+                addShake(20);
+                for(let i=0; i<25; i++) {
+                    let ang = (i/25)*6.28;
+                    let p = new Projectile(player.x, player.y, null, 'cevapi_hot');
+                    p.vx = Math.cos(ang) * 10;
+                    p.vy = Math.sin(ang) * 10;
+                    state.projectiles.push(p);
+                }
+            }
+        }
+
+        const wa=player.weapons.ajvar; if(wa.level>0){ wa.timer++; if(wa.timer>wa.cooldown&&state.enemies.length>0){let ts=state.enemies.filter(e=>Math.hypot(e.x-player.x,e.y-player.y)<700);if(ts.length){state.projectiles.push(new Projectile(player.x,player.y,ts[Math.floor(Math.random()*ts.length)],'ajvar'));wa.timer=0;}} }
+        const wr=player.weapons.rakija; if(wr.level>0){ wr.timer++; if(wr.timer>wr.cooldown){let t=getClosestEnemy();if(t){state.projectiles.push(new Projectile(player.x,player.y,t,'rakija'));wr.timer=0;}} }
+        
+        const ws = player.weapons.spike;
+        if(ws.level > 0) {
+            ws.timer++;
+            if(ws.timer > ws.cooldown && state.enemies.length > 0) {
+                let targets = state.enemies.sort((a,b) => b.hp - a.hp).slice(0, 3);
+                targets.forEach(t => {
+                    let baseDmg = 60 + (ws.level * 15) + (state.level * 2);
+                    let dmg = calcDamage(baseDmg);
+                    t.takeDamage(dmg.d, dmg.c, 'spike');
+                    state.zones.push(new Zone(t.x, t.y, 'spike_burst', 20));
+                });
+                ws.timer = 0;
+            }
+        }
+        
+        const wf = player.weapons.flag;
+        if(wf.level > 0) {
+            wf.timer++;
+            if(wf.timer > wf.cooldown) {
+                wf.timer = 0;
+                for(let i=0; i<wf.count; i++) {
+                    state.projectiles.push(new Projectile(player.x, player.y, null, 'bosnian_flag'));
+                }
+            }
+        }
+
+        const wp=player.weapons.pyramid; 
+        if(wp.level>0){ 
+            wp.timer++; 
+            if(wp.timer>wp.cooldown){
+                let t=getClosestEnemy();
+                if(t) {
+                    if(wp.evolved) {
+                        addShake(15);
+                        const angle = Math.atan2(t.y - player.y, t.x - player.x);
+                        state.beams.push(new Beam(player.x, player.y, angle));
+                        const endX = player.x + Math.cos(angle) * 1200;
+                        const endY = player.y + Math.sin(angle) * 1200;
+                        state.enemies.forEach(e => {
+                            if(lineCircleCollide(e.x, e.y, player.x, player.y, endX, endY, e.radius + 100)) {
+                                let dmg = calcDamage(wp.damage); 
+                                e.takeDamage(dmg.d, dmg.c, 'beam');
+                                createParticle(e.x, e.y, '#fecb00', 'spark', 1.5);
+                            }
+                        });
+                        wp.timer = 0;
+                    } else {
+                        state.projectiles.push(new Projectile(player.x,player.y,t,'pyramid'));
+                        wp.timer=0;
+                    }
+                }
+            } 
+        }
+
+        // Piano Smash Ability
+        const pps = player.weapons.piano_smash;
+        if(pps.level > 0) {
+            pps.timer++;
+            if(pps.timer > pps.cooldown) {
+                pps.timer = 0;
+                // Pick random location near player
+                let ang = Math.random() * 6.28;
+                let dist = Math.random() * 200;
+                let tx = player.x + Math.cos(ang) * dist;
+                let ty = player.y + Math.sin(ang) * dist;
+                state.zones.push(new Zone(tx, ty, 'piano_warning', 150, 'player'));
+            }
+        }
+
+        const bur = player.weapons.burek;
+        if(bur.evolved) {
+             let fireDist = bur.dist * 2.0;
+             if(state.frames % 15 === 0) { 
+                 let baseTick = Math.max(1, bur.damage * 0.5);
+                 state.enemies.forEach(e => {
+                     if(Math.hypot(e.x - player.x, e.y - player.y) < fireDist) {
+                         let dmg = calcDamage(baseTick);
+                         e.takeDamage(dmg.d, false, 'fire_aura');
+                         createParticle(e.x, e.y, '#ff5e00', 'fire', 0.5);
+                     }
+                 });
+             }
+             if(state.frames % 5 === 0) {
+                  let rAng = Math.random() * 6.28;
+                  let rDist = Math.random() * fireDist;
+                  createParticle(player.x + Math.cos(rAng)*rDist, player.y + Math.sin(rAng)*rDist, 'rgba(255,100,0,0.3)', 'fire', 0.5);
+             }
+        }
+
+        state.gems=state.gems.filter(g=>!g.update()); state.zones=state.zones.filter(z=>!z.update()); state.perks=state.perks.filter(p=>p.update());
+        state.beams=state.beams.filter(b=>b.update());
+        state.crates = state.crates.filter(c => !c.update());
+        
+        state.projectiles.forEach(p=>p.update()); 
+        state.projectiles=state.projectiles.filter(p=>{
+            // DAMAGE SCALING CALCULATION (PROJECTILES)
+            let timeMinutes = state.gameTime / 60;
+            let damageMultiplier = 1.0;
+            let bossDamageMultiplier = 1.0;
+            if(timeMinutes > 10) {
+                damageMultiplier = 1 + (timeMinutes - 10) * 0.05;
+                bossDamageMultiplier = 1 + (timeMinutes - 10) * 0.025;
+            }
+
+            if(p.type === 'bosnian_flag') {
+                if(p.life <= 0) return false;
+                state.enemies.forEach(e => {
+                    if(!p.pierceHitList.includes(e) && Math.hypot(e.x - p.x, e.y - p.y) < e.radius + 15) {
+                        let baseDmg = 12 + state.level;
+                        let dmg = calcDamage(baseDmg);
+                        e.takeDamage(dmg.d, dmg.c, 'flag');
+                        p.pierceHitList.push(e);
+                        createParticle(e.x, e.y, '#002395', 'spark', 0.5);
+                    }
+                });
+                return true;
+            }
+            if(p.type === 'boss_missile' || p.type === 'sniper_shot' || p.type === 'warsaw') {
+                if(Math.hypot(p.x-player.x, p.y-player.y) < player.radius + 10) {
+                    if(!godMode) {
+                        let hitDmg = p.type === 'sniper_shot' ? 15 : 40; 
+                        if(p.type === 'warsaw') hitDmg = 20;
+                        
+                        // Apply Scaling
+                        if(p.type === 'sniper_shot' || p.type === 'warsaw') hitDmg *= damageMultiplier;
+                        if(p.type === 'boss_missile') hitDmg *= bossDamageMultiplier;
+
+                        if(p.type !== 'warsaw') {
+                            if(player.invincible <= 10) { 
+                                player.hp -= hitDmg;
+                                spawnDamageText(player.x, player.y-60, Math.floor(hitDmg), 'player');
+                                player.invincible = 30; 
+                                if(player.hp <= 0) triggerDeath();
+                            }
+                        } else {
+                             if(p.hitCooldowns.length === 0) { 
+                                 if(p.life % 20 === 0) {
+                                     player.hp -= hitDmg;
+                                     spawnDamageText(player.x, player.y-40, Math.floor(hitDmg), 'player');
+                                     p.hitCooldowns.push(20); 
+                                     if(player.hp <= 0) triggerDeath();
+                                 }
+                                 return true; 
+                             }
+                        }
+                    }
+                    if(godMode) spawnDamageText(player.x, player.y-50, "BLOCKED", true);
+                    
+                    addShake(20);
+                    updateHud();
+                    return p.type === 'warsaw'; 
+                }
+                for(let u of state.friendlyUnits) {
+                    if(!u.dead && Math.hypot(p.x - u.x, p.y - u.y) < u.radius + 10) {
+                        u.takeDamage(40);
+                        if(p.type !== 'warsaw') return false;
+                    }
+                }
+                return p.life > 0;
+            }
+
+            if(p.type==='pyramid'&&p.life>0){
+                state.enemies.forEach(e=>{
+                    if(Math.hypot(e.x-p.x,e.y-p.y)<e.radius+p.radius){
+                        if(!p.pierceHitList.includes(e)) {
+                             let dmg=calcDamage(player.weapons.pyramid.damage); 
+                             e.takeDamage(dmg.d, dmg.c, 'projectile');
+                             createParticle(e.x,e.y,'#0f0','spark');
+                             p.pierceHitList.push(e); 
+                        }
+                    }
+                });
+                return true;
+            } 
+            if(p.type==='cevapi') {
+                for(let e of state.enemies) {
+                    if(Math.hypot(e.x-p.x,e.y-p.y) < e.radius+15) {
+                        let dmg = p.overrideDamage > 0 ? {d:p.overrideDamage, c:false} : calcDamage(player.weapons.cevapi.damage);
+                        e.takeDamage(dmg.d, dmg.c, 'projectile');
+                        p.life = 0;
+                        return false;
+                    }
+                }
+            }
+            if(p.type==='cevapi_hot') {
+                for(let e of state.enemies) {
+                    if(Math.hypot(e.x-p.x,e.y-p.y) < e.radius+20) {
+                        if(!p.pierceHitList.includes(e)) {
+                            // Apply burn
+                            e.percentBurnLeft += player.weapons.cevapi.burnCount;
+                            e.takeDamage(10, false, 'projectile');
+                            // p.life = 0; // Removed self-destruction for piercing
+                            createParticle(e.x, e.y, '#ff4500', 'fire', 1.0);
+                            p.pierceHitList.push(e); // Add to hit list
+                        }
+                    }
+                }
+                return p.life > 0; // Projectile stays alive until time runs out
+            }
+
+            return p.life>0;
+        });
+
+        const harm = player.weapons.harmonika;
+
+        state.enemies.forEach(e=>{
+            e.speed = e.baseSpeed;
+            // Harmonika Slow (Ignored by Phased Lovac)
+            if(harm.level > 0 && !e.isPhased) {
+                if(Math.hypot(e.x - player.x, e.y - player.y) < harm.range) {
+                    let effectiveSlow = Math.min(harm.slow, 0.8);
+                    e.speed = e.baseSpeed * (1 - effectiveSlow);
+                    if(state.frames % 20 === 0) createParticle(e.x, e.y, '#00f3ff', 'spark', 0.2);
+                }
+            }
+
+            e.update();
+            let safeDist = player.radius + e.radius - 5;
+            
+            // COLLISION
+            if(!e.frozen && Math.hypot(e.x-player.x,e.y-player.y)<safeDist){ 
+                
+                // DAMAGE SCALING CALCULATION
+                let timeMinutes = state.gameTime / 60;
+                let damageMultiplier = 1.0;
+                let bossMultiplier = 1.0;
+                
+                if(timeMinutes > 10) {
+                    damageMultiplier = 1 + (timeMinutes - 10) * 0.05;
+                    bossMultiplier = 1 + (timeMinutes - 10) * 0.025;
+                }
+
+                if(e.type === 'BRAXTON') {
+                    if(e.damageCooldown <= 0) {
+                        let dmg = 60 * bossMultiplier;
+                        if(!godMode) player.hp -= dmg;
+                        e.damageCooldown = 30; 
+                        addShake(10);
+                        if(player.invincible <= 0) player.invincible = 30;
+                        spawnDamageText(player.x, player.y-60, Math.floor(dmg), 'player');
+                    }
+                } else if(e.type === 'POLYRHYTHM') {
+                    if(e.damageCooldown <= 0) {
+                         let dmg = 40 * bossMultiplier;
+                         if(!godMode) player.hp -= dmg;
+                         e.damageCooldown = 20;
+                         addShake(5);
+                         if(player.invincible <= 0) player.invincible = 20;
+                         spawnDamageText(player.x, player.y-60, Math.floor(dmg), 'player');
+                    }
+                } else if(e.type === 'TEZINA') {
+                    // Collision damage with Težina is minimal unless dashing, focus on abilities
+                    if(e.damageCooldown <= 0) {
+                         let dmg = 30 * bossMultiplier;
+                         if(e.isDashing) dmg = 150;
+                         
+                         if(!godMode) player.hp -= dmg;
+                         e.damageCooldown = 30;
+                         addShake(10);
+                         if(player.invincible <= 0) player.invincible = 30;
+                         spawnDamageText(player.x, player.y-60, Math.floor(dmg), 'player');
+                    }
+                } else {
+                    let baseDmg = 5;
+                    if(e.type === 'yugo') baseDmg = 15;
+                    if(e.type === 'hornet') baseDmg = 3;
+                    if(e.type === 'medic') baseDmg = 4;
+                    if(e.type === 'lovac') {
+                        baseDmg = 20;
+                        e.attackAnim = 20; // Trigger knife anim
+                    }
+                    if(e.type === 'BOSS' || e.type === 'MINI_BOSS' || e.type === 'WARLORD_CLONE') baseDmg = 20;
+                    if(e.type === 'RHYTHM_WRAITH') baseDmg = 30;
+                    
+                    // Apply Scaling
+                    if(e.type === 'BOSS' || e.type === 'MINI_BOSS' || e.type === 'WARLORD_CLONE') baseDmg *= bossMultiplier;
+                    else baseDmg *= damageMultiplier;
+
+                    let dmgAmt = Math.max(1, baseDmg - player.armor);
+
+                    if(!godMode) {
+                        if(player.invincible <= 0) {
+                            player.hp -= dmgAmt; 
+                            player.invincible = 30; // 0.5s I-frames
+                            spawnDamageText(player.x, player.y-60, Math.floor(dmgAmt), 'normal');
+                        }
+                    }
+                    addShake(2); 
+                    
+                    if(e.type === 'RHYTHM_WRAITH') {
+                        e.takeDamage(999, true, 'suicide'); // Wraith dies on contact
+                    }
+                }
+                
+                updateHud(); 
+                if(player.hp<=0) triggerDeath();
+            }
+
+            state.friendlyUnits.forEach(u => {
+                if(!u.dead && !e.frozen && Math.hypot(e.x - u.x, e.y - u.y) < u.radius + e.radius) {
+                    u.takeDamage(1);
+                }
+            });
+            
+            while(bur.orbs.length<bur.count)bur.orbs.push({timer:0});
+            for(let b=0;b<bur.count;b++){
+                if(bur.orbs[b].timer>0){ bur.orbs[b].timer--; continue; }
+                const ang=(state.frames*bur.speed)+(b*6.28/bur.count), bx=player.x+Math.cos(ang)*bur.dist, by=player.y+Math.sin(ang)*bur.dist;
+                
+                let hitRadius = 45; 
+                if(Math.hypot(e.x-bx,e.y-by) < hitRadius && e.burekHitTimer <= 0){
+                    if(bur.evolved){ 
+                        let dmg = calcDamage(bur.damage);
+                        e.takeDamage(dmg.d, dmg.c, 'burek');
+                        e.burnTimer = 60; 
+                        createParticle(bx, by, '#ff5e00', 'fire', 1.0);
+                        e.burekHitTimer = 30; 
+                    }
+                    else { 
+                        let dmg=calcDamage(bur.damage); 
+                        e.takeDamage(dmg.d, dmg.c, 'burek'); 
+                        createParticle(e.x,e.y,'#e67e22','spark'); 
+                        e.burekHitTimer = 30; 
+                    }
+                }
+            }
+        });
+        
+        // --- FIXED BOSS DESPAWN GLITCH ---
+        // Bosses are now exempt from distance based cleanup
+        state.enemies=state.enemies.filter(e=>!e.dead && (Math.hypot(e.x-player.x,e.y-player.y)<2000 || e.type.includes('BOSS') || e.type === 'BRAXTON' || e.type === 'POLYRHYTHM' || e.type === 'TEZINA'));
+
+        state.particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=p.decay;p.vx*=0.95;p.vy*=0.95;}); state.particles=state.particles.filter(p=>p.life>0);
+        state.texts.forEach(t=>{t.y+=t.vy; t.vy*=0.9; t.life-=0.02;}); state.texts=state.texts.filter(t=>t.life>0);
+        if(state.shake>0)state.shake*=0.9; state.frames++;
+    }
+
+    function draw(){
+        let cX=player.x-W/2, cY=player.y-H/2; 
+        if(state.shake>0.5){cX+=(Math.random()-0.5)*state.shake;cY+=(Math.random()-0.5)*state.shake;}
+        
+        ctx.fillStyle='#050510'; ctx.fillRect(0,0,W,H); 
+        
+        state.backgroundStars.forEach(s => {
+            let px = (s.x - cX * 0.1) % W; if(px<0) px+=W;
+            let py = (s.y - cY * 0.1) % H; if(py<0) py+=H;
+            ctx.fillStyle = `rgba(255,255,255,${s.alpha})`;
+            ctx.fillRect(px, py, s.size, s.size);
+        });
+
+        ctx.strokeStyle='#1a1a2e'; ctx.lineWidth=1; ctx.beginPath();
+        let ox=-cX%150, oy=-cY%150; 
+        for(let i=ox;i<W;i+=150){ctx.moveTo(i,0);ctx.lineTo(i,H);} 
+        for(let i=oy;i<H;i+=150){ctx.moveTo(0,i);ctx.lineTo(W,i);} 
+        ctx.stroke();
+
+        state.zones.forEach(z=>z.draw(cX,cY)); 
+        state.gems.forEach(g=>g.draw(cX,cY)); 
+        state.perks.forEach(p=>p.draw(cX,cY));
+        state.crates.forEach(c => c.draw(cX, cY));
+        
+        state.friendlyUnits.forEach(u => u.draw(cX, cY));
+
+        state.enemies.forEach(e=>e.draw(cX,cY)); 
+        state.projectiles.forEach(p=>p.draw(cX,cY));
+        state.beams.forEach(b=>b.draw(cX,cY));
+        
+        let pX=player.x-cX, pY=player.y-cY; 
+        
+        ctx.save(); 
+        ctx.translate(pX,pY); 
+        
+        // ORBITING GRILL
+        if(player.weapons.cevapi.evolved) {
+             let gx = Math.cos(player.weapons.cevapi.grillAngle) * 60;
+             let gy = Math.sin(player.weapons.cevapi.grillAngle) * 60;
+             ctx.fillStyle = '#333';
+             ctx.fillRect(gx-10, gy-10, 20, 20); // Grill Body
+             ctx.fillStyle = '#ff4500';
+             ctx.fillRect(gx-8, gy-8, 16, 16); // Coals
+             ctx.fillStyle = '#000'; // Grate lines
+             ctx.fillRect(gx-8, gy-2, 16, 2);
+             ctx.fillRect(gx-8, gy+2, 16, 2);
+             ctx.fillRect(gx-2, gy-8, 2, 16);
+        }
+
+        ctx.rotate(player.facing+1.57);
+        
+        if(player.invincible > 0) ctx.globalAlpha = 0.4;
+
+        ctx.shadowBlur=15; ctx.shadowColor='rgba(0,0,0,0.5)'; 
+
+        // Robes
+        ctx.fillStyle='#002395'; 
+        ctx.beginPath(); 
+        let sway = Math.sin(state.frames * 0.2) * 2;
+        ctx.moveTo(0,0);
+        ctx.bezierCurveTo(-15, 5, -15, 20+sway, 0, 25);
+        ctx.bezierCurveTo(15, 20-sway, 15, 5, 0, 0);
+        ctx.fill();
+        
+        // Gold Trim
+        ctx.strokeStyle='#fecb00'; 
+        ctx.lineWidth=2;
+        ctx.stroke();
+
+        // Head
+        ctx.fillStyle='#ffdbac';
+        ctx.beginPath(); ctx.arc(0, 0, 8, 0, 6.28); ctx.fill();
+
+        // Wizard Hat
+        ctx.fillStyle='#001a75';
+        ctx.beginPath(); ctx.moveTo(0, 15); ctx.lineTo(-12, -2); ctx.lineTo(12, -2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(0, -2, 14, 5, 0, 0, 6.28); ctx.fill();
+        
+        ctx.fillStyle='#fecb00';
+        ctx.beginPath(); ctx.arc(0, 5, 3, 0, 6.28); ctx.fill();
+
+        // Staff
+        ctx.save();
+        ctx.translate(15, 5); 
+        let bob = Math.sin(state.frames * 0.1) * 3;
+        ctx.translate(0, bob);
+        ctx.rotate(-0.5);
+        ctx.fillStyle='#654321'; ctx.fillRect(-2, -20, 4, 40); 
+        
+        ctx.shadowBlur=20; ctx.shadowColor='rgba(0, 243, 255, 0.8)';
+        ctx.fillStyle='#00f3ff'; 
+        let pulse = Math.sin(state.frames*0.1)*2;
+        ctx.beginPath(); ctx.arc(0, -22, 6+pulse, 0, 6.28); ctx.fill();
+        ctx.restore();
+
+        ctx.restore();
+
+        const bur=player.weapons.burek;
+        
+        if(bur.evolved) {
+             let range = bur.dist * 2.0;
+             ctx.save(); ctx.translate(pX, pY);
+             let fireGrad = ctx.createRadialGradient(0,0, 40, 0,0, range);
+             fireGrad.addColorStop(0, 'rgba(255, 150, 0, 0.1)');
+             fireGrad.addColorStop(0.8, 'rgba(255, 60, 0, 0.2)');
+             fireGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+             
+             ctx.fillStyle = fireGrad;
+             ctx.beginPath(); ctx.arc(0,0, range, 0, 6.28); ctx.fill();
+             
+             ctx.strokeStyle = `rgba(255, 100, 0, ${0.3 + Math.sin(state.frames*0.1)*0.2})`;
+             ctx.lineWidth = 2;
+             ctx.beginPath(); ctx.arc(0,0, range, 0, 6.28); ctx.stroke();
+             ctx.restore();
+        }
+
+        for(let i=0;i<bur.count;i++){
+            if(!bur.orbs[i] || bur.orbs[i].timer>0) continue;
+            let ang=(state.frames*bur.speed)+(i*6.28/bur.count), bx=pX+Math.cos(ang)*bur.dist, by=pY+Math.sin(ang)*bur.dist;
+            ctx.save(); ctx.translate(bx,by);
+            if(bur.evolved){ 
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.fillStyle='#ffaa00'; ctx.beginPath(); ctx.arc(0,0,8,0,6.28); ctx.fill();
+                let f = Math.sin(state.frames*0.5)*3;
+                ctx.fillStyle='rgba(255, 50, 0, 0.6)'; ctx.beginPath(); ctx.arc(0,0,14+f,0,6.28); ctx.fill();
+                if(state.frames % 5 === 0) createParticle(bx + cX, by + cY, '#ffaa00', 'fire', 0.5);
+            } else { 
+                ctx.rotate(ang*4);
+                ctx.strokeStyle='#e67e22';ctx.lineWidth=4;
+                ctx.beginPath();
+                for(let j=0; j<20; j++) {
+                    let r = j; let angle = j * 0.5;
+                    ctx.lineTo(Math.cos(angle)*r, Math.sin(angle)*r);
+                }
+                ctx.stroke();
+            } ctx.restore();
+        }
+
+        ctx.globalCompositeOperation='lighter'; 
+        state.particles.forEach(p=>{
+            ctx.globalAlpha=p.life;
+            ctx.fillStyle=p.color;
+            if(p.type==='note') { ctx.font="15px Arial"; ctx.fillText(p.char, p.x-cX, p.y-cY); }
+            else { ctx.beginPath();ctx.arc(p.x-cX,p.y-cY,p.size,0,6.28);ctx.fill(); }
+        });
+        
+        if(player.weapons.harmonika.level > 0){ 
+            ctx.strokeStyle='rgba(0, 243, 255, 0.3)'; ctx.lineWidth=2;
+            ctx.fillStyle='rgba(0, 243, 255, 0.05)';
+            ctx.beginPath(); ctx.arc(pX,pY,player.weapons.harmonika.range,0,6.28); 
+            ctx.fill(); ctx.stroke();
+            
+            ctx.strokeStyle='rgba(0, 243, 255, 0.1)';
+            ctx.beginPath(); 
+            ctx.arc(pX, pY, player.weapons.harmonika.range - 10, state.frames*0.02, state.frames*0.02 + 4);
+            ctx.stroke();
+        }
+        
+        ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1; ctx.shadowBlur=0;
+        
+        let lg=ctx.createRadialGradient(W/2,H/2,100,W/2,H/2,Math.max(W,H));
+        lg.addColorStop(0,'rgba(0,0,0,0)');
+        lg.addColorStop(0.6,'rgba(0,5,20,0.3)');
+        lg.addColorStop(1,'rgba(0,0,0,0.9)');
+        ctx.fillStyle=lg;ctx.fillRect(0,0,W,H);
+        
+        if(state.flashAlpha > 0){
+            ctx.fillStyle=`rgba(255,255,255,${state.flashAlpha})`;
+            ctx.fillRect(0,0,W,H);
+        }
+
+        state.texts.forEach(t=>{
+            ctx.fillStyle=t.color;
+            ctx.font=`bold ${18*t.scale}px Orbitron`;
+            ctx.fillText(t.val,t.x-cX,t.y-cY);
+        });
+    }
+
+    function generateCards(){
+        const container = document.getElementById('cards-box'); 
+        container.innerHTML=''; 
+        document.getElementById('levelup-screen').style.display='flex';
+        
+        let available = [];
+
+        UPGRADES.forEach(u => {
+            let currentLvl = 0;
+            if(player.weapons[u.id]) currentLvl = player.weapons[u.id].level;
+            else if(player.items[u.id] !== undefined) currentLvl = player.items[u.id];
+
+            if(currentLvl >= (u.max || 10)) return;
+
+            if(u.id === 'burek' && player.weapons.burek.evolved) return;
+            if(u.id === 'pyramid' && player.weapons.pyramid.evolved) return;
+            if(u.id === 'cevapi' && player.weapons.cevapi.evolved) return; // Evo condition
+            if(u.id === 'serbian' && player.weapons.serbian.level >= 1) return; 
+
+            available.push(u);
+        });
+
+        if(player.weapons.burek.level >= 8 && !player.weapons.burek.evolved) available.push(EVOLUTIONS.find(e=>e.id==='burek_evo'));
+        if(player.weapons.pyramid.level >= 6 && !player.weapons.pyramid.evolved) available.push(EVOLUTIONS.find(e=>e.id==='pyramid_evo'));
+        if(player.weapons.cevapi.level >= 10 && !player.weapons.cevapi.evolved) available.push(EVOLUTIONS.find(e=>e.id==='cevapi_evo'));
+
+        if(player.weapons.burek.evolved) available.push(SUPERCHARGES.find(s=>s.id==='supercharge_burek'));
+        if(player.weapons.pyramid.evolved) available.push(SUPERCHARGES.find(s=>s.id==='supercharge_pyramid'));
+        if(player.weapons.cevapi.evolved) available.push(SUPERCHARGES.find(s=>s.id==='supercharge_cevapi'));
+
+        if(player.weapons.serbian.level > 0 && !player.weapons.serbian.evolved) {
+             if(player.weapons.serbian.path === 0) {
+                 available.push({id:'serbian_selector', name:'UNIT EVOLUTION', icon:'⚡', tier:'legendary', desc:'Choose a specialization path for your unit.'});
+             }
+             else if (player.weapons.serbian.path === 1) available.push(EVOLUTIONS.find(e=>e.id==='serbian_p1_evo'));
+             else if (player.weapons.serbian.path === 2) available.push(EVOLUTIONS.find(e=>e.id==='serbian_p2_evo'));
+             else if (player.weapons.serbian.path === 3) available.push(EVOLUTIONS.find(e=>e.id==='serbian_p3_evo'));
+        }
+
+        let pools = {
+            legendary: available.filter(u => u.tier === 'legendary'),
+            rare: available.filter(u => u.tier === 'rare'),
+            common: available.filter(u => u.tier === 'common')
+        };
+
+        let selectedCards = [];
+
+        for(let i=0; i<3; i++) {
+            let card = null;
+            let safetyCounter = 0;
+            
+            while(card === null && safetyCounter < 10) {
+                safetyCounter++;
+                let rng = Math.random() * 100;
+                let chosenTier = 'common';
+
+                if (rng < (1 * player.luck)) chosenTier = 'legendary';
+                else if (rng < (16 * player.luck)) chosenTier = 'rare'; 
+                else chosenTier = 'common';
+
+                if(chosenTier === 'legendary' && pools.legendary.length === 0) chosenTier = 'rare';
+                if(chosenTier === 'rare' && pools.rare.length === 0) chosenTier = 'common';
+                
+                let pool = pools[chosenTier];
+                if(pool.length > 0) {
+                    let candidate = pool[Math.floor(Math.random() * pool.length)];
+                    if(!selectedCards.includes(candidate)) {
+                        card = candidate;
+                    }
+                }
+            }
+            
+            if(!card && pools.common.length > 0) card = pools.common[Math.floor(Math.random() * pools.common.length)];
+
+            if(card && !selectedCards.includes(card)) selectedCards.push(card);
+        }
+
+        if(selectedCards.length < 3 && pools.common.length > 0) {
+            pools.common.forEach(c => {
+                 if(selectedCards.length < 3 && !selectedCards.includes(c)) selectedCards.push(c);
+            });
+        }
+
+        selectedCards.forEach(o=>{
+            const el=document.createElement('div'); el.className='card'; 
+            if(o.tier === 'legendary') el.classList.add('legendary');
+            if(o.tier === 'rare') el.classList.add('rare');
+            
+            let lvlText = '';
+            if(player.weapons[o.id]) lvlText = 'Lvl ' + (player.weapons[o.id].level + 1);
+            else if(player.items[o.id] !== undefined) lvlText = 'Lvl ' + (player.items[o.id] + 1);
+            else if(o.base && player.weapons[o.base]) lvlText = 'EVO';
+
+            el.innerHTML=`<div class="card-level">${lvlText}</div><div class="card-icon">${o.icon}</div><div class="card-name">${o.name}</div><div class="card-desc">${o.desc}</div>`;
+            el.onclick=()=>{applyUpgrade(o.id);}; container.appendChild(el);
+        });
+    }
+
+    function triggerPathSelection() {
+        document.getElementById('levelup-screen').style.display='none';
+        const overlay = document.getElementById('evolution-overlay');
+        overlay.style.display = 'flex';
+        
+        overlay.innerHTML = '<h1 class="evo-text">EVOLUTION<br>IMMINENT</h1>';
+        
+        setTimeout(() => {
+            overlay.innerHTML = '<h1 style="color:var(--bosnia-yellow); margin-bottom:20px; font-family:Orbitron; font-size:40px;">CHOOSE YOUR PATH</h1><div id="evo-cards" class="cards-container"></div>';
+            const container = document.getElementById('evo-cards');
+            
+            const paths = [
+                EVOLUTIONS.find(e => e.id === 'serbian_p1'),
+                EVOLUTIONS.find(e => e.id === 'serbian_p2'),
+                EVOLUTIONS.find(e => e.id === 'serbian_p3')
+            ];
+            
+            paths.forEach(o => {
+                const el=document.createElement('div'); el.className='card legendary'; 
+                el.innerHTML=`<div class="card-level">PATH SELECTION</div><div class="card-icon">${o.icon}</div><div class="card-name">${o.name}</div><div class="card-desc">${o.desc}</div>`;
+                el.onclick=()=>{
+                    applyUpgrade(o.id); 
+                    overlay.style.display='none';
+                    isPaused = false;
+                }; 
+                container.appendChild(el);
+            });
+        }, 2000);
+    }
+
+    function applyUpgrade(id){
+        if(id==='serbian_selector') {
+            triggerPathSelection();
+            return;
+        }
+
+        if(id==='burek_evo'){
+            player.weapons.burek.evolved=true;
+            player.weapons.burek.count+=1; 
+            player.weapons.burek.damage+=5;
+        }
+        if(id==='pyramid_evo'){player.weapons.pyramid.evolved=true;player.weapons.pyramid.damage=400;player.weapons.pyramid.baseCool=180;player.weapons.pyramid.timer=0;}
+        if(id==='cevapi_evo'){
+            player.weapons.cevapi.evolved=true;
+            player.weapons.cevapi.lastBurstScore = state.score;
+        }
+        
+        if(id==='supercharge_burek'){ player.weapons.burek.damage *= 1.2; spawnDamageText(player.x, player.y-50, "MAGMA INTENSIFIES", true); }
+        if(id==='supercharge_pyramid'){ player.weapons.pyramid.damage *= 1.2; spawnDamageText(player.x, player.y-50, "POWER UP!", true); }
+        if(id==='supercharge_cevapi'){ player.weapons.cevapi.burnCount += 1; spawnDamageText(player.x, player.y-50, "MORE COAL!", true); }
+
+        if(id==='burek'){
+            player.weapons.burek.count++;
+            player.weapons.burek.level++;
+            player.weapons.burek.speed+=0.005;
+        }
+        
+        if(id==='cevapi'){
+            player.weapons.cevapi.level++;
+            if(player.weapons.cevapi.level === 2) { player.weapons.cevapi.damage = 25; player.weapons.cevapi.baseCool *= 0.85; } else { player.weapons.cevapi.damage += 10; player.weapons.cevapi.baseCool *= 0.85; }
+        }
+
+        if(id==='ajvar'){
+            player.weapons.ajvar.level++;
+            if(player.weapons.ajvar.level>1){player.weapons.ajvar.baseCool*=0.85;player.weapons.ajvar.damage+=20;}
+        }
+        if(id==='rakija'){
+            player.weapons.rakija.level++;
+            if(player.weapons.rakija.level>1){player.weapons.rakija.baseCool*=0.85;player.weapons.rakija.damage+=2;}
+        }
+        if(id==='pyramid'){
+            player.weapons.pyramid.level++; 
+            if(player.weapons.pyramid.level>1){player.weapons.pyramid.baseCool*=0.85;player.weapons.pyramid.damage+=15;}
+        }
+        if(id==='spike'){
+            player.weapons.spike.level++;
+        }
+        if(id==='flag'){
+            player.weapons.flag.level++;
+            player.weapons.flag.count++; 
+        }
+        if(id==='harmonika'){
+            player.weapons.harmonika.level++;
+            if(player.weapons.harmonika.level > 1) {
+                player.weapons.harmonika.slow += 0.05; 
+            }
+        }
+
+        if(id==='serbian'){
+            player.weapons.serbian.level = 1;
+            player.weapons.serbian.path = 0; 
+            state.friendlyUnits = [new FriendlyUnit('soldier', player.x, player.y)];
+            spawnDamageText(player.x, player.y-80, "UNIT DEPLOYED", true);
+        }
+        
+        if(id==='serbian_p1') {
+            player.weapons.serbian.path = 1;
+            state.friendlyUnits = [new FriendlyUnit('titan', player.x, player.y)];
+            spawnDamageText(player.x, player.y-80, "TITAN UPGRADE", true);
+        }
+        if(id==='serbian_p1_evo') {
+             player.weapons.serbian.evolved = true;
+             state.friendlyUnits = [new FriendlyUnit('titan', player.x, player.y)]; 
+             spawnDamageText(player.x, player.y-80, "BERSERKER MODE", true);
+        }
+
+        if(id==='serbian_p2') {
+            player.weapons.serbian.path = 2;
+            state.friendlyUnits = [
+                new FriendlyUnit('soldier', player.x + 20, player.y),
+                new FriendlyUnit('defender', player.x - 20, player.y),
+                new FriendlyUnit('mage', player.x, player.y - 20)
+            ];
+            spawnDamageText(player.x, player.y-80, "SQUAD DEPLOYED", true);
+        }
+        if(id==='serbian_p2_evo') {
+             player.weapons.serbian.evolved = true;
+             state.friendlyUnits = [
+                new FriendlyUnit('soldier', player.x + 20, player.y),
+                new FriendlyUnit('defender', player.x - 20, player.y),
+                new FriendlyUnit('mage', player.x, player.y - 20)
+            ];
+             spawnDamageText(player.x, player.y-80, "ELITE SQUAD", true);
+        }
+
+        if(id==='serbian_p3') {
+            player.weapons.serbian.path = 3;
+            state.friendlyUnits = [new FriendlyUnit('vanguard', player.x, player.y)];
+            spawnDamageText(player.x, player.y-80, "VANGUARD", true);
+        }
+        if(id==='serbian_p3_evo') {
+             player.weapons.serbian.evolved = true;
+             state.friendlyUnits = [new FriendlyUnit('vanguard', player.x, player.y)];
+             spawnDamageText(player.x, player.y-80, "WARLORD TANK", true);
+        }
+
+        // New Special Rewards
+        if(id==='musical_beat') { state.xpMult *= 1.5; spawnDamageText(player.x, player.y-60, "XP BOOSTED", true); }
+        if(id==='rhythmic_buff') { player.items.rhythmic_buff = 1; spawnDamageText(player.x, player.y-60, "RHYTHMIC POWER", true); }
+        if(id==='piano_smash') { player.weapons.piano_smash.level = 1; spawnDamageText(player.x, player.y-60, "PIANO UNLOCKED", true); }
+
+        if(['speed','magnet','armor','heal','coffee','lily','vrelo','xp_boost','sword','cracked_jewelry'].includes(id)) {
+            if(player.items[id] !== undefined) player.items[id]++;
+        }
+
+        if(id==='speed')player.speed*=1.15; if(id==='magnet')player.magnetRadius+=50; if(id==='armor')player.armor+=1.5; if(id==='heal')player.hp=Math.min(player.maxHp,player.hp+50);
+        if(id==='coffee')player.cdr*=0.9; if(id==='lily')player.critChance+=0.10; if(id==='vrelo')player.regen+=2;
+        
+        if(id==='xp_boost') state.xpMult += 0.5;
+        if(id==='cracked_jewelry') state.xpMult += 0.25;
+
+        ['cevapi','ajvar','rakija','pyramid','spike', 'piano_smash'].forEach(w=>{ if(player.weapons[w]) player.weapons[w].cooldown = player.weapons[w].baseCool ? player.weapons[w].baseCool * player.cdr : player.weapons[w].cooldown; });
+        
+        let maxCoffee = player.items.coffee >= 10;
+        
+        if(player.weapons.cevapi.level >= 10) {
+            let limit = maxCoffee ? 12 : 30; 
+            player.weapons.cevapi.cooldown = limit;
+        }
+
+        if(player.weapons.pyramid.level >= 6) {
+             let limit = maxCoffee ? 42 : 60; 
+             player.weapons.pyramid.cooldown = limit;
+        }
+
+        if(document.getElementById('levelup-screen').style.display === 'flex'){
+             document.getElementById('levelup-screen').style.display='none'; 
+             updateHud(); 
+             isPaused=false;
+        }
+    }
+    gameLoop();
 </script>
 </body>
 </html>
