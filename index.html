@@ -394,7 +394,7 @@
     const EVOLUTIONS = [
         {id:'burek_evo',base:'burek',name:'RING OF FIRE',icon:'🔥',desc:'EVOLUTION: Massive permanent fire zone. 2x Radius. Burns ALL enemies constantly.', tier:'rare'},
         {id:'pyramid_evo',base:'pyramid',name:'SOLAR FLARE',icon:'☀️',desc:'EVOLUTION: Instantly blasts enemies with a massive laser beam.', tier:'rare'},
-        {id:'cevapi_evo',base:'cevapi',name:'ROSTILJ MASTER',icon:'🍖',desc:'EVO: Summons an orbiting grill. Shoots 3-7 Cevapi/sec based on heat. Overheats every 100 kills.', tier:'rare'},
+        {id:'cevapi_evo',base:'cevapi',name:'ROSTILJ MASTER',icon:'🍖',desc:'EVO: Summons an orbiting grill. Also maintains standard firing.', tier:'rare'},
         {id:'serbian_p1', base:'serbian', name:'PATH 1: TITAN SWORD', icon:'🗡️', desc:'LVL 2: Bigger Sword. Higher Damage. Same AI.', tier:'legendary', req:'serbian'},
         {id:'serbian_p2', base:'serbian', name:'PATH 2: TACTICAL SQUAD', icon:'👥', desc:'LVL 2: Splits into 3 Units: Soldier, Defender, Mage.', tier:'legendary', req:'serbian'},
         {id:'serbian_p3', base:'serbian', name:'PATH 3: VANGUARD', icon:'🛡️', desc:'LVL 2: Sword & Shield Unit. 20 Durability. Tanky.', tier:'legendary', req:'serbian'},
@@ -687,7 +687,7 @@
             luck: 1.0, visible: true, invincible: 0,
             weapons:{
                 burek: { level:1, count:1, damage:10, dist:100, speed:0.02, evolved:false, orbs:[], trailTimer:0 },
-                cevapi: { level:1, cooldown:30, baseCool:30, timer:0, damage:15, evolved:false, grillAngle:0, lastBurstScore:0, burnCount:25 }, 
+                cevapi: { level:1, cooldown:60, baseCool:60, timer:0, damage:15, evolved:false, grillAngle:0, lastBurstScore:0, burnCount:25 }, 
                 ajvar: { level:0, cooldown:140, baseCool:140, timer:0, damage:80 },
                 rakija: { level:0, cooldown:190, baseCool:190, timer:0, damage:4, duration:300 }, 
                 pyramid: { level:0, cooldown:110, baseCool:110, timer:0, damage:50, evolved:false },
@@ -1270,12 +1270,27 @@
             this.life = 15; this.maxLife = 15; this.length = 1200;
             if(type === 'heal') { this.length = 200; this.life = 5; this.maxLife = 5; } // Shorter beam for medic
             if(type === 'judgment') { this.length = 2000; this.life = 180; this.maxLife = 180; } // 3 seconds for Težina
+            if(type === 'judgment_warning') { this.length = 2000; this.life = 30; this.maxLife = 30; } // 0.5s warning
         }
         update() { this.life--; return this.life > 0; }
         draw(cX, cY) {
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
             
+            if(this.type === 'judgment_warning') {
+                if(state.frames % 4 === 0) { // Blink
+                    ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([20, 20]);
+                    ctx.beginPath();
+                    ctx.moveTo(this.x - cX, this.y - cY);
+                    ctx.lineTo((this.x - cX) + Math.cos(this.angle) * this.length, (this.y - cY) + Math.sin(this.angle) * this.length);
+                    ctx.stroke();
+                }
+                ctx.restore();
+                return;
+            }
+
             if(this.type === 'judgment') {
                 const p = this.life / this.maxLife;
                 const width = 120 + Math.sin(state.frames * 0.5) * 20; // Massive
@@ -1476,7 +1491,7 @@
         }
     }
     class Zone {
-        constructor(x,y,type,dur,overrideDamage=0){this.x=x;this.y=y;this.life=dur;this.maxLife=dur;this.radius=90;this.type=type;this.overrideDamage=overrideDamage;if(type==='blast') this.radius=120; if(type==='valk_swing') this.radius=160; if(type==='flame_trail') this.radius=50; if(type==='spike_burst') this.radius=30; if(type==='taco_blaster') this.radius=40; if(type==='tempo_wave') this.radius=10; if(type==='piano_warning' || type==='piano_impact') this.radius=360; if(type==='musical_blast') this.radius=80; if(type==='judgment_beam') this.radius=120; if(type==='warning_line') this.radius=20; }
+        constructor(x,y,type,dur,overrideDamage=0){this.x=x;this.y=y;this.life=dur;this.maxLife=dur;this.radius=90;this.type=type;this.overrideDamage=overrideDamage;if(type==='blast') this.radius=120; if(type==='valk_swing') this.radius=160; if(type==='flame_trail') this.radius=50; if(type==='spike_burst') this.radius=30; if(type==='taco_blaster') this.radius=40; if(type==='tempo_wave') this.radius=10; if(type==='piano_warning' || type==='piano_impact') this.radius=360; if(type==='musical_blast') this.radius=80; if(type==='judgment_beam') this.radius=120; }
         update(){ 
             this.life--; 
             if(this.type==='blast' || this.type==='valk_swing' || this.type==='shield_push' || this.type==='taunt_ring' || this.type==='spike_burst' || this.type==='musical_blast' || this.type==='piano_impact') return this.life<=0;
@@ -1489,49 +1504,38 @@
             }
 
             if(this.type==='tempo_wave') {
-                this.radius += 15; 
-                const maxRad = 800; 
-                if(this.radius > maxRad) return true;
+                this.radius += 15; // Buffed: 3x faster expansion (was 5)
+                const maxRad = 800; // Buffed: 2x Larger (was ~300)
+                
+                if(this.radius > maxRad) return true; // End when too big
 
                 if(Math.hypot(player.x - this.x, player.y - this.y) < this.radius + player.radius && 
-                   Math.hypot(player.x - this.x, player.y - this.y) > this.radius - 40) {
+                   Math.hypot(player.x - this.x, player.y - this.y) > this.radius - 40) { // Thicker wall (40px)
+                     // Inside ring
+                     let moving = keys['w']||keys['a']||keys['s']||keys['d']||keys['arrowup']||keys['arrowleft']||keys['arrowdown']||keys['arrowright'];
+                     // Must move to avoid damage? No, just contact damage.
                      if(!godMode && player.invincible <= 0) {
-                         let scaledDmg = 45 * damageMultiplier; 
+                         let scaledDmg = 45 * damageMultiplier; // Buffed damage
                          player.hp -= scaledDmg;
                          spawnDamageText(player.x, player.y-60, Math.floor(scaledDmg), 'player');
                          player.invincible = 20;
-                         if(player.hp <= 0) triggerDeath();
+                         if(player.hp <= 0) triggerDeath(); 
                      }
                 }
                 return this.life <= 0;
             }
 
-            if(this.type === 'warning_line') {
-                // Tracking behavior in first 1.5s
-                let d = this.overrideDamage; // {bossRef}
-                if(d.bossRef && !d.bossRef.dead) {
-                    this.x = d.bossRef.x;
-                    this.y = d.bossRef.y;
-                    this.aimAngle = Math.atan2(player.y - this.y, player.x - this.x);
-                }
-                return this.life <= 0;
-            }
-
             if(this.type==='judgment_beam') {
-                // Firing phase - Fixed Angle
-                if(this.life % 5 === 0) { 
-                    let d = this.overrideDamage; // {aimAngle, damageVal, bossRef}
-                    // Beam origin follows boss if alive
-                    if(d.bossRef && !d.bossRef.dead) { this.x = d.bossRef.x; this.y = d.bossRef.y; }
-
+                if(this.life % 5 === 0) { // Damage ticks
+                    let d = this.overrideDamage; // {aimAngle, damageVal}
                     let len = 3000;
                     let ex = this.x + Math.cos(d.aimAngle) * len;
                     let ey = this.y + Math.sin(d.aimAngle) * len;
                     
                     if(lineCircleCollide(player.x, player.y, this.x, this.y, ex, ey, this.radius)) {
                          if(!godMode && player.invincible <= 0) {
-                             let tickDmg = d.damageVal / 10; 
-                             if(tickDmg < 50) tickDmg = 50; 
+                             let tickDmg = d.damageVal / 10; // Distribute stored damage
+                             if(tickDmg < 50) tickDmg = 50; // Minimum damage
                              
                              player.hp -= tickDmg; 
                              spawnDamageText(player.x, player.y-50, Math.floor(tickDmg), 'player');
@@ -1540,6 +1544,7 @@
                          }
                     }
                     
+                    // Kill friendly units instantly
                     state.friendlyUnits.forEach(u => {
                         if(!u.dead && lineCircleCollide(u.x, u.y, this.x, this.y, ex, ey, this.radius)) {
                             u.takeDamage(9999);
@@ -1553,23 +1558,26 @@
             if(this.type==='piano_warning') {
                 if(this.life <= 0) {
                     state.zones.push(new Zone(this.x, this.y, 'piano_impact', 20));
+                    // Deal damage
                     if(Math.hypot(player.x - this.x, player.y - this.y) < this.radius && !godMode && player.invincible <= 0) {
-                         player.hp -= 60; 
+                         player.hp -= 60; // Piano is heavy flat damage, arguably shouldn't scale OR scale heavily. Scaling it:
                          spawnDamageText(player.x, player.y-60, "CRUSHED", 'player');
                          addShake(30);
                          player.invincible = 30;
-                         if(player.hp <= 0) triggerDeath();
+                         if(player.hp <= 0) triggerDeath(); 
                     }
                     state.friendlyUnits.forEach(u => {
                         if(!u.dead && Math.hypot(u.x - this.x, u.y - this.y) < this.radius) {
                              u.takeDamage(10);
                         }
                     });
+                    // Player version does damage to enemies
                     if(this.overrideDamage === 'player') {
                         let dmg = 100 + state.level;
                          state.enemies.forEach(e => {
                              if(Math.hypot(e.x - this.x, e.y - this.y) < this.radius) {
                                  e.takeDamage(dmg, true, 'piano');
+                                 // Knockback
                                  let ang = Math.atan2(e.y - this.y, e.x - this.x);
                                  e.pushX = Math.cos(ang) * 20;
                                  e.pushY = Math.sin(ang) * 20;
@@ -1581,20 +1589,20 @@
                 return false;
             }
             if(this.type==='musical_blast') {
+                 // Damage to player if spawned by Wraith
                  if(Math.hypot(player.x - this.x, player.y - this.y) < this.radius && !godMode && player.invincible <= 0) {
                      let scaledDmg = 10 * damageMultiplier;
                      player.hp -= scaledDmg;
                      spawnDamageText(player.x, player.y-40, Math.floor(scaledDmg), 'player');
                      player.invincible = 30;
-                     if(player.hp <= 0) triggerDeath();
                  }
                  return this.life <= 0;
             }
 
             if(this.type==='taco_blaster') {
                 if(this.life < 60) { 
-                    if(this.life % 5 === 0) { 
-                        let d = this.overrideDamage; 
+                    if(this.life % 5 === 0) { // Damage ticks
+                        let d = this.overrideDamage; // {aimAngle}
                         let len = 3000;
                         let ex = this.x + Math.cos(d.aimAngle) * len;
                         let ey = this.y + Math.sin(d.aimAngle) * len;
@@ -1651,26 +1659,17 @@
         draw(cX,cY){ 
             if(this.type === 'tempo_wave') {
                 ctx.save(); ctx.translate(this.x-cX, this.y-cY);
-                ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 15; 
+                ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 15; // Buffed Thickness
                 ctx.beginPath(); ctx.arc(0,0, this.radius, 0, 6.28); ctx.stroke();
                 ctx.globalAlpha = 0.1; ctx.fillStyle = '#00f3ff'; ctx.fill();
                 ctx.restore();
                 return;
             }
-            if(this.type === 'warning_line') {
-                ctx.save(); ctx.translate(this.x-cX, this.y-cY); 
-                // Draw thin red line indicating target
-                ctx.rotate(this.aimAngle);
-                ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
-                ctx.fillRect(0, -5, 3000, 10);
-                // Dashed center
-                ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)'; ctx.lineWidth = 2; ctx.setLineDash([20, 20]);
-                ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(3000, 0); ctx.stroke();
-                ctx.restore();
-                return;
-            }
             if(this.type === 'judgment_beam') {
-                let d = this.overrideDamage; 
+                // Handled in Beam class logic mostly, but if using Zone for hit detection, the beam draw is triggered there.
+                // Reusing Logic: Actually, Zone logic draws its own if specific.
+                // Let's draw it here for the Zone:
+                let d = this.overrideDamage; // {aimAngle}
                 ctx.save(); ctx.translate(this.x - cX, this.y - cY); ctx.rotate(d.aimAngle);
                 
                 let width = this.radius * 2;
@@ -1685,6 +1684,7 @@
                 ctx.fillStyle = grad;
                 ctx.fillRect(0, -width/2, 3000, width);
                 
+                // Intense central core
                 ctx.fillStyle = 'rgba(255,255,255,0.8)';
                 ctx.fillRect(0, -width/4, 3000, width/2);
 
@@ -1700,6 +1700,7 @@
                 ctx.strokeStyle = '#ff003c'; ctx.lineWidth = 2;
                 ctx.beginPath(); ctx.arc(0,0, this.radius, 0, 6.28); ctx.stroke();
                 
+                // Falling Piano Visual
                 let dropH = this.life * 10; 
                 ctx.font = (this.radius/2)+"px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle";
                 ctx.fillStyle = '#fff';
@@ -1717,7 +1718,7 @@
                 return;
             }
             if(this.type === 'taco_blaster') {
-                let d = this.overrideDamage; 
+                let d = this.overrideDamage; // {aimAngle}
                 ctx.save(); ctx.translate(this.x - cX, this.y - cY); ctx.rotate(d.aimAngle);
                 
                 ctx.save();
@@ -1732,7 +1733,7 @@
                     ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)'; ctx.lineWidth = 2; ctx.setLineDash([10, 10]);
                     ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(3000, 0); ctx.stroke();
                 } else {
-                    let beamWidth = 60 * Math.sin((60-this.life)/60 * Math.PI); 
+                    let beamWidth = 60 * Math.sin((60-this.life)/60 * Math.PI); // Pulse
                     ctx.strokeStyle = '#fff'; ctx.lineWidth = beamWidth;
                     ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(3000, 0); ctx.stroke();
                     ctx.strokeStyle = '#2ecc71'; ctx.lineWidth = beamWidth * 1.5;
@@ -1858,7 +1859,7 @@
                 this.maxHp = 12000; 
                 this.hp = 12000;
             } else if (this.type === 'TEZINA') {
-                this.maxHp = 25000; 
+                this.maxHp = 25000; // Fixed HP
                 this.hp = this.maxHp;
             } else {
                 let baseHp = 40;
@@ -1893,7 +1894,7 @@
             this.burnTimer = 0; 
             this.burekHitTimer = 0;
             this.percentBurnLeft = 0; 
-            this.dying = false; 
+            this.dying = false;
             this.deathTimer = 0;
 
             if(this.type==='BOSS' || this.type==='WARLORD_CLONE') {
@@ -1923,6 +1924,8 @@
                 this.judgmentThresholds = [0.7, 0.4, 0.1];
                 this.isAbsorbing = false;
                 this.absorbTimer = 0;
+                this.isWarning = false;
+                this.warningTimer = 0;
                 this.isFiring = false;
                 this.fireTimer = 0;
                 this.isCharging = false;
@@ -1930,9 +1933,7 @@
                 this.isDashing = false;
                 this.dashTimer = 0;
                 this.summonTimer = 0;
-                this.isWarning = false;
-                this.warnTimer = 0;
-                this.warnAngle = 0;
+                this.beamAimAngle = 0;
             }
             else if(this.type==='MINI_BOSS') {
                 this.baseSpeed=2.2; this.radius=45;
@@ -1964,10 +1965,11 @@
                  if(this.dying) {
                      this.deathTimer--;
                      if(this.deathTimer <= 0) {
-                         this.dying = false; 
+                         // Finish dying
+                         this.dying = false; // Actually remove
                          if(this.type === 'TEZINA') {
                              state.tezinaActive = false;
-                             state.crates.push(new Crate(this.x, this.y, 'rare'));
+                             state.crates.push(new Crate(this.x, this.y, 'rare')); // Drop Rare Crate
                              spawnDamageText(this.x, this.y-100, "JUDGMENT ENDED", 'crit');
                              document.getElementById('boss-hud').style.display = 'none';
                          }
@@ -2120,7 +2122,7 @@
                 // JUDGMENT LOGIC
                 if(this.judgmentThresholds.length > 0) {
                     let nextThresh = this.judgmentThresholds[0];
-                    if(this.hp / this.maxHp <= nextThresh && !this.isAbsorbing && !this.isWarning && !this.isFiring) {
+                    if(this.hp / this.maxHp <= nextThresh && !this.isAbsorbing && !this.isFiring && !this.isWarning) {
                         this.judgmentThresholds.shift();
                         this.isAbsorbing = true;
                         this.absorbTimer = 300; // 5 seconds
@@ -2138,29 +2140,26 @@
                     this.absorbTimer--;
                     if(this.absorbTimer <= 0) {
                         this.isAbsorbing = false;
+                        // Warning Phase logic
                         this.isWarning = true;
-                        this.warnTimer = 90; // 1.5 seconds warning
-                        // Spawn warning zone which tracks player
-                        this.currentWarningZone = new Zone(this.x, this.y, 'warning_line', 90, {bossRef: this});
-                        state.zones.push(this.currentWarningZone);
-                        spawnDamageText(this.x, this.y-100, "TARGETING...", 'normal');
+                        this.warningTimer = 30; // 0.5s warning
+                        this.beamAimAngle = Math.atan2(player.y - this.y, player.x - this.x);
+                        // Visualize warning line
+                        state.beams.push(new Beam(this.x, this.y, this.beamAimAngle, 'judgment_warning'));
+                        spawnDamageText(this.x, this.y-100, "LOCKING ON...", 'normal');
                     }
                     return; // IMMOBILE
                 }
 
                 if(this.isWarning) {
-                    this.warnTimer--;
-                    if(this.warnTimer <= 0) {
+                    this.warningTimer--;
+                    if(this.warningTimer <= 0) {
                         this.isWarning = false;
                         this.isFiring = true;
                         this.fireTimer = 180; // 3 seconds beam
-                        
-                        // Lock the angle from the warning zone
-                        let aimAng = this.currentWarningZone ? this.currentWarningZone.aimAngle : Math.atan2(player.y - this.y, player.x - this.x);
-                        
                         // Damage val min 500, max is stored
                         let dmg = Math.max(500, this.storedDamage);
-                        state.zones.push(new Zone(this.x, this.y, 'judgment_beam', 180, {aimAngle: aimAng, damageVal: dmg, bossRef: this}));
+                        state.zones.push(new Zone(this.x, this.y, 'judgment_beam', 180, {aimAngle: this.beamAimAngle, damageVal: dmg}));
                         spawnDamageText(this.x, this.y-100, "VERDICT: GUILTY", 'crit');
                     }
                     return; // IMMOBILE
@@ -3052,27 +3051,27 @@
 
         const wc=player.weapons.cevapi; 
         
-        // NORMAL SHOOTING LOGIC (Always active if level > 0)
-        if(wc.level > 0) { 
+        // HYBRID FIRING LOGIC FOR CEVAPI
+        // Standard shots always run if weapon owned
+        if(wc.level > 0) {
             wc.timer++; 
             if(wc.timer > wc.cooldown){
-                let t = getClosestEnemy();
+                let t=getClosestEnemy();
                 if(t){
-                    state.projectiles.push(new Projectile(player.x, player.y, t, 'cevapi'));
-                    wc.timer = 0;
+                    state.projectiles.push(new Projectile(player.x,player.y,t,'cevapi'));
+                    wc.timer=0;
                 }
             } 
-        } 
+        }
         
-        // EVOLVED SHOOTING LOGIC (Additional Grill Fire)
+        // Grill logic runs ADDITIONALLY if evolved
         if(wc.evolved) {
             wc.grillAngle += 0.05;
             if(state.frames % 60 === 0 && state.enemies.length > 0) {
-                 // Calculate shot count based on overheat progress
                  let heatProgress = state.score - wc.lastBurstScore;
                  if(heatProgress > 100) heatProgress = 100;
                  if(heatProgress < 0) heatProgress = 0;
-                 let extraShots = Math.floor((heatProgress/100) * 4); // 0 to 4
+                 let extraShots = Math.floor((heatProgress/100) * 4); 
                  if(heatProgress >= 90) extraShots = 4;
                  let totalShots = 3 + extraShots;
 
@@ -3772,14 +3771,11 @@
         
         if(id==='cevapi'){
             player.weapons.cevapi.level++;
-            // LINEAR REDUCTION INSTEAD OF EXPONENTIAL TO FIX FIRE RATE ISSUE
-            if(player.weapons.cevapi.level === 2) { 
-                player.weapons.cevapi.damage = 25; 
-                player.weapons.cevapi.baseCool = Math.max(12, player.weapons.cevapi.baseCool - 2); 
-            } else { 
-                player.weapons.cevapi.damage += 10; 
-                player.weapons.cevapi.baseCool = Math.max(12, player.weapons.cevapi.baseCool - 2); 
-            }
+            // Scales from 60 (lvl 1) down to 30 (lvl 10)
+            let reduction = 3.34;
+            player.weapons.cevapi.baseCool = 60 - ((player.weapons.cevapi.level - 1) * reduction);
+            if(player.weapons.cevapi.level === 2) player.weapons.cevapi.damage = 25; 
+            else player.weapons.cevapi.damage += 5;
         }
 
         if(id==='ajvar'){
