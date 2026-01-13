@@ -146,8 +146,16 @@
     .pause-item { background: rgba(255,255,255,0.05); padding: 10px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
     .pause-item span { font-family: 'Rajdhani'; font-size: 18px; color: var(--bosnia-yellow); }
 
-    .cards-container { display:flex; gap:25px; margin-top:30px; flex-wrap:wrap; justify-content:center; max-width:1200px;perspective: 1000px; }
-    .card { background:linear-gradient(170deg, #0a0a15 0%, #101025 100%); border:1px solid #333; width:220px; height:380px; border-radius:2px; padding:20px; cursor:pointer; transition:0.3s; display:flex; flex-direction:column; align-items:center; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.8); position:relative; overflow:hidden; clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px); opacity: 0; animation: cardFadeIn 0.5s forwards;}
+    /* SCROLL FIXES APPLIED HERE */
+    .cards-container { 
+        display:flex; gap:25px; margin-top:30px; flex-wrap:wrap; justify-content:center; 
+        max-width:1200px; perspective: 1000px; 
+        max-height: 65vh; /* Prevents overflow off screen */
+        overflow-y: auto; /* Enables scrollbar */
+        padding: 10px; /* Space for scrollbar */
+    }
+    
+    .card { background:linear-gradient(170deg, #0a0a15 0%, #101025 100%); border:1px solid #333; width:220px; min-height:380px; border-radius:2px; padding:20px; cursor:pointer; transition:0.3s; display:flex; flex-direction:column; align-items:center; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.8); position:relative; overflow:hidden; clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px); opacity: 0; animation: cardFadeIn 0.5s forwards; margin-bottom: 20px;}
     @keyframes cardFadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
     .card:hover { transform:translateY(-10px); border-color:var(--bosnia-yellow); z-index: 10; }
@@ -182,7 +190,7 @@
     .restart-btn:hover { transform:scale(1.05); background: white; color: var(--danger); }
     
     /* CRATE SCREEN */
-    #crate-screen { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5, 5, 10, 0.98); z-index:3000; flex-direction:column; align-items:center; justify-content:center; }
+    #crate-screen { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5, 5, 10, 0.98); z-index:3000; flex-direction:column; align-items:center; justify-content:center; overflow-y: auto; }
     #crate-anim { font-size: 150px; margin-bottom: 20px; transition: transform 0.1s; }
     
     /* Crate Animation Classes */
@@ -194,7 +202,7 @@
 
     #white-flash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; opacity: 0; pointer-events: none; z-index: 3001; transition: opacity 0.5s; }
 
-    .claim-btn { background: var(--bosnia-yellow); color:black; border:none; padding:15px 40px; font-family:'Orbitron'; font-weight:900; font-size:24px; cursor:pointer; margin-top:30px; box-shadow: 0 0 20px var(--bosnia-yellow); animation: pulseBtn 1s infinite alternate; opacity: 0; transition: opacity 0.5s; }
+    .claim-btn { background: var(--bosnia-yellow); color:black; border:none; padding:15px 40px; font-family:'Orbitron'; font-weight:900; font-size:24px; cursor:pointer; margin-top:30px; box-shadow: 0 0 20px var(--bosnia-yellow); animation: pulseBtn 1s infinite alternate; opacity: 0; transition: opacity 0.5s; margin-bottom: 50px;}
     @keyframes pulseBtn { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
 
     canvas { display:block; position:absolute; top:0; left:0; z-index:1; }
@@ -369,6 +377,7 @@
     let spawningEnabled = true;
 
     // ASSETS
+    // MODIFIED: Heal (Grandma Soup) is now infinite (max: 9999) to prevent softlocks
     const UPGRADES=[
         {id:'burek',name:'Golden Burek',icon:'🥐',desc:'Spawns rotating pastry shields that damage enemies.', tier:'common', max:8},
         {id:'cevapi',name:'Rapid Cevapi',icon:'🌭',desc:'Fires delicious grilled meat missiles. Rate increases with level.', tier:'common', max:10},
@@ -389,7 +398,7 @@
         {id:'speed',name:'Turbo Folk Speed',icon:'⚡',desc:'Increases Movement Speed by 20%.', tier:'common', max:10},
         {id:'magnet',name:'Super Magnet',icon:'🧲',desc:'Increases Item Pickup Range by 50%.', tier:'common', max:10},
         {id:'armor',name:'Kevlar Vest',icon:'🛡️',desc:'Reduces incoming damage.', tier:'common', max:10},
-        {id:'heal',name:'Grandma Soup',icon:'🍲',desc:'Instantly restores 50 HP.', tier:'common', max:10},
+        {id:'heal',name:'Grandma Soup',icon:'🍲',desc:'Instantly restores 50 HP.', tier:'common', max:9999}, /* INFINITE FIX */
         {id:'coffee',name:'Bosnian Coffee',icon:'☕',desc:'Reduces all weapon cooldowns by 10%.', tier:'common', max:10},
         {id:'lily',name:'Golden Lily',icon:'⚜️',desc:'Increases Critical Hit Chance by 10%.', tier:'common', max:10},
         {id:'vrelo',name:'Vrelo Bosne',icon:'🏞️',desc:'Regenerates 2 HP per second.', tier:'common', max:10}
@@ -450,7 +459,8 @@
         x:0, y:0, hp:100, maxHp:100, speed:6, radius:20, magnetRadius:140, armor:0, regen:0, critChance:0.05, cdr:1.0, facing:0, 
         luck: 1.0, visible: true, invincible: 0,
         weapons:{},
-        items:{} 
+        items:{},
+        moving: false /* ADDED MOVING FLAG */
     };
 
     function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
@@ -704,7 +714,8 @@
             items: {
                 speed:0, magnet:0, armor:0, heal:0, coffee:0, lily:0, vrelo:0, xp_boost:0,
                 sword:0, cracked_jewelry:0, musical_beat:0, rhythmic_buff:0
-            }
+            },
+            moving: false
         };
 
         document.getElementById('game-over').style.display='none';
@@ -1491,21 +1502,23 @@
                 damageMultiplier = 1 + (timeMinutes - 10) * 0.05;
             }
 
+            // MODIFIED: TEMPO WAVE NOW RESPECTS RED LIGHT/GREEN LIGHT (MOVEMENT)
             if(this.type==='tempo_wave') {
                 this.radius += 15; 
                 const maxRad = 800; 
                 
                 if(this.radius > maxRad) return true; 
 
+                // Only damage if player is moving
                 if(Math.hypot(player.x - this.x, player.y - this.y) < this.radius + player.radius && 
                    Math.hypot(player.x - this.x, player.y - this.y) > this.radius - 40) { 
                      
-                     if(!godMode && player.invincible <= 0) {
+                     if(!godMode && player.invincible <= 0 && player.moving) {
                          let scaledDmg = 45 * damageMultiplier; 
                          player.hp -= scaledDmg;
                          spawnDamageText(player.x, player.y-60, Math.floor(scaledDmg), 'player');
                          player.invincible = 20;
-                         if(player.hp <= 0) triggerDeath(); // FIX: Can now kill
+                         if(player.hp <= 0) triggerDeath(); 
                      }
                 }
                 return this.life <= 0;
@@ -1646,9 +1659,17 @@
         draw(cX,cY){ 
             if(this.type === 'tempo_wave') {
                 ctx.save(); ctx.translate(this.x-cX, this.y-cY);
-                ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 15; // Buffed Thickness
+                // Indicate Danger Level
+                if (player.moving) {
+                     ctx.strokeStyle = '#ff003c'; // RED if moving
+                     ctx.fillStyle = 'rgba(255, 0, 60, 0.2)'; 
+                } else {
+                     ctx.strokeStyle = '#00f3ff'; // BLUE if safe
+                     ctx.fillStyle = 'rgba(0, 243, 255, 0.1)';
+                }
+                ctx.lineWidth = 15; 
                 ctx.beginPath(); ctx.arc(0,0, this.radius, 0, 6.28); ctx.stroke();
-                ctx.globalAlpha = 0.1; ctx.fillStyle = '#00f3ff'; ctx.fill();
+                ctx.fill();
                 ctx.restore();
                 return;
             }
@@ -3034,6 +3055,10 @@
         if(state.flashAlpha > 0) state.flashAlpha -= 0.02;
 
         let mx=0,my=0; if(keys['w']||keys['arrowup'])my=-1; if(keys['s']||keys['arrowdown'])my=1; if(keys['a']||keys['arrowleft'])mx=-1; if(keys['d']||keys['arrowright'])mx=1;
+        
+        // MOVING CHECK FOR POLYRHYTHM BOSS MECHANIC
+        player.moving = (mx !== 0 || my !== 0);
+
         if(mx!==0||my!==0){ 
             let l=Math.sqrt(mx*mx+my*my); 
             player.x+=(mx/l)*player.speed; 
@@ -3664,6 +3689,12 @@
              else if (player.weapons.serbian.path === 2) available.push(EVOLUTIONS.find(e=>e.id==='serbian_p2_evo'));
              else if (player.weapons.serbian.path === 3) available.push(EVOLUTIONS.find(e=>e.id==='serbian_p3_evo'));
         }
+        
+        // --- SOFTLOCK FIX: FORCE SOUP ---
+        if(available.length === 0) {
+            let soup = UPGRADES.find(u => u.id === 'heal');
+            if(soup) available.push(soup);
+        }
 
         let pools = {
             legendary: available.filter(u => u.tier === 'legendary'),
@@ -3702,9 +3733,10 @@
 
             if(card && !selectedCards.includes(card)) selectedCards.push(card);
         }
-
-        if(selectedCards.length < 3 && pools.common.length > 0) {
-            pools.common.forEach(c => {
+        
+        // Fallback for duplicates or tiny pool
+        if(selectedCards.length < 3 && available.length > 0) {
+            available.forEach(c => {
                  if(selectedCards.length < 3 && !selectedCards.includes(c)) selectedCards.push(c);
             });
         }
@@ -3718,6 +3750,7 @@
             if(player.weapons[o.id]) lvlText = 'Lvl ' + (player.weapons[o.id].level + 1);
             else if(player.items[o.id] !== undefined) lvlText = 'Lvl ' + (player.items[o.id] + 1);
             else if(o.base && player.weapons[o.base]) lvlText = 'EVO';
+            if(o.max > 100) lvlText = '∞'; // Infinite symbol
 
             el.innerHTML=`<div class="card-level">${lvlText}</div><div class="card-icon">${o.icon}</div><div class="card-name">${o.name}</div><div class="card-desc">${o.desc}</div>`;
             el.onclick=()=>{applyUpgrade(o.id);}; container.appendChild(el);
