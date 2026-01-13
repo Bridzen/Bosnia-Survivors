@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bosnian Survivors: ROSTILJ UPDATE - PLATINUM EDITION</title>
+<title>Bosnian Survivors: ROSTILJ UPDATE - PLATINUM FIX</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
     :root { 
@@ -1953,11 +1953,8 @@
                     this.deathAnimationTimer--;
                     if(state.frames % 5 === 0) createParticle(this.x + (Math.random()-0.5)*100, this.y + (Math.random()-0.5)*100, '#fff', 'plasma', 5);
                     if(this.deathAnimationTimer <= 0) {
-                        this.finishDeath(); // Actually remove
+                        this.finishDeath(); // Actually remove and spawn crate
                     }
-                }
-                if(this.type === 'BOSS' || this.type === 'BRAXTON' || this.type === 'POLYRHYTHM' || this.type === 'TEZINA') {
-                   // Ensure HUD is gone if it was this boss
                 }
                 return;
             }
@@ -3442,8 +3439,9 @@
         });
         
         // --- FIXED BOSS DESPAWN GLITCH ---
-        // Bosses are now exempt from distance based cleanup
-        state.enemies=state.enemies.filter(e=>!e.dead && (Math.hypot(e.x-player.x,e.y-player.y)<2000 || e.type.includes('BOSS') || e.type === 'BRAXTON' || e.type === 'POLYRHYTHM' || e.type === 'TEZINA'));
+        // We filter out enemies that are dead AND have finished their death animation.
+        // If e.dead is true, we ONLY keep them if e.deathAnimationTimer > 0.
+        state.enemies=state.enemies.filter(e=>(!e.dead || e.deathAnimationTimer > 0) && (Math.hypot(e.x-player.x,e.y-player.y)<2000 || e.type.includes('BOSS') || e.type === 'BRAXTON' || e.type === 'POLYRHYTHM' || e.type === 'TEZINA'));
 
         state.particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=p.decay;p.vx*=0.95;p.vy*=0.95;}); state.particles=state.particles.filter(p=>p.life>0);
         state.texts.forEach(t=>{t.y+=t.vy; t.vy*=0.9; t.life-=0.02;}); state.texts=state.texts.filter(t=>t.life>0);
