@@ -4915,6 +4915,7 @@
             if (player.weapons.burek.level >= 8 && !player.weapons.burek.evolved) available.push(EVOLUTIONS.find(e => e.id === 'burek_evo'));
             if (player.weapons.pyramid.level >= 6 && !player.weapons.pyramid.evolved) available.push(EVOLUTIONS.find(e => e.id === 'pyramid_evo'));
             if (player.weapons.cevapi.level >= 10 && !player.weapons.cevapi.evolved) available.push(EVOLUTIONS.find(e => e.id === 'cevapi_evo'));
+            if (player.weapons.harmonika.level >= 10 && !player.weapons.harmonika.evolved) available.push(EVOLUTIONS.find(e => e.id === 'harmonika_evo'));
 
             if (player.weapons.burek.evolved) available.push(SUPERCHARGES.find(s => s.id === 'supercharge_burek'));
             if (player.weapons.pyramid.evolved) available.push(SUPERCHARGES.find(s => s.id === 'supercharge_pyramid'));
@@ -5042,6 +5043,7 @@
                 player.weapons.cevapi.evolved = true;
                 player.weapons.cevapi.lastBurstScore = state.score;
             }
+            if (id === 'harmonika_evo') { player.weapons.harmonika.evolved = true; }
 
             if (id === 'supercharge_burek') { player.weapons.burek.damage *= 1.2; spawnDamageText(player.x, player.y - 50, "MAGMA INTENSIFIES", true); }
             if (id === 'supercharge_pyramid') { player.weapons.pyramid.damage *= 1.2; spawnDamageText(player.x, player.y - 50, "POWER UP!", true); }
