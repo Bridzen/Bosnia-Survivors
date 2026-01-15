@@ -3115,7 +3115,7 @@
                             this.isDashing = false;
                             this.dashVulnerable = 60; // 1 second vulnerable after dash
                             this.dashCooldown = 300; // 5 second cooldown
-                            this.rechargeTimer = 90; // 1.5 second recharge (must stop moving)
+                            this.rechargeTimer = 180; // 3 seconds recharge (must stop moving)
                         }
                     } else if (this.rechargeTimer > 0) {
                         // RECHARGE PHASE - stop moving to recharge
@@ -3127,10 +3127,8 @@
                     } else if (this.telegraphTimer > 0) {
                         // Telegraphing - about to dash
                         this.telegraphTimer--;
-                        // Store dash direction toward current player position
-                        let ang = Math.atan2(player.y - this.y, player.x - this.x);
-                        this.dashVelX = Math.cos(ang) * 20; // Fast dash speed
-                        this.dashVelY = Math.sin(ang) * 20;
+                        // AIM LOCK: We do NOT update dashVelX/Y here anymore. 
+                        // It stays locked to where the player was when telegraph started.
 
                         if (this.telegraphTimer <= 0) {
                             this.isDashing = true;
@@ -3146,6 +3144,11 @@
                             this.telegraphTimer = 30; // 0.5 second telegraph
                             spawnDamageText(this.x, this.y - 40, "!", 'normal');
                             createParticle(this.x, this.y, '#fff', 'plasma', 3);
+
+                            // LOCK AIM NOW at start of telegraph
+                            let ang = Math.atan2(player.y - this.y, player.x - this.x);
+                            this.dashVelX = Math.cos(ang) * 20; // Fast dash speed
+                            this.dashVelY = Math.sin(ang) * 20;
                         }
                     }
                 }
