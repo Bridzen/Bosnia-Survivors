@@ -2260,6 +2260,8 @@
                                 let ang = Math.atan2(player.y - this.targetY, player.x - this.targetX);
                                 player.x += Math.cos(ang) * 40;
                                 player.y += Math.sin(ang) * 40;
+
+                                if (player.hp <= 0) triggerDeath();
                             }
                         }
                         return;
