@@ -1107,6 +1107,7 @@
                     <option value="medic">Medic</option>
                     <option value="lovac">Krvavi Lovac</option>
                     <option value="jurisnik">Svjetlosni Jurišnik</option>
+                    <option value="brdanin">Brđanin</option>
                     <option value="NOLAN">Nolan-ite</option>
                     <option value="MINI_BOSS">Mini Boss</option>
                     <option value="BOSS">Warlord</option>
@@ -1260,6 +1261,7 @@
             { name: 'Medic', icon: '🚑', desc: 'Healer unit. Sustains the horde. Priority target.' },
             { name: 'Krvavi Lovac', icon: '🔪', desc: 'Phase Shifter. Turns 90% invisible (still hittable). Spawns after 7 mins.' },
             { name: 'Svjetlosni Jurišnik', icon: '⚡', desc: 'Light Charger. Fast gap-closer with a stunning Light Dash. Spawns after 17 mins.' },
+            { name: 'Brđanin', icon: '🏔️', desc: 'Walking Mountain. Lobs crushing rocks every 45s. Spawns after 16 mins.' },
             { name: 'Nolan-ite', icon: '🇵🇱', desc: 'Summoned by Braxton. Fast, shoots Warsaw blasts.' },
             { name: 'WARLORD', icon: '👹', desc: 'The Final Boss. Immune to Nuke/Freeze. 5000 HP.' },
             { name: 'BRAXTON-inite', icon: '🌮', desc: '15,000 HP. Kills everything. Summons Nolans. Lasers.' },
@@ -2182,7 +2184,7 @@
                     this.scale = 1.4;
                 }
 
-                if (type === 'boss_missile' || type === 'sniper_shot' || type === 'warsaw' || type === 'bosnian_flag') {
+                if (type === 'boss_missile' || type === 'sniper_shot' || type === 'warsaw' || type === 'bosnian_flag' || type === 'rock_lob') {
                     let a = 0;
                     if (target) a = Math.atan2(target.y - y, target.x - x);
                     this.speed = 12;
@@ -2196,6 +2198,15 @@
                         this.gravity = 0.6;
                         this.life = 120;
                         this.pierce = true;
+                        return;
+                    }
+                    if (type === 'rock_lob') {
+                        this.startX = x; this.startY = y;
+                        this.targetX = target.x; this.targetY = target.y;
+                        this.duration = 90; // 1.5 seconds travel time
+                        this.time = 0;
+                        this.arcHeight = 150; // How high it lobs
+                        this.life = 100; // Just keeps it alive until impact
                         return;
                     }
 
@@ -2221,6 +2232,47 @@
                     this.rotation = Math.atan2(this.vy, this.vx);
                     this.life--;
                     if (this.y > player.y + 1000) this.life = 0; // Cull if falls too far
+                    return;
+                }
+
+                if (this.type === 'rock_lob') {
+                    this.time++;
+                    let p = this.time / this.duration; // Progress 0 to 1
+
+                    if (p >= 1) {
+                        // Impact!
+                        this.life = 0;
+                        addShake(15);
+                        createParticle(this.targetX, this.targetY, '#5a4d41', 'smoke', 5);
+                        for (let i = 0; i < 10; i++) createParticle(this.targetX, this.targetY, '#444', 'spark', 2);
+                        state.zones.push(new Zone(this.targetX, this.targetY, 'shield_push', 40)); // Visual impact
+
+                        // Damage Logic
+                        if (Math.hypot(player.x - this.targetX, player.y - this.targetY) < 60) {
+                            if (!godMode && player.invincible <= 0) {
+                                let minutes = state.gameTime / 60;
+                                let dmg = 100 + (minutes * 5); // 100 base + scaling
+                                player.hp -= dmg;
+                                player.invincible = 30;
+                                spawnDamageText(player.x, player.y - 60, Math.floor(dmg), 'player');
+
+                                // Knockback
+                                let ang = Math.atan2(player.y - this.targetY, player.x - this.targetX);
+                                player.x += Math.cos(ang) * 40;
+                                player.y += Math.sin(ang) * 40;
+                            }
+                        }
+                        return;
+                    }
+
+                    // Linear interpolation X/Y
+                    this.x = this.startX + (this.targetX - this.startX) * p;
+                    this.y = this.startY + (this.targetY - this.startY) * p;
+
+                    // Arc Height (Parabola)
+                    this.z = 4 * this.arcHeight * p * (1 - p);
+
+                    this.rotation += 0.1;
                     return;
                 }
 
@@ -2266,6 +2318,37 @@
                     ctx.rotate(1.57); // Adjust for falling
                     ctx.fillStyle = '#002395'; ctx.fillRect(-10, -15, 20, 30); // Blue
                     ctx.fillStyle = '#fecb00'; ctx.beginPath(); ctx.moveTo(10, -15); ctx.lineTo(-10, -15); ctx.lineTo(10, 15); ctx.fill(); // Triangle
+                    ctx.restore();
+                    return;
+                }
+
+                if (this.type === 'rock_lob') {
+                    // Draw Shadow at ground position
+                    // We must undo translate/rotate for shadow, as shadow is at (x,y) but rock is at (x, y-z)
+                    // Actually, let's just draw shadow relative to current context (this.x, this.y) but shift Y by z
+                    // Wait, this.y is GROUND pos in my logic?
+                    // "this.y = this.startY + (this.targetY - this.startY) * p" -> Ground position
+                    // "this.z" is visual offset.
+
+                    // So (0,0) is ground pos.
+                    ctx.rotate(-this.rotation); // Unrotate for shadow
+                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                    let shadowSize = 10 + (100 - this.z) * 0.1; // Smaller when high
+                    ctx.beginPath(); ctx.ellipse(0, 0, shadowSize, shadowSize * 0.5, 0, 0, 6.28); ctx.fill();
+
+                    // Draw Rock
+                    ctx.translate(0, -this.z);
+                    ctx.rotate(this.rotation);
+
+                    ctx.fillStyle = '#777';
+                    ctx.beginPath();
+                    ctx.moveTo(-10, -10);
+                    ctx.lineTo(10, -15);
+                    ctx.lineTo(15, 5);
+                    ctx.lineTo(0, 15);
+                    ctx.lineTo(-15, 5);
+                    ctx.fill();
+
                     ctx.restore();
                     return;
                 }
@@ -2705,6 +2788,7 @@
                     else if (this.type === 'medic') baseHp = 300 + state.level * 5;
                     else if (this.type === 'lovac') baseHp = 500 + state.level * 10;
                     else if (this.type === 'jurisnik') baseHp = 350 + state.level * 8;
+                    else if (this.type === 'brdanin') baseHp = 2500 + state.level * 50;
                     else if (this.type === 'NOLAN') baseHp = 600;
                     else if (this.type === 'MINI_BOSS') baseHp = 800 + state.level * 100;
                     else if (this.type === 'RHYTHM_WRAITH') baseHp = 10; // Weak
@@ -2802,6 +2886,12 @@
                     this.baseSpeed = 1.5; this.radius = 15;
                     this.state = 'move'; this.snajperTimer = 0;
                     this.targetX = 0; this.targetY = 0;
+                }
+                else if (this.type === 'brdanin') {
+                    this.baseSpeed = 1.2; // Slow
+                    this.radius = 35;
+                    this.attackTimer = 2700; // 45 seconds (45 * 60)
+                    this.rockTimer = 0; // Animation timer
                 }
                 else if (this.type === 'RHYTHM_WRAITH') { this.baseSpeed = 3.0; this.radius = 15; }
 
@@ -3150,6 +3240,27 @@
                             this.dashVelX = Math.cos(ang) * 20; // Fast dash speed
                             this.dashVelY = Math.sin(ang) * 20;
                         }
+                    }
+                }
+
+                if (this.type === 'brdanin') {
+                    if (this.rockTimer > 0) this.rockTimer--;
+                    if (this.attackTimer > 0) {
+                        this.attackTimer--;
+                        // Telegraph phase - stop moving 1 second before attack
+                        if (this.attackTimer <= 60 && this.attackTimer > 0) {
+                            if (this.attackTimer === 60) spawnDamageText(this.x, this.y - 60, "!!!", 'crit');
+                            if (state.frames % 10 === 0) createParticle(this.x, this.y, '#888', 'smoke', 2);
+                            return; // Stop moving
+                        }
+                    } else {
+                        // Attack!
+                        this.attackTimer = 2700; // Reset to 45s
+                        this.rockTimer = 60; // Animation play
+                        // Launch Rock Lob
+                        state.projectiles.push(new Projectile(this.x, this.y - 40, player, 'rock_lob'));
+                        spawnDamageText(this.x, this.y - 60, "ROCK THROW!", 'normal');
+                        addShake(5);
                     }
                 }
 
@@ -3587,6 +3698,53 @@
                         ctx.shadowBlur = 0;
                         ctx.globalAlpha = 1;
                     }
+                    else if (this.type === 'brdanin') {
+                        ctx.rotate(this.angle + 1.57);
+                        // Walking animation
+                        let walk = Math.sin(state.frames * 0.1) * 3;
+                        if (this.attackTimer < 60 && this.attackTimer > 0) walk = 0; // Stop anim when telegraphing
+
+                        // Legs (Small shuffling)
+                        ctx.fillStyle = '#444';
+                        ctx.fillRect(-15, 20 + walk, 10, 10);
+                        ctx.fillRect(5, 20 - walk, 10, 10);
+
+                        // Mountain Body (Trapezoid)
+                        ctx.fillStyle = '#5a4d41'; // Brown-Grey
+                        ctx.beginPath();
+                        ctx.moveTo(-25, 25);
+                        ctx.lineTo(25, 25);
+                        ctx.lineTo(15, -25);
+                        ctx.lineTo(-15, -25);
+                        ctx.fill();
+
+                        // Detail - Rock Layers
+                        ctx.strokeStyle = '#3e352d';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.moveTo(-20, 10); ctx.lineTo(20, 10); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(-18, -5); ctx.lineTo(18, -5); ctx.stroke();
+
+                        // Snow Peak
+                        ctx.fillStyle = '#fff';
+                        ctx.beginPath();
+                        ctx.moveTo(-15, -25);
+                        ctx.lineTo(15, -25);
+                        ctx.lineTo(0, -10 + Math.random() * 2); // Jagged snow line
+                        ctx.fill();
+
+                        // Arms (Small, side)
+                        ctx.fillStyle = '#444';
+                        let armWobble = Math.cos(state.frames * 0.1) * 2;
+                        ctx.fillRect(-28, 0 + armWobble, 6, 15);
+                        ctx.fillRect(22, 0 - armWobble, 6, 15);
+
+                        // Rock holding animation
+                        if (this.rockTimer > 0) {
+                            // Holding rock above head
+                            ctx.fillStyle = '#777';
+                            ctx.beginPath(); ctx.arc(0, -35, 15, 0, 6.28); ctx.fill();
+                        }
+                    }
                     else if (this.type === 'medic') {
                         ctx.rotate(this.angle + 1.57);
                         ctx.fillStyle = '#eee'; ctx.beginPath(); ctx.arc(0, 0, 14, 0, 6.28); ctx.fill(); // Body
@@ -3998,6 +4156,14 @@
             if (t >= 1020 && !state.bossActive) {
                 if (state.frames % 400 === 0) {
                     state.enemies.push(new Enemy('jurisnik'));
+                }
+            }
+
+            // BRĐANIN SPAWN LOGIC (16 minutes / 960 seconds)
+            if (t >= 960 && !state.bossActive) {
+                let count = state.enemies.filter(e => e.type === 'brdanin').length;
+                if (count < 10 && state.frames % 300 === 0) {
+                    state.enemies.push(new Enemy('brdanin'));
                 }
             }
 
