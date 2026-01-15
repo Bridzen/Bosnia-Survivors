@@ -1282,7 +1282,7 @@
         };
         let player = {
             x: 0, y: 0, hp: 100, maxHp: 100, speed: 6, radius: 20, magnetRadius: 140, armor: 0, regen: 0, critChance: 0.05, cdr: 1.0, facing: 0,
-            luck: 1.0, visible: true, invincible: 0,
+            luck: 1.0, visible: true, invincible: 0, stunTimer: 0,
             weapons: {},
             items: {},
             moving: false /* ADDED MOVING FLAG */
@@ -1523,7 +1523,7 @@
 
             player = {
                 x: W / 2, y: H / 2, hp: 100, maxHp: 100, speed: 6, radius: 20, magnetRadius: 140, armor: 0, regen: 0, critChance: 0.05, cdr: 1.0, facing: 0,
-                luck: 1.0, visible: true, invincible: 0,
+                luck: 1.0, visible: true, invincible: 0, stunTimer: 0,
                 weapons: {
                     burek: { level: 1, count: 1, damage: 10, dist: 100, speed: 0.02, evolved: false, orbs: [], trailTimer: 0 },
                     cevapi: { level: 1, cooldown: 60, baseCool: 60, timer: 0, damage: 15, evolved: false, grillAngle: 0, lastBurstScore: 0, burnCount: 25 },
@@ -2794,6 +2794,7 @@
                     this.dashVelX = 0;
                     this.dashVelY = 0;
                     this.telegraphTimer = 0;
+                    this.rechargeTimer = 0;
                     this.attackAnim = 0;
                 }
                 else if (this.type === 'NOLAN') { this.baseSpeed = 5.0; this.radius = 20; this.attackTimer = 120; }
@@ -3094,6 +3095,7 @@
                     if (this.attackAnim > 0) this.attackAnim--;
                     if (this.dashCooldown > 0) this.dashCooldown--;
                     if (this.dashVulnerable > 0) this.dashVulnerable--;
+                    if (this.rechargeTimer > 0) this.rechargeTimer--;
 
                     // Count how many jurisniks are currently dashing
                     let dashingCount = state.enemies.filter(e => e.type === 'jurisnik' && e.isDashing).length;
@@ -3113,7 +3115,15 @@
                             this.isDashing = false;
                             this.dashVulnerable = 60; // 1 second vulnerable after dash
                             this.dashCooldown = 300; // 5 second cooldown
+                            this.rechargeTimer = 90; // 1.5 second recharge (must stop moving)
                         }
+                    } else if (this.rechargeTimer > 0) {
+                        // RECHARGE PHASE - stop moving to recharge
+                        // Enemy stands still during this phase
+                        if (state.frames % 10 === 0) {
+                            createParticle(this.x, this.y, '#ffea00', 'spark', 0.5);
+                        }
+                        return; // Skip normal movement
                     } else if (this.telegraphTimer > 0) {
                         // Telegraphing - about to dash
                         this.telegraphTimer--;
@@ -4044,16 +4054,23 @@
         function update() {
             if (state.flashAlpha > 0) state.flashAlpha -= 0.02;
 
-            let mx = 0, my = 0; if (keys['w'] || keys['arrowup']) my = -1; if (keys['s'] || keys['arrowdown']) my = 1; if (keys['a'] || keys['arrowleft']) mx = -1; if (keys['d'] || keys['arrowright']) mx = 1;
+            // Stun Timer
+            if (player.stunTimer > 0) {
+                player.stunTimer--;
+                player.moving = false;
+                // Player cannot move while stunned
+            } else {
+                let mx = 0, my = 0; if (keys['w'] || keys['arrowup']) my = -1; if (keys['s'] || keys['arrowdown']) my = 1; if (keys['a'] || keys['arrowleft']) mx = -1; if (keys['d'] || keys['arrowright']) mx = 1;
 
-            // MOVING CHECK FOR POLYRHYTHM BOSS MECHANIC
-            player.moving = (mx !== 0 || my !== 0);
+                // MOVING CHECK FOR POLYRHYTHM BOSS MECHANIC
+                player.moving = (mx !== 0 || my !== 0);
 
-            if (mx !== 0 || my !== 0) {
-                let l = Math.sqrt(mx * mx + my * my);
-                player.x += (mx / l) * player.speed;
-                player.y += (my / l) * player.speed;
-                player.facing = Math.atan2(my, mx);
+                if (mx !== 0 || my !== 0) {
+                    let l = Math.sqrt(mx * mx + my * my);
+                    player.x += (mx / l) * player.speed;
+                    player.y += (my / l) * player.speed;
+                    player.facing = Math.atan2(my, mx);
+                }
             }
 
             if (player.invincible > 0) player.invincible--;
@@ -4403,7 +4420,7 @@
                             if (e.isDashing) {
                                 // Light Dash hit - 50 base + time scaling + stun
                                 baseDmg = 50 + (minutesElapsed * 2);
-                                player.invincible = 30; // 0.5s stun (can't move during invincibility)
+                                player.stunTimer = 30; // 0.5s stun (30 frames)
                                 spawnDamageText(player.x, player.y - 80, "STUNNED!", 'crit');
                                 addShake(15);
                                 e.isDashing = false; // End dash on hit
