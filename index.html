@@ -4555,6 +4555,10 @@
                 });
             }
 
+            // Store for Drawing
+            harm.currentRange = effRange;
+            harm.currentColor = auraColor;
+
             state.enemies.forEach(e => {
                 e.speed = e.baseSpeed;
                 // Harmonika Slow (Ignored by Phased Lovac)
@@ -4859,15 +4863,27 @@
             });
 
             if (player.weapons.harmonika.level > 0) {
-                ctx.strokeStyle = 'rgba(0, 243, 255, 0.3)'; ctx.lineWidth = 2;
-                ctx.fillStyle = 'rgba(0, 243, 255, 0.05)';
-                ctx.beginPath(); ctx.arc(pX, pY, player.weapons.harmonika.range, 0, 6.28);
-                ctx.fill(); ctx.stroke();
+                let range = player.weapons.harmonika.currentRange || player.weapons.harmonika.range;
+                let color = player.weapons.harmonika.currentColor || '#00f3ff';
 
-                ctx.strokeStyle = 'rgba(0, 243, 255, 0.1)';
+                ctx.save();
+                ctx.translate(pX, pY);
+
+                ctx.strokeStyle = color;
+                ctx.fillStyle = color;
+
+                ctx.globalAlpha = 0.3; ctx.lineWidth = 2; // Stroke
+                ctx.beginPath(); ctx.arc(0, 0, range, 0, 6.28); ctx.stroke();
+
+                ctx.globalAlpha = 0.05; // Fill
+                ctx.beginPath(); ctx.arc(0, 0, range, 0, 6.28); ctx.fill();
+
+                ctx.globalAlpha = 0.1; // Inner Ring
                 ctx.beginPath();
-                ctx.arc(pX, pY, player.weapons.harmonika.range - 10, state.frames * 0.02, state.frames * 0.02 + 4);
+                ctx.arc(0, 0, range - 10, state.frames * 0.02, state.frames * 0.02 + 4);
                 ctx.stroke();
+
+                ctx.restore();
             }
 
             ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.shadowBlur = 0;
