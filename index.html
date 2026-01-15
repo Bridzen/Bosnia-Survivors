@@ -1214,7 +1214,7 @@
             { id: 'flag', name: 'Bosnian Flag', icon: '🇧🇦', desc: 'Throws a flag into the air that falls and pierces enemies. (+1 Flag per Card Level).', tier: 'rare', max: 6 },
             { id: 'sword', name: 'Dull Bosnian Sword', icon: '🗡️', desc: '+10% Damage for ALL attacks. (Additive Stack)', tier: 'common', max: 10 },
 
-            { id: 'harmonika', name: 'Harmonika Aura', icon: '🎹', desc: 'Slows all enemies within range. (30% Base, +10% per level, Max 80%)', tier: 'rare', max: 8 },
+            { id: 'harmonika', name: 'Harmonika Aura', icon: '🎹', desc: 'Slows all enemies within range. (30% Base, +10% per level, Max 80%)', tier: 'rare', max: 10 },
             { id: 'xp_boost', name: 'Poor Jewelry', icon: '💍', desc: '+50% EXP Gain (Stacks)', tier: 'rare', max: 10 },
             { id: 'cracked_jewelry', name: 'Cracked Jewelry', icon: '📿', desc: '+25% EXP Gain (Stacks with Poor Jewelry).', tier: 'common', max: 10 },
 
@@ -1233,6 +1233,7 @@
             { id: 'burek_evo', base: 'burek', name: 'RING OF FIRE', icon: '🔥', desc: 'EVOLUTION: Massive permanent fire zone. 2x Radius. Burns ALL enemies constantly.', tier: 'rare' },
             { id: 'pyramid_evo', base: 'pyramid', name: 'SOLAR FLARE', icon: '☀️', desc: 'EVOLUTION: Instantly blasts enemies with a massive laser beam.', tier: 'rare' },
             { id: 'cevapi_evo', base: 'cevapi', name: 'ROSTILJ MASTER', icon: '🍖', desc: 'EVO: Adds an orbiting grill. You continue to fire your own rounds. Overheats every 100 kills.', tier: 'rare' },
+            { id: 'harmonika_evo', base: 'harmonika', name: 'HARMONIKA VIRTUOSO', icon: '🎵', desc: 'EVO: Massive aura that slows enemies. Standing still increases slow to 98% (Green Aura).', tier: 'rare' },
             { id: 'serbian_p1', base: 'serbian', name: 'PATH 1: TITAN SWORD', icon: '🗡️', desc: 'LVL 2: Bigger Sword. Higher Damage. Same AI.', tier: 'legendary', req: 'serbian' },
             { id: 'serbian_p2', base: 'serbian', name: 'PATH 2: TACTICAL SQUAD', icon: '👥', desc: 'LVL 2: Splits into 3 Units: Soldier, Defender, Mage.', tier: 'legendary', req: 'serbian' },
             { id: 'serbian_p3', base: 'serbian', name: 'PATH 3: VANGUARD', icon: '🛡️', desc: 'LVL 2: Sword & Shield Unit. 20 Durability. Tanky.', tier: 'legendary', req: 'serbian' },
@@ -1534,7 +1535,7 @@
                     pyramid: { level: 0, cooldown: 110, baseCool: 110, timer: 0, damage: 50, evolved: false },
                     spike: { level: 0, cooldown: 180, baseCool: 180, timer: 0, damage: 60 },
                     flag: { level: 0, cooldown: 240, baseCool: 240, count: 1, timer: 0 },
-                    harmonika: { level: 0, range: 240, slow: 0.30 },
+                    harmonika: { level: 0, range: 240, slow: 0.30, evolved: false, stationaryTimer: 0 },
                     serbian: { level: 0, path: 0, evolved: false },
                     piano_smash: { level: 0, cooldown: 300, timer: 0 }
                 },
@@ -4517,15 +4518,56 @@
             });
 
             const harm = player.weapons.harmonika;
+            let effRange = harm.range;
+            let effectiveSlow = Math.min(harm.slow, 0.8);
+            let auraColor = '#00f3ff';
+
+            if (harm.evolved) {
+                effRange *= 1.5;
+                if (!player.moving) harm.stationaryTimer++;
+                else harm.stationaryTimer = 0;
+
+                let bonus = Math.floor(harm.stationaryTimer / 60) * 0.01;
+                effectiveSlow = 0.8 + bonus;
+                if (effectiveSlow > 0.98) effectiveSlow = 0.98;
+
+                auraColor = '#d000ff'; // Purple
+                if (effectiveSlow >= 0.98) {
+                    auraColor = '#00ff00'; // Green Cap
+                    if (state.frames % 5 === 0) {
+                        let rAng = Math.random() * 6.28;
+                        let rDist = Math.random() * effRange;
+                        createParticle(player.x + Math.cos(rAng) * rDist, player.y + Math.sin(rAng) * rDist, '#00ff00', 'spark', 1);
+                    }
+                }
+
+                // Slow Projectiles
+                state.projectiles.forEach(p => {
+                    if (['boss_missile', 'sniper_shot', 'warsaw', 'rock_lob'].includes(p.type)) {
+                        if (Math.hypot(p.x - player.x, p.y - player.y) < effRange) {
+                            if (p.type === 'rock_lob') p.time -= effectiveSlow;
+                            else {
+                                p.x -= p.vx * effectiveSlow;
+                                p.y -= p.vy * effectiveSlow;
+                            }
+                        }
+                    }
+                });
+            }
 
             state.enemies.forEach(e => {
                 e.speed = e.baseSpeed;
                 // Harmonika Slow (Ignored by Phased Lovac)
                 if (harm.level > 0 && !e.isPhased) {
-                    if (Math.hypot(e.x - player.x, e.y - player.y) < harm.range) {
-                        let effectiveSlow = Math.min(harm.slow, 0.8);
+                    if (Math.hypot(e.x - player.x, e.y - player.y) < effRange) {
                         e.speed = e.baseSpeed * (1 - effectiveSlow);
-                        if (state.frames % 20 === 0) createParticle(e.x, e.y, '#00f3ff', 'spark', 0.2);
+                        if (state.frames % 20 === 0) createParticle(e.x, e.y, auraColor, 'spark', 0.2);
+
+                        // Dash Slow (Jurišnik)
+                        if (harm.evolved && e.type === 'jurisnik' && e.isDashing) {
+                            e.x -= e.dashVelX * effectiveSlow;
+                            e.y -= e.dashVelY * effectiveSlow;
+                        }
                     }
                 }
 
