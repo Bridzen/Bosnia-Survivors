@@ -1359,17 +1359,14 @@
             let e = new Enemy(type);
             if (type === 'BRAXTON') {
                 triggerBraxtonCutscene();
-                closeAdmin();
                 return;
             }
             if (type === 'POLYRHYTHM') {
                 triggerMusicalIntro();
-                closeAdmin();
                 return;
             }
             if (type === 'TEZINA') {
                 triggerClockIntro();
-                closeAdmin();
                 return;
             }
             state.enemies.push(e);
@@ -4531,7 +4528,11 @@
                 effectiveSlow = 0.8 + bonus;
                 if (effectiveSlow > 0.98) effectiveSlow = 0.98;
 
-                auraColor = '#d000ff'; // Purple
+                // Color Gradient: Purple (280) -> Green (120) based on charge (0 to 0.18)
+                let chargeProgress = Math.min(1, (effectiveSlow - 0.8) / 0.18);
+                let hue = 280 - (160 * chargeProgress);
+                auraColor = `hsl(${hue}, 100%, 50%)`;
+
                 if (effectiveSlow >= 0.98) {
                     auraColor = '#00ff00'; // Green Cap
                     if (state.frames % 5 === 0) {
