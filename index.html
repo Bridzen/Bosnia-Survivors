@@ -1090,6 +1090,11 @@
             </div>
         </div>
         <div class="admin-grid">
+            <div style="grid-column: span 2; display: flex; gap: 10px; margin-bottom: 10px;">
+                <input id="admin-time-input" type="number" placeholder="Min"
+                    style="padding: 10px; width: 80px; font-family: 'Orbitron'; background: #000; color: #fff; border: 1px solid #555;">
+                <button class="admin-btn" style="flex-grow: 1;" onclick="adminSetTime()">JUMP TIME (MIN)</button>
+            </div>
             <button class="admin-btn" onclick="toggleGodMode()">Toggle God Mode</button>
             <button class="admin-btn" onclick="adminLevelUp()">+1 Level</button>
             <button class="admin-btn" onclick="adminKillAll()">Kill All Enemies</button>
@@ -1251,7 +1256,9 @@
         const SPECIAL_REWARDS = [
             { id: 'musical_beat', name: 'MUSICAL BEAT', icon: '🎵', desc: 'XP Gain Multiplied by 1.5x.', tier: 'legendary' },
             { id: 'rhythmic_buff', name: 'RHYTHMIC BUFF', icon: '🥁', desc: 'Every 18s, gain +40% Size and Damage for 2s.', tier: 'legendary' },
-            { id: 'piano_smash', name: 'PIANO SMASH', icon: '🎹', desc: 'Calls down a piano to smash enemies near you. (100 Base Dmg + Level).', tier: 'legendary' }
+            { id: 'piano_smash', name: 'PIANO SMASH', icon: '🎹', desc: 'Calls down a piano to smash enemies near you. (100 Base Dmg + Level).', tier: 'legendary' },
+            { id: 'windy_bee', name: 'WINDY BEE', icon: '🐝', desc: 'A friendly bee that summons its own tornadoes to help you.', tier: 'legendary' },
+            { id: 'windy_boost', name: 'WINDY BOOST', icon: '🌪️', desc: '1.2x Damage, 1.2x Speed, 10% CDR.', tier: 'legendary' }
         ];
 
         const ENEMY_INFO = [
@@ -1267,7 +1274,8 @@
             { name: 'WARLORD', icon: '👹', desc: 'The Final Boss. Immune to Nuke/Freeze. 5000 HP.' },
             { name: 'BRAXTON-inite', icon: '🌮', desc: '15,000 HP. Kills everything. Summons Nolans. Lasers.' },
             { name: 'The Polyrhythm', icon: '🎶', desc: '15 Min Boss. Fast, Dodges, Heals. Don\'t move during waves.' },
-            { name: 'Težina Presude', icon: '⚖️', desc: '20 Min Boss. Judgment. Stores damage then reflects it. Instakills summons.' }
+            { name: 'Težina Presude', icon: '⚖️', desc: '20 Min Boss. Judgment. Stores damage then reflects it. Instakills summons.' },
+            { name: 'Vihor Sudbine', icon: '🌪️', desc: '30 Min Boss. The Wind Itself. Controls tornadoes and pushes you back.' }
         ];
 
         let gameActive = false;
@@ -1281,7 +1289,8 @@
             bossActive: false, bossSpawnedOnce: false, braxtonSpawned: false, braxtonActive: false, flashAlpha: 0,
             friendlyUnits: [], crates: [], texts: [],
             polyrhythmSpawned: false, polyrhythmActive: false, rhythmicBuffTimer: 0,
-            tezinaSpawned: false, tezinaActive: false
+            tezinaSpawned: false, tezinaActive: false,
+            vihorSpawned: false, vihorActive: false
         };
         let player = {
             x: 0, y: 0, hp: 100, maxHp: 100, speed: 6, radius: 20, magnetRadius: 140, armor: 0, regen: 0, critChance: 0.05, cdr: 1.0, facing: 0,
@@ -1394,6 +1403,14 @@
         function adminHeal() {
             player.hp = player.maxHp;
             updateHud();
+        }
+        function adminSetTime() {
+            const val = parseFloat(document.getElementById('admin-time-input').value);
+            if (!isNaN(val)) {
+                state.gameTime = val * 60;
+                state.frames = state.gameTime * 60;
+                spawnDamageText(player.x, player.y - 60, "TIME WARP: " + val + "m", 'normal');
+            }
         }
 
         function openInfo(type) {
@@ -2169,7 +2186,7 @@
         }
 
         class Projectile {
-            constructor(x, y, target, type) {
+            constructor(x, y, target, type, extra = 0) {
                 this.x = x; this.y = y; this.type = type; this.life = 150; this.rotation = 0;
                 this.pierceHitList = [];
                 this.overrideDamage = 0;
@@ -2182,7 +2199,7 @@
                     this.scale = 1.4;
                 }
 
-                if (type === 'boss_missile' || type === 'sniper_shot' || type === 'warsaw' || type === 'bosnian_flag' || type === 'rock_lob') {
+                if (type === 'boss_missile' || type === 'sniper_shot' || type === 'warsaw' || type === 'bosnian_flag' || type === 'rock_lob' || type === 'wind_slash') {
                     let a = 0;
                     if (target) a = Math.atan2(target.y - y, target.x - x);
                     this.speed = 12;
@@ -2207,6 +2224,11 @@
                         this.life = 100; // Just keeps it alive until impact
                         return;
                     }
+                    if (type === 'wind_slash') {
+                        a += extra; // Offset angle
+                        this.speed = 10;
+                        this.radius = 20;
+                    }
 
                     this.radius = 15;
                     if (type === 'sniper_shot') this.radius = 5;
@@ -2221,6 +2243,8 @@
                 else if (type === 'ajvar') { this.speed = 8; this.radius = 10; }
                 else if (type === 'rakija') { this.speed = 10; this.radius = 8; }
                 else if (type === 'pyramid') { this.speed = 7; this.radius = 25; this.life = 300; this.pierce = true; }
+                else if (type === 'vihor_wave') { this.radius = 10; this.hitPlayer = false; this.life = 100; this.speed = 0; }
+                else if (type === 'vihor_explosion') { this.radius = 10; this.maxRadius = 150; this.life = 30; this.speed = 0; }
                 this.vx = Math.cos(a) * this.speed; this.vy = Math.sin(a) * this.speed;
             }
             update() {
@@ -2274,6 +2298,38 @@
 
                     this.rotation += 0.1;
                     return;
+                    return;
+                }
+
+                if (this.type === 'wind_slash') {
+                    this.x += this.vx; this.y += this.vy; this.life--;
+                    if (Math.hypot(this.x - player.x, this.y - player.y) < 30 && !godMode && player.invincible <= 0) {
+                        player.takeDamage(120);
+                        player.invincible = 30;
+                        this.life = 0;
+                        spawnDamageText(player.x, player.y - 50, "SLASHED", 'crit');
+                    }
+                    return;
+                }
+                if (this.type === 'vihor_wave') {
+                    this.radius += 20;
+                    if (this.radius > 1500) return true;
+                    if (!this.hitPlayer && Math.hypot(this.x - player.x, this.y - player.y) < this.radius) {
+                        if (!godMode && player.invincible <= 0) {
+                            this.hitPlayer = true;
+                            player.takeDamage(110);
+                            let ang = Math.atan2(player.y - this.y, player.x - this.x);
+                            player.x += Math.cos(ang) * 300; player.y += Math.sin(ang) * 300;
+                            spawnDamageText(player.x, player.y - 50, "BLOWN AWAY", 'crit');
+                        }
+                    }
+                    return false;
+                }
+                if (this.type === 'vihor_explosion') {
+                    this.radius += 10;
+                    if (this.radius > this.maxRadius) return true;
+                    if (this.radius % 20 === 0) createParticle(this.x + Math.random() * 40 - 20, this.y + Math.random() * 40 - 20, '#fff', 'smoke', 1);
+                    return false;
                 }
 
                 this.x += this.vx; this.y += this.vy; this.life--; this.rotation += 0.15;
@@ -2350,6 +2406,27 @@
                     ctx.fill();
 
                     ctx.restore();
+                    ctx.restore();
+                    return;
+                }
+                if (this.type === 'wind_slash') {
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate(Math.atan2(this.vy, this.vx));
+                    ctx.fillStyle = '#ccffff';
+                    ctx.beginPath(); ctx.arc(0, 0, 30, -0.5, 0.5); ctx.fill();
+                    ctx.restore();
+                    return;
+                }
+                if (this.type === 'vihor_wave') {
+                    ctx.lineWidth = 20;
+                    ctx.strokeStyle = `rgba(200, 255, 255, ${1 - this.radius / 1500})`;
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, 6.28); ctx.stroke();
+                    return;
+                }
+                if (this.type === 'vihor_explosion') {
+                    ctx.fillStyle = `rgba(255, 255, 255, ${1 - this.radius / this.maxRadius})`;
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, 6.28); ctx.fill();
                     return;
                 }
 
@@ -2398,7 +2475,7 @@
             }
         }
         class Zone {
-            constructor(x, y, type, dur, overrideDamage = 0) { this.x = x; this.y = y; this.life = dur; this.maxLife = dur; this.radius = 90; this.type = type; this.overrideDamage = overrideDamage; if (type === 'blast') this.radius = 120; if (type === 'valk_swing') this.radius = 160; if (type === 'flame_trail') this.radius = 50; if (type === 'spike_burst') this.radius = 30; if (type === 'taco_blaster') this.radius = 40; if (type === 'tempo_wave') this.radius = 10; if (type === 'piano_warning' || type === 'piano_impact') this.radius = 360; if (type === 'musical_blast') this.radius = 80; if (type === 'judgment_beam') this.radius = 120; }
+            constructor(x, y, type, dur, overrideDamage = 0) { this.x = x; this.y = y; this.life = dur; this.maxLife = dur; this.radius = 90; this.type = type; this.overrideDamage = overrideDamage; if (type === 'blast') this.radius = 120; if (type === 'valk_swing') this.radius = 160; if (type === 'flame_trail') this.radius = 50; if (type === 'spike_burst') this.radius = 30; if (type === 'taco_blaster') this.radius = 40; if (type === 'tempo_wave') this.radius = 10; if (type === 'piano_warning' || type === 'piano_impact') this.radius = 360; if (type === 'musical_blast') this.radius = 80; if (type === 'judgment_beam') this.radius = 120; if (type === 'tornado') this.radius = 200; }
             update() {
                 this.life--;
                 if (this.type === 'blast' || this.type === 'valk_swing' || this.type === 'shield_push' || this.type === 'taunt_ring' || this.type === 'spike_burst' || this.type === 'musical_blast' || this.type === 'piano_impact') return this.life <= 0;
@@ -2427,6 +2504,31 @@
                             spawnDamageText(player.x, player.y - 60, Math.floor(scaledDmg), 'player');
                             player.invincible = 20;
                             if (player.hp <= 0) triggerDeath();
+                        }
+                    }
+                    return this.life <= 0;
+                }
+
+                if (this.type === 'tornado') {
+                    let dx = this.x - player.x, dy = this.y - player.y;
+                    let d = Math.hypot(dx, dy);
+                    let pull = 5000 / (d * d + 100); if (pull > 3) pull = 3;
+                    let ang = Math.atan2(dy, dx);
+                    if (!player.moving) {
+                        player.x += Math.cos(ang) * pull; player.y += Math.sin(ang) * pull;
+                    } else {
+                        player.x += Math.cos(ang) * (pull * 0.5); player.y += Math.sin(ang) * (pull * 0.5);
+                    }
+
+                    if (state.frames % 5 === 0) createParticle(this.x + Math.random() * 100 - 50, this.y + Math.random() * 100 - 50, '#fff', 'smoke', 1);
+
+                    if (d < this.radius + player.radius) {
+                        if (state.frames % 12 === 0 && !godMode && player.invincible <= 0) {
+                            let power = 1 - (d / (this.radius + player.radius));
+                            if (power < 0) power = 0;
+                            let dmg = Math.floor(Math.pow(2, 4 * power)); // 1 to 16
+                            if (dmg < 1) dmg = 1;
+                            player.takeDamage(dmg);
                         }
                     }
                     return this.life <= 0;
@@ -2792,6 +2894,8 @@
                     else if (this.type === 'NOLAN') baseHp = 600;
                     else if (this.type === 'MINI_BOSS') baseHp = 800 + state.level * 100;
                     else if (this.type === 'RHYTHM_WRAITH') baseHp = 10; // Weak
+                    else if (this.type === 'VIHOR') baseHp = 50000;
+                    else if (this.type === 'VIHOR_CLONE') baseHp = 2000 + state.level * 200;
 
                     const minutes = state.gameTime / 60;
 
@@ -2852,7 +2956,21 @@
                     this.dashTimer = 0;
                     this.summonTimer = 0;
                     this.trackAngle = 0; // For beam warning
+                    this.trackAngle = 0; // For beam warning
                     this.beamWarningTimer = 0;
+                }
+                else if (this.type === 'VIHOR' || this.type === 'VIHOR_CLONE') {
+                    this.baseSpeed = this.type === 'VIHOR' ? 4.5 : 5.5;
+                    this.radius = this.type === 'VIHOR' ? 60 : 30;
+                    this.attackTimer = 180;
+                    // Claws(60), Tornado(300), Wave(900), Charge(400)
+                    this.cooldowns = { claws: 60, tornado: 300, wave: 900, charge: 400 };
+                    this.timers = { claws: 0, tornado: 100, wave: 300, charge: 200 };
+                    this.phase = 1;
+                    this.immortalityTimer = 0;
+                    this.chargeActive = false;
+                    this.chargeVel = { x: 0, y: 0 };
+                    this.clonesSpawned = false;
                 }
                 else if (this.type === 'MINI_BOSS') {
                     this.baseSpeed = 2.2; this.radius = 45;
@@ -3302,6 +3420,77 @@
                     return;
                 }
 
+                if (this.type === 'VIHOR') {
+                    for (let k in this.timers) if (this.timers[k] > 0) this.timers[k]--;
+                    if (this.immortalityTimer > 0) this.immortalityTimer--;
+
+                    if (this.phase === 1 && this.hp < this.baseHp * 0.5) {
+                        this.phase = 2;
+                        this.immortalityTimer = 600;
+                        spawnDamageText(this.x, this.y - 120, "WIND IMMORTALITY", 'crit');
+                        for (let i = 0; i < 3; i++) {
+                            let ang = (i / 3) * 6.28;
+                            state.enemies.push(new Enemy('VIHOR_CLONE', this.x + Math.cos(ang) * 100, this.y + Math.sin(ang) * 100));
+                        }
+                    }
+
+                    if (this.chargeActive) {
+                        this.chargeTimer--;
+                        this.x += this.chargeVel.x; this.y += this.chargeVel.y;
+                        if (this.chargeTimer <= 0) this.chargeActive = false;
+
+                        if (Math.hypot(player.x - this.x, player.y - this.y) < this.radius + player.radius) {
+                            player.takeDamage(150);
+                            addShake(20);
+                            this.chargeActive = false;
+                            spawnDamageText(player.x, player.y - 50, "WIND CHARGE!", 'crit');
+                            state.projectiles.push(new Projectile(this.x, this.y, null, 'vihor_explosion'));
+                            player.stunTimer = 60;
+                            let ang = Math.atan2(player.y - this.y, player.x - this.x);
+                            player.x += Math.cos(ang) * 200; player.y += Math.sin(ang) * 200;
+                        }
+                        return;
+                    }
+
+                    let dist = Math.hypot(player.x - this.x, player.y - this.y);
+                    this.attackTimer--;
+
+                    if (this.attackTimer <= 0) {
+                        this.attackTimer = 180;
+                        let attacks = [];
+                        if (this.timers.claws <= 0 && dist < 300) attacks.push('claws');
+                        if (this.timers.tornado <= 0) attacks.push('tornado');
+                        if (this.timers.charge <= 0) attacks.push('charge');
+                        if (this.timers.wave <= 0) attacks.push('wave');
+
+                        if (attacks.length > 0) {
+                            let choice = attacks[Math.floor(Math.random() * attacks.length)];
+                            if (choice === 'claws') {
+                                this.timers.claws = this.cooldowns.claws;
+                                for (let i = -1; i <= 1; i++) state.projectiles.push(new Projectile(this.x, this.y, player, 'wind_slash', i * 0.3));
+                            } else if (choice === 'tornado') {
+                                this.timers.tornado = this.cooldowns.tornado;
+                                state.zones.push(new Zone(player.x, player.y, 'tornado', 300));
+                            } else if (choice === 'charge') {
+                                this.timers.charge = this.cooldowns.charge;
+                                this.chargeActive = true;
+                                this.chargeTimer = 30;
+                                let ang = Math.atan2(player.y - this.y, player.x - this.x);
+                                let speed = 30;
+                                this.chargeVel = { x: Math.cos(ang) * speed, y: Math.sin(ang) * speed };
+                                spawnDamageText(this.x, this.y - 100, "!", 'crit');
+                            } else if (choice === 'wave') {
+                                this.timers.wave = this.cooldowns.wave;
+                                state.projectiles.push(new Projectile(this.x, this.y, player, 'vihor_wave'));
+                            }
+                        }
+                    }
+
+                    if (this.phase === 2 && dist < 800) {
+                        player.speed *= 0.7;
+                    }
+                }
+
                 let targetX = player.x, targetY = player.y;
                 let taunter = state.friendlyUnits.find(u => u.taunting && !u.dead);
                 if (taunter) { targetX = taunter.x; targetY = taunter.y; }
@@ -3341,6 +3530,11 @@
                 if (this.type === 'TEZINA' && this.isAbsorbing) {
                     this.storedDamage += a;
                     spawnDamageText(this.x, this.y - 50, "ABSORBED", false);
+                    return;
+                }
+
+                if (this.type === 'VIHOR' && this.immortalityTimer > 0) {
+                    spawnDamageText(this.x, this.y - 50, "IMMUNE", false);
                     return;
                 }
 
@@ -3695,37 +3889,6 @@
                             ctx.fill();
                         }
 
-                        ctx.shadowBlur = 0;
-                        ctx.globalAlpha = 1;
-                    }
-                    else if (this.type === 'brdanin') {
-                        ctx.rotate(this.angle + 1.57);
-                        // Walking animation
-                        let walk = Math.sin(state.frames * 0.1) * 3;
-                        if (this.attackTimer < 60 && this.attackTimer > 0) walk = 0; // Stop anim when telegraphing
-
-                        // Legs (Small shuffling)
-                        ctx.fillStyle = '#444';
-                        ctx.fillRect(-15, 20 + walk, 10, 10);
-                        ctx.fillRect(5, 20 - walk, 10, 10);
-
-                        // Mountain Body (Trapezoid)
-                        ctx.fillStyle = '#5a4d41'; // Brown-Grey
-                        ctx.beginPath();
-                        ctx.moveTo(-25, 25);
-                        ctx.lineTo(25, 25);
-                        ctx.lineTo(15, -25);
-                        ctx.lineTo(-15, -25);
-                        ctx.fill();
-
-                        // Detail - Rock Layers
-                        ctx.strokeStyle = '#3e352d';
-                        ctx.lineWidth = 2;
-                        ctx.beginPath(); ctx.moveTo(-20, 10); ctx.lineTo(20, 10); ctx.stroke();
-                        ctx.beginPath(); ctx.moveTo(-18, -5); ctx.lineTo(18, -5); ctx.stroke();
-
-                        // Snow Peak
-                        ctx.fillStyle = '#fff';
                         ctx.beginPath();
                         ctx.moveTo(-15, -25);
                         ctx.lineTo(15, -25);
@@ -3743,6 +3906,37 @@
                             // Holding rock above head
                             ctx.fillStyle = '#777';
                             ctx.beginPath(); ctx.arc(0, -35, 15, 0, 6.28); ctx.fill();
+                        }
+                    }
+                    else if (this.type === 'VIHOR' || this.type === 'VIHOR_CLONE') {
+                        let sc = this.type === 'VIHOR' ? 1.0 : 0.6;
+                        ctx.shadowBlur = 20; ctx.shadowColor = '#00f3ff';
+                        // Layer 1: Base Swirl
+                        ctx.rotate(state.frames * 0.1);
+                        ctx.strokeStyle = 'rgba(200, 255, 255, 0.8)';
+                        ctx.lineWidth = 4 * sc;
+                        ctx.beginPath(); ctx.arc(0, 0, 20 * sc, 0, 5); ctx.stroke();
+
+                        // Layer 2: Middle Swirl (Opposite)
+                        ctx.rotate(state.frames * 0.2);
+                        ctx.strokeStyle = '#00f3ff';
+                        ctx.beginPath(); ctx.arc(0, 0, 35 * sc, 0, 4); ctx.stroke();
+
+                        // Layer 3: Outer Swirl (Fast)
+                        ctx.save();
+                        ctx.rotate(state.frames * -0.3);
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                        ctx.lineWidth = 2 * sc;
+                        ctx.beginPath(); ctx.arc(0, 0, 50 * sc, 0, 5.5); ctx.stroke();
+                        ctx.restore();
+
+                        // Eye of the storm
+                        ctx.fillStyle = '#fff';
+                        ctx.beginPath(); ctx.arc(0, 0, 8 * sc, 0, 6.28); ctx.fill();
+
+                        if (this.immortalityTimer > 0) {
+                            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+                            ctx.beginPath(); ctx.arc(0, 0, 70 * sc, 0, 6.28); ctx.stroke();
                         }
                     }
                     else if (this.type === 'medic') {
@@ -3919,6 +4113,68 @@
                 state.enemies.push(new Enemy('TEZINA', bx, by));
                 spawnDamageText(bx, by - 100, "JUDGMENT COMETH", 'crit');
             }, 3500);
+        }
+
+        function triggerVihorIntro() {
+            if (state.vihorSpawned) return;
+            state.vihorSpawned = true;
+            isCutscene = true;
+            state.enemies = [];
+
+            const overlay = document.getElementById('clock-overlay');
+            const text = document.getElementById('clock-text');
+            const clockFace = document.querySelector('.clock-face');
+
+            overlay.style.display = 'flex';
+            clockFace.style.display = 'none'; // Hide clock
+            text.innerHTML = "<span style='font-size:50px; color:#00f3ff; text-shadow: 0 0 20px #00f3ff'>VIHOR SUDBINE</span><br><span style='font-size:20px; color:#aaa'>THE WHIRLWIND OF DESTINY</span>";
+
+            // Wind shake effect
+            let shakeInterval = setInterval(() => { addShake(5); }, 100);
+
+            setTimeout(() => {
+                clearInterval(shakeInterval);
+                overlay.style.display = 'none';
+                clockFace.style.display = 'block'; // Reset for reuse
+                isCutscene = false;
+                state.vihorActive = true;
+
+                let a = Math.random() * 6.28, d = 600;
+                let bx = player.x + Math.cos(a) * d, by = player.y + Math.sin(a) * d;
+                state.enemies.push(new Enemy('VIHOR', bx, by));
+                spawnDamageText(bx, by - 100, "VIHOR ARRIVES", 'crit');
+            }, 4000);
+        }
+
+        function triggerVihorIntro() {
+            if (state.vihorSpawned) return;
+            state.vihorSpawned = true;
+            isCutscene = true;
+            state.enemies = [];
+
+            const overlay = document.getElementById('clock-overlay');
+            const text = document.getElementById('clock-text');
+            const clockFace = document.querySelector('.clock-face');
+
+            overlay.style.display = 'flex';
+            clockFace.style.display = 'none'; // Hide clock
+            text.innerHTML = "<span style='font-size:50px; color:#00f3ff; text-shadow: 0 0 20px #00f3ff'>VIHOR SUDBINE</span><br><span style='font-size:20px; color:#aaa'>THE WHIRLWIND OF DESTINY</span>";
+
+            // Wind shake effect
+            let shakeInterval = setInterval(() => { addShake(5); }, 100);
+
+            setTimeout(() => {
+                clearInterval(shakeInterval);
+                overlay.style.display = 'none';
+                clockFace.style.display = 'block'; // Reset for reuse
+                isCutscene = false;
+                state.vihorActive = true;
+
+                let a = Math.random() * 6.28, d = 600;
+                let bx = player.x + Math.cos(a) * d, by = player.y + Math.sin(a) * d;
+                state.enemies.push(new Enemy('VIHOR', bx, by));
+                spawnDamageText(bx, by - 100, "VIHOR ARRIVES", 'crit');
+            }, 4000);
         }
 
         function triggerCrateOpening(type = 'standard') {
@@ -4104,7 +4360,7 @@
         }
 
         function handleWaves() {
-            if (state.braxtonActive || state.polyrhythmActive || state.tezinaActive) return;
+            if (state.braxtonActive || state.polyrhythmActive || state.tezinaActive || state.vihorActive) return;
             if (!spawningEnabled) return;
 
             let t = state.gameTime;
@@ -4126,6 +4382,20 @@
             // 20:00 - Težina Presude Intro
             if (t >= 1200 && !state.tezinaSpawned) {
                 triggerClockIntro();
+                return;
+            }
+
+            // 29:00 - Vihor Warning (1740s)
+            if (t === 1740 && state.frames % 60 === 0) {
+                const cap = document.getElementById('boss-caption');
+                cap.innerText = "THE WIND DOES NOT ALLOW YOU TO CONTINUE...";
+                cap.style.opacity = '1';
+                setTimeout(() => cap.style.opacity = '0', 4000);
+            }
+
+            // 30:00 - Vihor Intro (1800s)
+            if (t >= 1800 && !state.vihorSpawned) {
+                triggerVihorIntro();
                 return;
             }
 
